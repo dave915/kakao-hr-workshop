@@ -54,6 +54,16 @@ export interface KakaoMaps {
   event: {
     addListener(
       target: KakaoMap,
+      type: "dragstart",
+      callback: () => void,
+    ): void;
+    removeListener(
+      target: KakaoMap,
+      type: "dragstart",
+      callback: () => void,
+    ): void;
+    addListener(
+      target: KakaoMap,
       type: "click",
       callback: (event: KakaoMapClick) => void,
     ): void;

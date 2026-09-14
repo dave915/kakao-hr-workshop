@@ -53,6 +53,15 @@ export const settingsInput = z
     (s) => Date.parse(s.endsAt) > Date.parse(s.startsAt),
     "종료 일시는 시작 일시보다 늦어야 해요.",
   );
+export const guidanceInput = z.object({
+  treasureId: text(100),
+  position: z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+    accuracy: z.number().positive().max(100),
+    timestamp: z.number(),
+  }),
+});
 export const actionInput = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("claim"),
@@ -64,6 +73,7 @@ export const actionInput = z.discriminatedUnion("action", [
       timestamp: z.number(),
     }),
   }),
+  guidanceInput.extend({ action: z.literal("getGuidance") }),
   z.object({ action: z.literal("createMember"), member: memberInput }),
   z.object({ action: z.literal("rotateInvite"), memberId: text(100) }),
   z.object({

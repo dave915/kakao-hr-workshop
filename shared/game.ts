@@ -83,14 +83,14 @@ export function claimTreasure(
     blockedUntil: member.blockedUntil,
   };
 }
-export const memberRanking = (state: WorkshopState) =>
+export const memberRanking = (state: Pick<WorkshopState, "members">) =>
   Object.values(state.members).sort(
     (a, b) =>
       b.score - a.score ||
       b.found - a.found ||
       a.handle.localeCompare(b.handle),
   );
-export function teamRanking(state: WorkshopState) {
+export function teamRanking(state: Pick<WorkshopState, "members">) {
   const result = new Map<
     string,
     { name: string; score: number; found: number; members: number }
@@ -121,5 +121,6 @@ export function scheduleStatus(
       ? "current"
       : "past";
 }
-export const remainingTreasures = (treasures: Treasure[]) =>
-  treasures.filter((t) => !t.foundBy).length;
+export const remainingTreasures = (
+  treasures: Array<Pick<Treasure, "foundBy">>,
+) => treasures.filter((t) => !t.foundBy).length;

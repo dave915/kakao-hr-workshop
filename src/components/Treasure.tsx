@@ -1,48 +1,29 @@
-import { lazy, Suspense, useState, useRef } from "react";
+import { lazy, Suspense, useState, useMemo, useEffect, useRef } from "react";
 import {
   Camera as CameraIcon,
   Compass,
   Gift,
-  LocateFixed,
-  MapPin,
   Timer,
   X,
   PartyPopper,
+  Maximize2,
+  ArrowUpRight,
+  Check,
+  MapPin,
 } from "lucide-react";
 import { useWorkshop } from "../lib/store";
-import { distanceMeters, remainingTreasures } from "../../shared/game";
-import type { ClaimResult, Position } from "../../shared/types";
+import { remainingTreasures } from "../../shared/game";
+import { hasCoordinates } from "../../shared/exploration";
+import type { ClaimResult } from "../../shared/types";
 import { errorMessage } from "../lib/utils";
 import { Drawer, Empty, type Notify } from "./common";
 import { TreasureIllustration } from "./ExpeditionArt";
+import { locate, useExploration } from "../hooks/useExploration";
+import ExplorationGuide from "./ExplorationGuide";
+import ExplorationDialog from "./ExplorationDialog";
+export { locate } from "../hooks/useExploration";
 const TreasureMap = lazy(() => import("./TreasureMap"));
 const Camera = lazy(() => import("./Camera"));
-export function locate(): Promise<Position> {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("위치 확인을 지원하지 않는 브라우저예요."));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (p) =>
-        resolve({
-          lat: p.coords.latitude,
-          lng: p.coords.longitude,
-          accuracy: p.coords.accuracy,
-          timestamp: p.timestamp,
-        }),
-      (e) =>
-        reject(
-          new Error(
-            e.code === 1
-              ? "브라우저 설정에서 위치 권한을 허용해주세요."
-              : "위치를 확인하지 못했어요. 야외에서 다시 시도해주세요.",
-          ),
-        ),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-    );
-  });
-}
 export default function Treasure({
   notify,
   now,
@@ -51,60 +32,104 @@ export default function Treasure({
   now: number;
 }) {
   const { state, me, act, demo } = useWorkshop();
+  const guideRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [position, setPosition] = useState<Position | null>(null);
   const [camera, setCamera] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [showFound, setShowFound] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+  const [listMode, setListMode] = useState<"clues" | "found">("clues");
   const [result, setResult] = useState<ClaimResult | null>(null);
-  const detailRef = useRef<HTMLElement>(null);
-  const selectTreasure = (id: string) => {
+  const explore = useExploration(act);
+  const treasure = state?.treasures.find((t) => t.id === selected);
+  const found = useMemo(
+    () =>
+      state?.treasures
+        .filter((t) => Boolean(t.foundBy))
+        .filter(hasCoordinates) ?? [],
+    [state?.treasures],
+  );
+  const clues = useMemo(
+    () => state?.treasures.filter((t) => !t.foundBy) ?? [],
+    [state?.treasures],
+  );
+  const locked = Boolean(me && me.blockedUntil > now);
+  useEffect(() => {
+    explore.stop();
+    setSelected(null);
+  }, [me?.id]);
+  useEffect(() => {
+    if (
+      explore.target &&
+      (!treasure || treasure.foundBy || locked || !state?.settings.gameOpen)
+    ) {
+      explore.stop();
+      if (treasure?.foundBy && treasure.foundBy !== me?.id)
+        notify("누군가 먼저 발견했어요! 다른 힌트로 탐험을 이어가요.");
+    }
+  }, [treasure?.id, treasure?.foundBy, locked, state?.settings.gameOpen]);
+  if (!state || !me) return null;
+  const seconds = Math.max(0, Math.ceil((me.blockedUntil - now) / 1000));
+  const disabled = locked || !state.settings.gameOpen || !navigator.onLine;
+  const stale = Boolean(
+    explore.target &&
+    explore.guidance &&
+    (now - explore.guidance.updatedAt > 30000 ||
+      !explore.position ||
+      now - explore.position.timestamp > 20000),
+  );
+  const selectTreasure = (id: string, revealGuide = false) => {
+    if (id !== selected) explore.stop();
     setSelected(id);
-    if (innerWidth <= 1000)
+    if (revealGuide)
       requestAnimationFrame(() =>
-        detailRef.current?.scrollIntoView({
-          block: "nearest",
+        guideRef.current?.scrollIntoView({
+          block: "center",
           behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
             ? "instant"
             : "smooth",
         }),
       );
   };
-  if (!state || !me) return null;
-  const treasure = state.treasures.find((t) => t.id === selected);
-  const locked = me.blockedUntil > now;
-  const seconds = Math.max(0, Math.ceil((me.blockedUntil - now) / 1000));
+  const start = () => {
+    if (!treasure || disabled) return;
+    explore.start(treasure.id);
+    setExpanded(true);
+  };
   const onLocate = async () => {
-    if (busy) return;
-    setBusy(true);
     try {
-      setPosition(await locate());
-      notify("현재 위치로 지도를 이동했어요.");
+      await explore.refresh();
     } catch (e) {
       notify(errorMessage(e));
-    } finally {
-      setBusy(false);
     }
   };
   const claim = async (simulate = false) => {
-    if (!treasure || busy) return;
+    if (!treasure || busy || disabled) return;
     setBusy(true);
     try {
+      const fresh =
+        explore.position &&
+        Date.now() - explore.position.timestamp < 10000 &&
+        explore.position.accuracy > 0 &&
+        explore.position.accuracy <= 100
+          ? explore.position
+          : null;
       const p =
-        simulate && demo
+        simulate && demo && hasCoordinates(treasure)
           ? {
               lat: treasure.lat,
               lng: treasure.lng,
               accuracy: 5,
               timestamp: Date.now(),
             }
-          : await locate();
-      setPosition(p);
+          : (fresh ?? (await locate()));
+      explore.setPosition(p);
       const r = await act({
         action: "claim",
         treasureId: treasure.id,
         position: p,
       });
+      explore.stop();
+      setExpanded(false);
       setResult(r.result ?? null);
     } catch (e) {
       notify(errorMessage(e));
@@ -112,13 +137,72 @@ export default function Treasure({
       setBusy(false);
     }
   };
+  const map = (
+    <Suspense
+      fallback={<div className="map-loading">탐험 지도를 펼치고 있어요…</div>}
+    >
+      <TreasureMap
+        treasures={found}
+        foundOnly
+        center={state.settings.center}
+        selected={treasure?.foundBy ? selected : null}
+        onSelect={selectTreasure}
+        position={explore.position}
+        onLocate={() => void onLocate()}
+        followPosition={explore.follow}
+        onManualPan={() => explore.setFollow(false)}
+        locationName={state.settings.location}
+      />
+    </Suspense>
+  );
+  const guide =
+    treasure && !treasure.foundBy ? (
+      <ExplorationGuide
+        treasure={treasure}
+        guidance={
+          explore.guidance?.treasureId === treasure.id ? explore.guidance : null
+        }
+        tracking={explore.target === treasure.id}
+        waiting={explore.waiting}
+        stale={stale}
+        error={explore.error}
+        trend={explore.trend}
+        disabled={disabled}
+        busy={busy}
+        onStart={start}
+        onStop={explore.stop}
+        onClaim={() => void claim()}
+      />
+    ) : treasure ? (
+      <section className="found-detail">
+        <span className="mini-tag green">
+          <Check size={13} />
+          발견 완료
+        </span>
+        <h2>{treasure.name}</h2>
+        <p>{treasure.hint}</p>
+        <strong>
+          {state.members[treasure.foundBy!]?.name ?? "탐험대원"}님이 발견했어요.
+        </strong>
+        <small>
+          {treasure.outcome === "bomb"
+            ? "깜짝 꽝이 숨어있던 곳이에요."
+            : `${treasure.points} 포인트의 보물이었어요.`}
+        </small>
+      </section>
+    ) : (
+      <Empty
+        title="정답 대신, 작은 힌트부터"
+        body="힌트를 고르면 큰 지도에서 보물을 향한 방향과 가까워지는 정도를 안내해요."
+      />
+    );
   return (
-    <div className="page-enter">
+    <div className="hunt-page page-enter">
       <div className="page-intro">
         <div>
-          <span className="eyebrow">THE TREASURE HUNT</span>
-          <h1>발걸음 끝에, 뜻밖의 행운</h1>
-          <p>지도의 반짝임을 따라 나만의 보물을 발견해요.</p>
+          <span className="eyebrow">FOLLOW THE CLUES</span>
+          <h1>보이지 않아 더 설레는 모험</h1>
+          <p>힌트를 따라 걸어요. 가까워질수록 탐험 온도가 올라가요.</p>
         </div>
         <span className="outline-pill">
           <span
@@ -140,134 +224,130 @@ export default function Treasure({
           </div>
         </div>
       )}
-      <div className="map-toolbar">
-        <span>
-          <Gift size={18} />
-          남은 보물 <strong>
-            {remainingTreasures(state.treasures)}
-          </strong> / {state.treasures.length}
-        </span>
-        <label className="check-label">
-          <input
-            type="checkbox"
-            checked={showFound}
-            onChange={(e) => setShowFound(e.target.checked)}
-          />
-          발견한 보물 표시
-        </label>
-        <button
-          className="button small"
-          onClick={() => setCamera(true)}
-          disabled={locked}
-        >
-          <CameraIcon size={16} />
-          카메라로 보기
-        </button>
-      </div>
-      <Suspense
-        fallback={<div className="map-loading">탐험 지도를 펼치고 있어요…</div>}
-      >
-        <TreasureMap
-          treasures={state.treasures}
-          center={state.settings.center}
-          selected={selected}
-          onSelect={selectTreasure}
-          position={position}
-          onLocate={() => void onLocate()}
-          showFound={showFound}
-          locationName={state.settings.location}
-        />
-      </Suspense>
-      <div className="treasure-bottom">
-        <section className="treasure-list">
-          <h2>
-            탐험할 곳을 골라보세요 <Compass size={20} />
-          </h2>
-          {state.treasures
-            .filter((t) => showFound || !t.foundBy)
-            .map((t) => (
+      {!navigator.onLine && (
+        <p className="guide-status" role="status">
+          오프라인이에요. 힌트는 볼 수 있지만 탐색 안내와 발견에는 연결이
+          필요해요.
+        </p>
+      )}
+      <div className="hunt-layout">
+        <div className="hunt-map-column">
+          <div className="hunt-map-heading">
+            <span>
+              <MapPin size={16} />
+              지도에는 발견한 보물만 표시해요
+            </span>
+            <button className="text-button" onClick={() => setExpanded(true)}>
+              <Maximize2 size={16} />
+              지도 크게 보기
+            </button>
+          </div>
+          {!expanded && map}
+          <div className="hunt-map-caption">
+            <span>
+              <Gift size={15} />
+              발견 {found.length}개 · 아직 숨겨진 보물{" "}
+              {remainingTreasures(state.treasures)}개
+            </span>
+            <button
+              className="text-button"
+              onClick={() => setCamera(true)}
+              disabled={locked}
+            >
+              <CameraIcon size={15} />
+              카메라 보기
+            </button>
+          </div>
+          {!expanded && <div ref={guideRef}>{guide}</div>}
+          {demo &&
+            treasure &&
+            !treasure.foundBy &&
+            hasCoordinates(treasure) && (
               <button
-                key={t.id}
-                onClick={() => selectTreasure(t.id)}
-                className={`treasure-list-item ${selected === t.id ? "selected" : ""} ${t.foundBy ? "found" : ""}`}
+                className="text-button demo-claim"
+                disabled={busy || disabled}
+                onClick={() => void claim(true)}
               >
-                <span className="treasure-mini-icon">
-                  {t.foundBy ? <X size={19} /> : <Gift size={20} />}
+                미리보기: 이 힌트의 보물 발견 체험
+              </button>
+            )}
+        </div>
+        <aside className="clue-panel">
+          <div className="clue-panel-heading">
+            <span className="eyebrow">EXPLORER’S NOTEBOOK</span>
+            <h2>어떤 힌트를 따라갈까요?</h2>
+          </div>
+          <div className="segmented">
+            <button
+              className={listMode === "clues" ? "selected" : ""}
+              onClick={() => setListMode("clues")}
+            >
+              미발견 힌트 {clues.length}
+            </button>
+            <button
+              className={listMode === "found" ? "selected" : ""}
+              onClick={() => setListMode("found")}
+            >
+              발견 기록 {found.length}
+            </button>
+          </div>
+          <div className="clue-list">
+            {(listMode === "clues" ? clues : found).map((t, index) => (
+              <button
+                className={`clue-item ${t.id === selected ? "selected" : ""}`}
+                key={t.id}
+                onClick={() => selectTreasure(t.id, true)}
+                aria-pressed={t.id === selected}
+              >
+                <span className="clue-number">
+                  {t.foundBy ? (
+                    <Check size={18} />
+                  ) : (
+                    String(index + 1).padStart(2, "0")
+                  )}
                 </span>
-                <span>
+                <span className="clue-item-copy">
                   <strong>{t.name}</strong>
+                  <span>{t.hint}</span>
                   <small>
                     {t.foundBy
-                      ? `${state.members[t.foundBy]?.name ?? "탐험대원"}님이 발견했어요`
-                      : position
-                        ? `약 ${Math.round(distanceMeters(position, t))}m 거리`
-                        : "위치를 켜면 거리가 보여요"}
+                      ? `${state.members[t.foundBy]?.name ?? "탐험대원"}님 발견`
+                      : `${t.points} P · 힌트로 탐색`}
                   </small>
                 </span>
-                <span>{t.foundBy ? "발견 완료" : `${t.points} P`}</span>
+                <ArrowUpRight size={17} />
               </button>
             ))}
-        </section>
-        <section ref={detailRef} className="treasure-detail">
-          {treasure ? (
-            <>
-              <span className="mini-tag green">EXPLORER’S NOTE</span>
-              <h2>{treasure.name}</h2>
-              <p className="treasure-hint">{treasure.hint}</p>
-              <div className="detail-meta">
-                <span>
-                  <MapPin size={15} />
-                  반경 {treasure.radius}m 이내
-                </span>
-                <span>
-                  <Gift size={15} />
-                  {treasure.points} 포인트
-                </span>
-              </div>
-              {treasure.foundBy ? (
-                <div className="found-message">
-                  {state.members[treasure.foundBy]?.name}님이 발견한{" "}
-                  {treasure.outcome === "bomb" ? "꽝" : "보물"}이에요.
-                </div>
-              ) : (
-                <>
-                  <button
-                    className="button dark full"
-                    disabled={
-                      busy ||
-                      locked ||
-                      !state.settings.gameOpen ||
-                      !navigator.onLine
-                    }
-                    onClick={() => void claim()}
-                  >
-                    <LocateFixed size={17} />
-                    {busy ? "위치를 확인하고 있어요…" : "여기서 보물 찾기"}
-                  </button>
-                  {demo && (
-                    <button
-                      className="text-button demo-claim"
-                      disabled={busy || locked || !state.settings.gameOpen}
-                      onClick={() => void claim(true)}
-                    >
-                      미리보기: 이 위치에서 발견 체험
-                    </button>
-                  )}
-                </>
-              )}
-              <p className="footnote">
-                가까이 도착해 버튼을 눌러주세요. 선착순 한 명만 발견할 수 있고,
-                꽝이면 5분간 쉬어가요.
-              </p>
-            </>
-          ) : (
+          </div>
+          {(listMode === "clues" ? clues : found).length === 0 && (
             <Empty
-              title="어떤 길로 떠나볼까요?"
-              body="지도나 목록에서 보물을 선택하면 작은 힌트가 나타나요."
+              title={
+                listMode === "clues"
+                  ? "아직 숨겨진 힌트가 없어요"
+                  : "첫 발견을 기다리고 있어요"
+              }
+              body={
+                listMode === "clues"
+                  ? "새로운 보물이 등록되면 이곳에 힌트가 나타나요."
+                  : "누군가 발견하면 지도에도 위치가 나타나요."
+              }
             />
           )}
-        </section>
+          <p className="footnote">
+            미발견 보물의 위치는 비밀이에요. 먼저 발견한 대원만 포인트를 얻을 수
+            있어요.
+          </p>
+        </aside>
       </div>
+      {expanded && (
+        <ExplorationDialog
+          title={treasure?.name ?? "우리의 발견 지도"}
+          onClose={() => setExpanded(false)}
+        >
+          <div className="focus-map-area">{map}</div>
+          <div className="focus-guide-area">{guide}</div>
+        </ExplorationDialog>
+      )}
       {camera && (
         <Drawer title="카메라로 둘러보기" onClose={() => setCamera(false)}>
           <Suspense fallback={<p>카메라를 준비하고 있어요…</p>}>
@@ -294,7 +374,7 @@ export default function Treasure({
             <p>
               {result.outcome === "bomb"
                 ? "잠깐의 쉼도 모험의 일부니까요. 휴식 후 다시 도전해요."
-                : "우리 팀의 탐험 수첩에도 기록했어요. 다음 행운을 찾아 떠나볼까요?"}
+                : "우리 팀의 탐험 수첩에도 기록했어요. 다음 힌트로 모험을 이어가요!"}
             </p>
             <button className="button dark" onClick={() => setResult(null)}>
               {result.outcome === "bomb" ? "알겠어요" : "다음 모험으로"}

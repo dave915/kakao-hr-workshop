@@ -1,3 +1,4 @@
+import { hasCoordinates } from "../../shared/exploration";
 import { lazy, Suspense, useState, type FormEvent } from "react";
 import {
   Users,
@@ -72,6 +73,7 @@ export default function Admin({ notify }: { notify: Notify }) {
         body="관리자 권한이 있는 계정으로 입장해주세요."
       />
     );
+  const locatedTreasures = state.treasures.filter(hasCoordinates);
   const run = async (input: ActionInput, message: string) => {
     setBusy(true);
     try {
@@ -172,8 +174,8 @@ export default function Admin({ notify }: { notify: Notify }) {
         </span>
         <span>
           <strong>
-            {state.treasures.filter((t) => t.foundBy).length}/
-            {state.treasures.length}
+            {locatedTreasures.filter((t) => t.foundBy).length}/
+            {locatedTreasures.length}
           </strong>{" "}
           보물 발견
         </span>
@@ -269,7 +271,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                           member={m}
                           disabled={
                             busy ||
-                            state.treasures.some((t) => Boolean(t.foundBy))
+                            locatedTreasures.some((t) => Boolean(t.foundBy))
                           }
                           onSave={(team) =>
                             void run(
@@ -420,13 +422,13 @@ export default function Admin({ notify }: { notify: Notify }) {
             fallback={<div className="map-loading">지도를 펼치고 있어요…</div>}
           >
             <TreasureMap
-              treasures={state.treasures}
+              treasures={locatedTreasures}
               center={state.settings.center}
               position={position}
               selected={chosen}
               onSelect={(id) => {
                 setChosen(id);
-                const t = state.treasures.find((t) => t.id === id)!;
+                const t = locatedTreasures.find((t) => t.id === id)!;
                 setTreasureForm({ ...t, kind: secrets[t.id] ?? "treasure" });
               }}
               onPlace={(lat, lng) => newTreasure(lat, lng)}
@@ -440,7 +442,7 @@ export default function Admin({ notify }: { notify: Notify }) {
             />
           </Suspense>
           <div className="admin-item-list treasure-admin-list">
-            {state.treasures.map((t) => (
+            {locatedTreasures.map((t) => (
               <article key={t.id}>
                 <span
                   className={`mini-tag ${secrets[t.id] === "bomb" ? "orange" : "green"}`}

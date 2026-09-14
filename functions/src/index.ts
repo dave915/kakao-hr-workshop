@@ -1,3 +1,4 @@
+import { participantView, treasureGuidance } from "../../shared/exploration";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
@@ -24,6 +25,11 @@ const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 const stateRef = db.doc("workshops/main");
 const secretsRef = db.doc("private/treasures");
+const participantRef = db.doc("workshops/participants");
+function writeState(tx: FirebaseFirestore.Transaction, state: WorkshopState) {
+  tx.set(stateRef, state);
+  tx.set(participantRef, participantView(state));
+}
 
 export const redeemInvite = onCall({ cors: true }, async (request) => {
   const code = request.data?.code;
@@ -66,7 +72,7 @@ export const redeemInvite = onCall({ cors: true }, async (request) => {
           "사용할 수 없는 입장 링크예요.",
         );
       state.members[value.uid].joined = true;
-      tx.set(stateRef, state);
+      writeState(tx, state);
       return {
         uid: value.uid as string,
         version: member.sessionVersion as number,
@@ -109,6 +115,34 @@ export const workshopAction = onCall(
     const now = Date.now();
     let result: ActionResponse;
     try {
+      if (input.action === "getGuidance") {
+        const [memberSnapshot, stateSnapshot] = await Promise.all([
+          db.doc(`members/${uid}`).get(),
+          stateRef.get(),
+        ]);
+        if (
+          !memberSnapshot.exists ||
+          memberSnapshot.data()?.sessionVersion !== sessionVersion
+        )
+          throw new HttpsError(
+            "unauthenticated",
+            "새 입장 링크로 다시 입장해주세요.",
+          );
+        if (!stateSnapshot.exists)
+          throw new HttpsError(
+            "failed-precondition",
+            "워크샵 정보를 찾을 수 없어요.",
+          );
+        return {
+          guidance: treasureGuidance(
+            stateSnapshot.data() as WorkshopState,
+            uid,
+            input.treasureId,
+            input.position,
+            now,
+          ),
+        };
+      }
       result = await db.runTransaction(async (tx) => {
         const [userSnap, stateSnap, secretSnap] = await Promise.all([
           tx.get(db.doc(`members/${uid}`)),
@@ -171,7 +205,7 @@ export const workshopAction = onCall(
         }
         if (input.action === "setRole")
           tx.update(db.doc(`members/${input.memberId}`), { role: input.role });
-        tx.set(stateRef, state);
+        writeState(tx, state);
         if (
           input.action === "saveTreasure" ||
           input.action === "deleteTreasure"
@@ -246,7 +280,7 @@ export const workshopAction = onCall(
           n.pushStatus = failed ? (delivered ? "partial" : "failed") : "sent";
           n.delivered = delivered;
           n.failed = failed;
-          tx.set(stateRef, state);
+          writeState(tx, state);
         }
       });
       result.delivered = delivered;

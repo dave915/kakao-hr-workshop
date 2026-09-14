@@ -20,6 +20,9 @@ interface Props {
   secrets?: TreasureSecrets;
   showFound?: boolean;
   locationName: string;
+  foundOnly?: boolean;
+  followPosition?: boolean;
+  onManualPan?: () => void;
 }
 const NO_SECRETS: TreasureSecrets = {};
 export default function TreasureMap({
@@ -33,10 +36,13 @@ export default function TreasureMap({
   secrets = NO_SECRETS,
   showFound = true,
   locationName,
+  foundOnly = false,
+  followPosition = true,
+  onManualPan,
 }: Props) {
   const root = useRef<HTMLDivElement>(null);
-  const callbacks = useRef({ onSelect, onPlace, center });
-  callbacks.current = { onSelect, onPlace, center };
+  const callbacks = useRef({ onSelect, onPlace, center, onManualPan });
+  callbacks.current = { onSelect, onPlace, center, onManualPan };
   const [context, setContext] = useState<{
     map: KakaoMap;
     sdk: KakaoMaps;
@@ -70,6 +76,8 @@ export default function TreasureMap({
             event.latLng.getLng(),
           );
         sdk.event.addListener(map, "click", place);
+        const manualPan = () => callbacks.current.onManualPan?.();
+        sdk.event.addListener(map, "dragstart", manualPan);
         observer = new ResizeObserver(() => {
           // Preserve the viewport when a drawer, resize or device rotation changes the container.
           const current = map.getCenter();
@@ -79,6 +87,7 @@ export default function TreasureMap({
         observer.observe(container);
         cleanMap = () => {
           sdk.event.removeListener(map, "click", place);
+          sdk.event.removeListener(map, "dragstart", manualPan);
           map.setDraggable(false);
           map.setZoomable(false);
           container.replaceChildren();
@@ -103,17 +112,22 @@ export default function TreasureMap({
     context.map.setLevel(3);
   }, [context, center[0], center[1]]);
   useEffect(() => {
-    if (!context || !position) return;
-    // Every fresh GPS fix re-centers, even if its coordinates have not changed.
-    context.map.setLevel(2);
+    if (!context || !position || !followPosition) return;
+    // Keep the zoom chosen by the explorer while fresh GPS fixes follow their position.
     context.map.setCenter(new context.sdk.LatLng(position.lat, position.lng));
-  }, [context, position?.lat, position?.lng, position?.timestamp]);
+  }, [
+    context,
+    followPosition,
+    position?.lat,
+    position?.lng,
+    position?.timestamp,
+  ]);
   useEffect(() => {
     if (!context) return;
     const { map, sdk } = context;
     const overlays: KakaoOverlay[] = [];
     for (const t of treasures) {
-      if (t.foundBy && !showFound) continue;
+      if ((foundOnly && !t.foundBy) || (t.foundBy && !showFound)) continue;
       const found = Boolean(t.foundBy);
       const button = document.createElement("button");
       button.type = "button";
@@ -149,6 +163,12 @@ export default function TreasureMap({
         }),
       );
     }
+    return () => overlays.forEach((overlay) => overlay.setMap(null));
+  }, [context, treasures, selected, secrets, showFound, foundOnly]);
+  useEffect(() => {
+    if (!context || !position) return;
+    const { map, sdk } = context;
+    const overlays: KakaoOverlay[] = [];
     if (position) {
       const location = new sdk.LatLng(position.lat, position.lng);
       const accuracyCircle = new sdk.Circle({
@@ -177,9 +197,10 @@ export default function TreasureMap({
       );
     }
     return () => overlays.forEach((overlay) => overlay.setMap(null));
-  }, [context, treasures, selected, position, secrets, showFound]);
+  }, [context, position]);
   const selectedTreasure = treasures.find(
-    (treasure) => treasure.id === selected,
+    (treasure) =>
+      treasure.id === selected && (!foundOnly || Boolean(treasure.foundBy)),
   );
   useEffect(() => {
     if (!context || !selectedTreasure) return;
@@ -253,10 +274,12 @@ export default function TreasureMap({
       </div>
       {context && (
         <div className="map-legend">
-          <span>
-            <i />
-            숨겨진 보물
-          </span>
+          {!foundOnly && (
+            <span>
+              <i />
+              숨겨진 보물
+            </span>
+          )}
           <span>
             <i className="found" />
             발견 완료

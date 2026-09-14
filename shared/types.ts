@@ -53,13 +53,29 @@ export interface Settings {
   center: [number, number];
   gameOpen: boolean;
 }
-export interface WorkshopState {
+export type VisibleTreasure = Omit<Treasure, "lat" | "lng"> & {
+  lat?: number;
+  lng?: number;
+};
+export interface WorkshopState<T extends VisibleTreasure = Treasure> {
   version: 1;
   settings: Settings;
   members: Record<string, Member>;
   schedule: Schedule[];
-  treasures: Treasure[];
+  treasures: T[];
   notices: Notice[];
+}
+export type WorkshopView = WorkshopState<VisibleTreasure>;
+export type Proximity = "far" | "warm" | "close" | "hot" | "within";
+export interface TreasureGuidance {
+  treasureId: string;
+  bearing: number | null;
+  direction: string;
+  distance: number;
+  proximity: Proximity;
+  heat: number;
+  withinRange: boolean;
+  updatedAt: number;
 }
 export type TreasureSecrets = Record<string, "treasure" | "bomb">;
 export interface Position {
@@ -74,6 +90,7 @@ export interface ClaimResult {
   blockedUntil: number;
 }
 export interface ActionResponse {
+  guidance?: TreasureGuidance;
   code?: string;
   memberId?: string;
   result?: ClaimResult;

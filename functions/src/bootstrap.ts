@@ -1,3 +1,4 @@
+import { participantView } from "../../shared/exploration";
 import { randomBytes, createHash } from "node:crypto";
 import { initializeApp, applicationDefault } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -49,6 +50,7 @@ async function main() {
         "Already initialized; refusing to overwrite workshop or superadmin.",
       );
     tx.create(db.doc("workshops/main"), state);
+    tx.create(db.doc("workshops/participants"), participantView(state));
     tx.create(db.doc("private/treasures"), { kinds: {} });
     tx.create(db.doc(`members/${uid}`), {
       role: "superadmin",

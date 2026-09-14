@@ -1,9 +1,11 @@
+import { participantView } from "../../shared/exploration";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useRef,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -23,6 +25,8 @@ import type {
   Member,
   TreasureSecrets,
   WorkshopState,
+  WorkshopView,
+  Role,
 } from "../../shared/types";
 const KEY = "hr-expedition-demo-v1";
 function readDemo(): { state: WorkshopState; secrets: TreasureSecrets } {
@@ -35,7 +39,7 @@ function readDemo(): { state: WorkshopState; secrets: TreasureSecrets } {
   return { state: makeSeed(true), secrets: { ...demoSecrets } };
 }
 interface Store {
-  state: WorkshopState | null;
+  state: WorkshopView | null;
   me: Member | null;
   secrets: TreasureSecrets;
   loading: boolean;
@@ -50,7 +54,7 @@ interface Store {
 const Context = createContext<Store | null>(null);
 export function WorkshopProvider({ children }: { children: ReactNode }) {
   const [demoData, setDemoData] = useState(readDemo);
-  const [state, setState] = useState<WorkshopState | null>(
+  const [state, setState] = useState<WorkshopView | null>(
     demoMode ? demoData.state : null,
   );
   const [secrets, setSecrets] = useState<TreasureSecrets>(
@@ -61,6 +65,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
   );
   const [loading, setLoading] = useState(!demoMode && Boolean(auth));
   const [error, setError] = useState("");
+  const [accessRole, setAccessRole] = useState<Role | null>(null);
   const [readyUid, setReadyUid] = useState<string | null>(null);
   const dataRef = useRef(demoData);
   dataRef.current = demoData;
@@ -70,6 +75,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
     return onAuthStateChanged(auth, (user) => {
       setUid(user?.uid ?? null);
       setReadyUid(user?.uid ?? null);
+      setAccessRole(null);
       setState(null);
       setSecrets({});
       setLoading(Boolean(user));
@@ -77,10 +83,33 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     if (!db || !readyUid) return;
-    const stop = onSnapshot(
-      doc(db, "workshops", "main"),
+    return onSnapshot(
+      doc(db, "members", readyUid),
       (snapshot) => {
-        setState(snapshot.exists() ? (snapshot.data() as WorkshopState) : null);
+        const role = snapshot.data()?.role as Role | undefined;
+        setAccessRole(role ?? null);
+        if (!role) {
+          setState(null);
+          setLoading(false);
+          setError("참가자 정보를 찾을 수 없어요. 새 링크로 입장해주세요.");
+        }
+      },
+      () => {
+        setAccessRole(null);
+        setState(null);
+        setLoading(false);
+        setError("입장 링크가 갱신되었어요. 새 링크로 다시 입장해주세요.");
+      },
+    );
+  }, [readyUid]);
+  useEffect(() => {
+    if (!db || !readyUid || !accessRole) return;
+    setState(null);
+    setLoading(true);
+    const stop = onSnapshot(
+      doc(db, "workshops", accessRole === "member" ? "participants" : "main"),
+      (snapshot) => {
+        setState(snapshot.exists() ? (snapshot.data() as WorkshopView) : null);
         setLoading(false);
         if (!snapshot.exists())
           setError(
@@ -96,7 +125,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
       },
     );
     return stop;
-  }, [readyUid]);
+  }, [readyUid, accessRole]);
   useEffect(() => {
     if (!db || !me || me.role === "member") {
       if (!demoMode) setSecrets({});
@@ -136,6 +165,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
           parsed.data,
           crypto.randomUUID(),
         );
+        if (raw.action === "getGuidance") return result;
         if (raw.action === "createMember" || raw.action === "rotateInvite") {
           const code = crypto.randomUUID();
           result.code = code;
@@ -214,12 +244,19 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("hr-demo-user", id);
     }
   };
+  const visibleState = useMemo(
+    () =>
+      demoMode && me?.role === "member"
+        ? participantView(demoData.state)
+        : state,
+    [state, demoData, me?.role],
+  );
   return (
     <Context.Provider
       value={{
-        state,
+        state: visibleState,
         me,
-        secrets,
+        secrets: me?.role === "member" ? {} : secrets,
         loading,
         error,
         demo: demoMode,

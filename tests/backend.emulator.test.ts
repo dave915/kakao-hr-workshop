@@ -116,6 +116,35 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     );
     expect(payload.user_id).toBe(created.result.memberId);
   });
+  it("returns approximate guidance without publishing hidden positions or writing movement history", async () => {
+    const stateBefore = (await db.doc("workshops/main").get()).data();
+    const t = stateBefore.treasures.find((t: { id: string }) => t.id === "t2");
+    const r = await call(
+      "workshopAction",
+      {
+        action: "getGuidance",
+        treasureId: t.id,
+        position: {
+          lat: t.lat - 0.002,
+          lng: t.lng,
+          accuracy: 5,
+          timestamp: Date.now(),
+        },
+      },
+      memberToken,
+    );
+    expect(r.status).toBe(200);
+    expect(r.result.guidance.direction).toBe("북쪽");
+    expect(r.result.guidance).not.toHaveProperty("lat");
+    expect(r.result.guidance).not.toHaveProperty("lng");
+    expect((await db.doc("workshops/main").get()).data()).toEqual(stateBefore);
+    const publicState = (await db.doc("workshops/participants").get()).data();
+    expect(
+      publicState.treasures.every(
+        (t: object) => !("lat" in t) && !("lng" in t),
+      ),
+    ).toBe(true);
+  });
   it("serializes simultaneous discoveries so exactly one person wins", async () => {
     const treasure = makeSeed(true).treasures[0];
     const data = {
@@ -138,6 +167,14 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       treasure.points,
     );
   }, 30000);
+  it("reveals exactly the discovered location after an atomic claim", async () => {
+    const publicState = (await db.doc("workshops/participants").get()).data();
+    expect(
+      publicState.treasures
+        .filter((t: { lat?: number }) => t.lat !== undefined)
+        .map((t: { id: string }) => t.id),
+    ).toEqual(["t1"]);
+  });
   it("persists a bomb lock and rejects discovery attempts during the lock", async () => {
     const bomb = makeSeed(true).treasures[2];
     const result = await call(
