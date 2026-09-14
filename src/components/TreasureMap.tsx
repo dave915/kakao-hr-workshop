@@ -58,7 +58,8 @@ export default function TreasureMap({
         const map = new sdk.Map(container, {
           center: new sdk.LatLng(lat, lng),
           level: 3,
-          scrollwheel: false,
+          // Kakao uses this option for both wheel and multi-touch pinch zoom.
+          scrollwheel: true,
           keyboardShortcuts: true,
         });
         map.setMinLevel(1);
