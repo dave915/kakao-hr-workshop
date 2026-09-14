@@ -5,8 +5,10 @@ import { makeSeed, demoSecrets } from "../shared/seed";
 const require = createRequire(
   new URL("../functions/package.json", import.meta.url),
 );
-const { initializeApp } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
+// Pages only installs frontend dependencies; load the Admin SDK when this suite runs.
+const initializeApp = (options: Record<string, unknown>) =>
+  require("firebase-admin/app").initializeApp(options);
+const getFirestore = () => require("firebase-admin/firestore").getFirestore();
 const enabled = Boolean(
   process.env.FIRESTORE_EMULATOR_HOST &&
   process.env.FIREBASE_AUTH_EMULATOR_HOST,
