@@ -14,7 +14,11 @@ import type {
   WorkshopState,
 } from "../../shared/types";
 initializeApp();
-setGlobalOptions({ region: "asia-northeast3", maxInstances: 10 });
+setGlobalOptions({
+  region: "asia-northeast3",
+  maxInstances: 3,
+  serviceAccount: process.env.WORKSHOP_RUNTIME_SERVICE_ACCOUNT,
+});
 const db = getFirestore();
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
