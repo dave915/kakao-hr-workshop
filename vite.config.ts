@@ -55,7 +55,6 @@ export default defineConfig({
             "firebase/firestore",
             "firebase/functions",
           ],
-          map: ["leaflet"],
         },
       },
     },

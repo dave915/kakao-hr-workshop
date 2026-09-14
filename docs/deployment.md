@@ -92,3 +92,15 @@ Firebase Web 설정은 브라우저가 사용하도록 공개되는 값입니다
 - 실제 장소에서 GPS 정확도와 반경이 적절한지 확인하고 게임 시작.
 
 카메라와 GPS는 HTTPS 또는 localhost 환경이 필요합니다. iPhone의 웹 푸시는 홈 화면에 추가된 웹 앱에서 테스트합니다. 실제 기기에서의 권한 요청과 FCM 발송은 로컬 에뮬레이터로 확인할 수 없습니다. [FCM 메시지 수신 안내](https://firebase.google.com/docs/cloud-messaging/web/receive-messages)
+
+## 7. 카카오맵
+
+- 카카오 개발자 앱: **HR 워크샵**, 앱 ID `1577534` ([관리 화면](https://developers.kakao.com/console/app/1577534)).
+- 카카오맵 API 활성화 및 일간 무료 쿼터 적용 확인. 이번 설정에서는 유료 API나 비즈월렛을 연결하지 않았습니다.
+- `[앱] → [플랫폼 키] → [HR Workshop Web]`의 **JavaScript 키**를 사용합니다. REST API 키나 어드민 키를 프런트엔드에 넣지 마세요.
+- `.env.local`과 GitHub Repository variable에 `VITE_KAKAO_MAP_APP_KEY`를 설정합니다.
+- 등록한 JavaScript SDK 도메인: `https://dave915.github.io`, `http://127.0.0.1:4187`, `http://localhost:4187`.
+- URL의 저장소 경로는 도메인 등록에 포함하지 않습니다. 새 도메인이나 개발 포트를 사용하면 카카오 개발자 설정에도 추가합니다.
+- 지도를 처음 열 때 SDK를 한 번 불러옵니다. 지도 타일과 외부 SDK는 PWA에 대량 캐시하지 않습니다. 로딩이 실패하면 재시도하거나 보물 목록을 확인할 수 있습니다.
+
+카카오맵은 개발자 계정 기준 첫 활성화 앱에 무료 쿼터를 적용하는 정책을 운영하고 있습니다. 현재 워크샵 앱의 무료 쿼터 표시를 확인했습니다. [공식 사용 안내](https://developers.kakao.com/docs/ko/kakaomap/common), [Web SDK 설정](https://apis.map.kakao.com/web/guide/)

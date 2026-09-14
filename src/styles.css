@@ -1562,18 +1562,15 @@ main {
   background: #e3e8d6;
   isolation: isolate;
 }
-.leaflet-canvas {
+.kakao-map-canvas {
   height: 100%;
   width: 100%;
   background: #e3e8d6;
 }
-.leaflet-container {
+.kakao-map-canvas {
   font-family: "Noto Sans KR", sans-serif;
 }
-.leaflet-tile-pane {
-  filter: saturate(0.65);
-}
-.map-placing .leaflet-container {
+.map-placing .kakao-map-canvas {
   cursor: crosshair;
 }
 .map-location {
@@ -1646,8 +1643,16 @@ main {
   background: #477357;
 }
 .map-marker-root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 50px;
+  padding: 0;
   background: none;
   border: 0;
+  overflow: visible;
+  cursor: pointer;
 }
 .map-marker {
   display: flex;
@@ -3238,4 +3243,43 @@ td .text-button {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+.map-marker-symbol {
+  display: block;
+  transform: rotate(45deg);
+}
+.map-current-position {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #faf9f3;
+  border-radius: 50%;
+  background: #477357;
+  box-shadow: 0 0 0 1px #477357;
+}
+.map-state {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  background: #eef0df;
+  padding: 75px 45px;
+  text-align: center;
+}
+.map-state > svg {
+  color: #8b9775;
+}
+.map-state strong {
+  font-size: 13px;
+  font-weight: 500;
+  max-width: 34ch;
+  line-height: 1.9;
+}
+.map-state p {
+  font-size: 11px;
 }
