@@ -177,6 +177,20 @@ export default function TreasureMap({
     }
     return () => overlays.forEach((overlay) => overlay.setMap(null));
   }, [context, treasures, selected, position, secrets, showFound]);
+  const selectedTreasure = treasures.find(
+    (treasure) => treasure.id === selected,
+  );
+  useEffect(() => {
+    if (!context || !selectedTreasure) return;
+    // A treasure chosen from the list may be outside the initial workshop view.
+    const destination = new context.sdk.LatLng(
+      selectedTreasure.lat,
+      selectedTreasure.lng,
+    );
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches)
+      context.map.setCenter(destination);
+    else context.map.panTo(destination);
+  }, [context, selectedTreasure?.lat, selectedTreasure?.lng]);
   const zoom = (delta: number) => {
     if (context)
       context.map.setLevel(
