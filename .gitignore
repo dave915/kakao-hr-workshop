@@ -1,0 +1,12 @@
+node_modules/
+dist/
+functions/lib/
+.env*
+!.env.example
+!.env.demo
+.firebase/
+*-debug.log
+artifacts/
+*.local
+credentials/
+*.tsbuildinfo

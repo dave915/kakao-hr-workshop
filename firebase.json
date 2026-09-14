@@ -1,0 +1,36 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs22",
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9387
+    },
+    "functions": {
+      "port": 5387
+    },
+    "firestore": {
+      "port": 8387
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4387
+    },
+    "hub": {
+      "port": 4487
+    },
+    "logging": {
+      "port": 4587
+    },
+    "singleProjectMode": true
+  }
+}
