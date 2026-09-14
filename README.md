@@ -37,7 +37,9 @@ npm run preview -- --host 127.0.0.1 --port 4188 --strictPort
 
 ## 처음 배포하기
 
-아직 원격 저장소와 Firebase 프로젝트는 연결되지 않았습니다. [배포 절차](docs/deployment.md)에 필요한 설정과 실행 순서를 정리했습니다.
+운영 주소: **https://dave915.github.io/kakao-hr-workshop/**
+
+Firebase 프로젝트: `kakao-hr-workshop-915` (서울 리전). GitHub Pages와 Firebase Functions / Firestore / Authentication / FCM 설정을 완료했습니다. 개인 입장 링크가 없는 사용자는 로그인 화면만 볼 수 있습니다. 재배포와 계정 복구는 [배포 절차](docs/deployment.md)를 참고하세요.
 
 1. GitHub 저장소와 Firebase 프로젝트를 만듭니다.
 2. Firebase Authentication, Firestore, Cloud Messaging을 설정합니다.

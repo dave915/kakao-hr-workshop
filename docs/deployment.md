@@ -1,5 +1,19 @@
 # GitHub Pages + Firebase 배포
 
+## 현재 운영 환경
+
+- 앱: https://dave915.github.io/kakao-hr-workshop/
+- 저장소: https://github.com/dave915/kakao-hr-workshop (공개)
+- Firebase: `kakao-hr-workshop-915`, `asia-northeast3`
+- 최초 슈퍼 어드민: `dave.h`. 개인 링크는 저장소에 포함하지 않습니다.
+- 런타임: `workshop-runtime@kakao-hr-workshop-915.iam.gserviceaccount.com`. Firestore 쓰기, FCM 발송 및 자기 계정의 토큰 서명에 필요한 권한을 적용했습니다.
+- Functions는 최대 인스턴스 3개로 설정했습니다. Artifact Registry의 빌드 이미지는 7일 보관 후 정리합니다.
+- 승인된 기존 결제 계정에 Blaze 요금제가 연결되어 있습니다.
+
+이 컴퓨터의 `functions/.env.kakao-hr-workshop-915`에 `WORKSHOP_RUNTIME_SERVICE_ACCOUNT`를 설정했습니다. 다른 환경에서 재배포할 때도 해당 변수를 같은 런타임 서비스 계정으로 설정하세요. 서비스 계정 개인 키는 생성하지 않았습니다.
+
+이하 내용은 새 환경 구축 및 재설정 절차입니다.
+
 ## 1. 프로젝트 준비
 
 GitHub 저장소 이름 예시: `kakao-hr-workshop`. 실제 저장소 이름과 공개 범위는 운영자가 결정합니다. 저장소 공개 범위와 별개로 Pages 주소는 공개될 수 있으므로 참가자 데이터는 Firebase 인증으로 보호합니다.
