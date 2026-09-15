@@ -30,6 +30,12 @@ import { isAdmin, memberRanking } from "../../shared/game";
 import type { Member, Schedule, Settings } from "../../shared/types";
 import type { ActionInput } from "../../shared/validation";
 import { Avatar, Drawer, Empty, type Notify } from "./common";
+import MemberImport from "./MemberImport";
+import {
+  DeviceCell,
+  DeviceRefresh,
+  useMemberDevices,
+} from "./MemberDeviceStatus";
 const TreasureManager = lazy(() => import("./TreasureManager"));
 type Tab = "members" | "schedule" | "treasures" | "notices" | "settings";
 const tabs = [
@@ -46,6 +52,12 @@ export default function Admin({ notify }: { notify: Notify }) {
   const [resetConfirmation, setResetConfirmation] = useState("");
   const [query, setQuery] = useState("");
   const [memberForm, setMemberForm] = useState(false);
+  const [bulkMembers, setBulkMembers] = useState(false);
+  const deviceStatus = useMemberDevices(
+    act,
+    tab === "members" && isAdmin(me),
+    me?.id,
+  );
   const [newLink, setNewLink] = useState<{ code: string; name: string } | null>(
     null,
   );
@@ -211,11 +223,40 @@ export default function Admin({ notify }: { notify: Notify }) {
                 개인 링크로 입장해요. 관리자 지정은 슈퍼 어드민만 할 수 있어요.
               </p>
             </div>
-            <button className="button dark" onClick={() => setMemberForm(true)}>
-              <Plus size={17} />
-              참가자 추가
-            </button>
+            <div className="member-add-actions">
+              <button className="button" onClick={() => setMemberForm(true)}>
+                <Plus size={17} />한 명 추가
+              </button>
+              <button
+                className="button dark"
+                onClick={() => setBulkMembers(true)}
+              >
+                <Users size={17} />
+                명단 붙여넣기
+              </button>
+            </div>
           </div>
+          {bulkMembers && (
+            <MemberImport
+              notify={notify}
+              onClose={() => setBulkMembers(false)}
+            />
+          )}
+          <div className="device-toolbar">
+            <p className="footnote">
+              설치·푸시 상태는 최근 확인 기준이에요. 기기 상태를 누르면 확인
+              시각과 설치 이력을 볼 수 있어요.
+            </p>
+            <DeviceRefresh
+              loading={deviceStatus.loading}
+              onRefresh={deviceStatus.refresh}
+            />
+          </div>
+          {deviceStatus.error && (
+            <p role="alert" className="form-error">
+              기기 상태를 불러오지 못했어요. {deviceStatus.error}
+            </p>
+          )}
           <input
             className="search-input"
             aria-label="참가자 검색"
@@ -230,6 +271,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                   <th>탐험대원</th>
                   <th>소속 팀</th>
                   <th>권한</th>
+                  <th>앱 설치·푸시</th>
                   <th>발견 기록</th>
                   <th>계정 관리</th>
                 </tr>
@@ -247,7 +289,9 @@ export default function Admin({ notify }: { notify: Notify }) {
                         <div className="table-person">
                           <Avatar name={englishName(m.handle)} />
                           <span>
-                            <strong>{englishName(m.handle)}</strong>
+                            <strong>
+                              {m.name} · {englishName(m.handle)}
+                            </strong>
                             <small>
                               {m.handle} ·{" "}
                               {m.joined ? "입장 완료" : "입장 대기"}
@@ -297,6 +341,13 @@ export default function Admin({ notify }: { notify: Notify }) {
                             {m.role === "admin" ? "추진위원회" : "참가자"}
                           </span>
                         )}
+                      </td>
+                      <td>
+                        <DeviceCell
+                          info={deviceStatus.data?.[m.id]}
+                          ready={Boolean(deviceStatus.data)}
+                          name={englishName(m.handle)}
+                        />
                       </td>
                       <td>
                         <strong>{m.score} P</strong>

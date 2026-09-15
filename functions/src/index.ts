@@ -13,8 +13,11 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { actionInput } from "../../shared/validation";
 import { mutate } from "../../shared/mutate";
 import { GameError, isAdmin } from "../../shared/game";
+import { updateDeviceStatus } from "../../shared/device-status";
 import type {
   ActionResponse,
+  DeviceStatus,
+  MemberDevices,
   TreasureSecrets,
   WorkshopState,
 } from "../../shared/types";
@@ -179,6 +182,113 @@ export const workshopAction = onCall(
             "참가자 정보를 찾을 수 없어요.",
           );
         const secrets = (secretSnap.data()?.kinds ?? {}) as TreasureSecrets;
+        if (input.action === "getMemberDevices") {
+          if (!isAdmin(state.members[uid]))
+            throw new HttpsError(
+              "permission-denied",
+              "추진위원회만 기기 상태를 볼 수 있어요.",
+            );
+          const [devices, tokens] = await Promise.all([
+            tx.get(db.collection("devices")),
+            tx.get(db.collection("pushTokens")),
+          ]);
+          const memberDevices: Record<string, MemberDevices> =
+            Object.fromEntries(
+              Object.keys(state.members).map((id) => [
+                id,
+                { devices: [], pushDevices: 0 },
+              ]),
+            );
+          for (const doc of devices.docs) {
+            const { uid: owner, ...device } = doc.data();
+            if (memberDevices[owner])
+              memberDevices[owner].devices.push(device as DeviceStatus);
+          }
+          const counted = new Set<string>();
+          for (const doc of tokens.docs) {
+            const { uid: owner, deviceId } = doc.data();
+            const key = `${owner}:${deviceId || doc.id}`;
+            if (memberDevices[owner] && !counted.has(key)) {
+              memberDevices[owner].pushDevices++;
+              counted.add(key);
+            }
+          }
+          return { memberDevices };
+        }
+        if (input.action === "reportDevice") {
+          const ref = db.doc(
+            `devices/${hash(`${uid}:${input.device.deviceId}`)}`,
+          );
+          const [previous, ownDevices, ownTokens] = await Promise.all([
+            tx.get(ref),
+            tx.get(db.collection("devices").where("uid", "==", uid)),
+            tx.get(db.collection("pushTokens").where("uid", "==", uid)),
+          ]);
+          if (!previous.exists && ownDevices.size >= 20)
+            throw new HttpsError(
+              "resource-exhausted",
+              "등록 가능한 기기 수를 초과했어요.",
+            );
+          tx.set(ref, {
+            uid,
+            ...updateDeviceStatus(
+              previous.data() as DeviceStatus | undefined,
+              input.device,
+              now,
+            ),
+          });
+          for (const token of ownTokens.docs) {
+            const data = token.data();
+            if (
+              data.deviceId !== input.device.deviceId &&
+              data.token !== input.token
+            )
+              continue;
+            // Observation is not an unsubscribe request: an older report may
+            // finish after the user registers again. Explicit unregisterPush
+            // and FCM invalid-token responses own token removal.
+            if (data.token === input.token)
+              tx.update(token.ref, { deviceId: input.device.deviceId });
+          }
+          return {};
+        }
+        const importRef =
+          input.action === "createMembers"
+            ? db.doc(`memberImports/${hash(`${uid}:${input.requestId}`)}`)
+            : null;
+        if (input.action === "createMembers" && importRef) {
+          if (!isAdmin(state.members[uid]))
+            throw new HttpsError(
+              "permission-denied",
+              "추진위원회만 참가자를 등록할 수 있어요.",
+            );
+          const existingImport = await tx.get(importRef);
+          if (existingImport.exists) {
+            const cached = existingImport.data()!;
+            if (cached.fingerprint !== hash(JSON.stringify(input.members)))
+              throw new HttpsError(
+                "already-exists",
+                "등록 내용이 바뀌었어요. 새 목록으로 다시 등록해주세요.",
+              );
+            const memberIds = cached.memberIds as string[];
+            if (
+              memberIds.some(
+                (id, index) =>
+                  state.members[id]?.handle !== input.members[index]?.handle,
+              )
+            )
+              throw new HttpsError(
+                "failed-precondition",
+                "이미 처리된 등록이에요. 현재 참가자 목록을 확인해주세요.",
+              );
+            return {
+              invitations: memberIds.map((memberId, index) => ({
+                memberId,
+                code: input.members[index].inviteCode,
+              })),
+            };
+          }
+        }
         // All reads precede writes, including the target of a link rotation.
         const targetSnap =
           input.action === "rotateInvite"
@@ -186,23 +296,26 @@ export const workshopAction = onCall(
             : null;
         const response = mutate(state, secrets, uid, input, id, now);
         if (input.action === "deleteMember") {
-          const [invites, pushTokens] = await Promise.all([
+          const [invites, pushTokens, devices] = await Promise.all([
             tx.get(db.collection("invites").where("uid", "==", input.memberId)),
             tx.get(
               db.collection("pushTokens").where("uid", "==", input.memberId),
             ),
+            tx.get(db.collection("devices").where("uid", "==", input.memberId)),
           ]);
           tx.delete(db.doc(`members/${input.memberId}`));
           for (const invite of invites.docs) tx.delete(invite.ref);
           for (const token of pushTokens.docs) tx.delete(token.ref);
+          for (const device of devices.docs) tx.delete(device.ref);
         }
         if (input.action === "resetWorkshop") {
           // Read and delete in the same transaction as the state reset so old
           // links and sessions lose access atomically, including admin sessions.
-          const [members, invites, pushTokens] = await Promise.all([
+          const [members, invites, pushTokens, devices] = await Promise.all([
             tx.get(db.collection("members")),
             tx.get(db.collection("invites")),
             tx.get(db.collection("pushTokens")),
+            tx.get(db.collection("devices")),
           ]);
           for (const member of members.docs)
             if (!state.members[member.id]) tx.delete(member.ref);
@@ -210,6 +323,8 @@ export const workshopAction = onCall(
             if (!state.members[invite.data().uid]) tx.delete(invite.ref);
           for (const token of pushTokens.docs)
             if (!state.members[token.data().uid]) tx.delete(token.ref);
+          for (const device of devices.docs)
+            if (!state.members[device.data().uid]) tx.delete(device.ref);
         }
         if (
           input.action === "registerPush" ||
@@ -219,8 +334,35 @@ export const workshopAction = onCall(
           if (input.action === "unregisterPush") {
             const tokenSnap = await tx.get(tokenRef);
             if (tokenSnap.data()?.uid === uid) tx.delete(tokenRef);
-          } else tx.set(tokenRef, { token: input.token, uid, updatedAt: now });
+          } else
+            tx.set(tokenRef, {
+              token: input.token,
+              uid,
+              updatedAt: now,
+              ...(input.deviceId ? { deviceId: input.deviceId } : {}),
+            });
           return response;
+        }
+        if (input.action === "createMembers" && importRef) {
+          for (const invitation of response.invitations!) {
+            tx.create(db.doc(`members/${invitation.memberId}`), {
+              role: "member",
+              sessionVersion: 1,
+            });
+            tx.create(db.doc(`invites/${hash(invitation.code)}`), {
+              uid: invitation.memberId,
+              sessionVersion: 1,
+              expiresAt: Math.max(
+                Date.parse(state.settings.endsAt) + 86400000,
+                now + 30 * 86400000,
+              ),
+            });
+          }
+          tx.create(importRef, {
+            fingerprint: hash(JSON.stringify(input.members)),
+            memberIds: response.invitations!.map((i) => i.memberId),
+            createdAt: now,
+          });
         }
         if (
           input.action === "createMember" ||

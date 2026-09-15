@@ -37,15 +37,51 @@ export function mutate(
         now,
       ),
     };
-  if (input.action === "registerPush" || input.action === "unregisterPush")
+  if (
+    input.action === "registerPush" ||
+    input.action === "unregisterPush" ||
+    input.action === "reportDevice"
+  )
     return {};
   if (!isAdmin(actor))
     throw new GameError("추진위원회만 사용할 수 있는 기능이에요.");
   switch (input.action) {
+    case "getMemberDevices":
+      return { memberDevices: {} };
+    case "createMembers": {
+      const handles = new Set(
+        Object.values(state.members).map((m) => m.handle.toLowerCase()),
+      );
+      if (Object.keys(state.members).length + input.members.length > 500)
+        throw new GameError("참가자는 최대 500명까지 등록할 수 있어요.");
+      for (const member of input.members) {
+        if (handles.has(member.handle.toLowerCase()))
+          throw new GameError(
+            `${member.handle}: 이미 등록되었거나 중복된 영문명이에요.`,
+          );
+        handles.add(member.handle.toLowerCase());
+      }
+      const invitations = input.members.map((member, index) => {
+        const memberId = `${id}-${index}`;
+        state.members[memberId] = {
+          id: memberId,
+          name: member.name,
+          handle: member.handle,
+          team: member.team,
+          role: "member",
+          score: 0,
+          found: 0,
+          blockedUntil: 0,
+          joined: false,
+        };
+        return { memberId, code: member.inviteCode };
+      });
+      return { invitations };
+    }
     case "createMember": {
       if (
         Object.values(state.members).some(
-          (m) => m.handle === input.member.handle,
+          (m) => m.handle.toLowerCase() === input.member.handle.toLowerCase(),
         )
       )
         throw new GameError("이미 등록된 아이디예요.");

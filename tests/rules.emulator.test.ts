@@ -71,6 +71,8 @@ describe.skipIf(!enabled)("Firestore security rules", () => {
       .firestore();
     await assertFails(getDoc(doc(db, "private", "treasures")));
     await assertFails(getDoc(doc(db, "invites", "secret")));
+    await assertFails(getDoc(doc(db, "devices", "private-device")));
+    await assertFails(getDoc(doc(db, "memberImports", "private-import")));
   });
   it("allows admins to inspect bomb types but never read invitation tokens", async () => {
     const db = env

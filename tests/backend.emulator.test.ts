@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { participantView } from "../shared/exploration";
 import { beforeAll, describe, expect, it } from "vitest";
 import { makeSeed, demoSecrets } from "../shared/seed";
 import type { Treasure, WorkshopState } from "../shared/types";
@@ -98,6 +99,214 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         )
       ).status,
     ).not.toBe(200);
+  });
+  it("atomically imports 40 members with usable links and safely retries the same request", async () => {
+    const original = (
+      await db.doc("workshops/main").get()
+    ).data() as WorkshopState;
+    const requestId = randomUUID();
+    const input = {
+      action: "createMembers",
+      requestId,
+      members: Array.from({ length: 40 }, (_, i) => ({
+        name: `일괄 참가자 ${i}`,
+        handle: `bulk.person${i}`,
+        team: "일괄팀",
+        inviteCode: randomBytes(24).toString("base64url"),
+        role: "superadmin",
+      })),
+    };
+    let invitations: Array<{ memberId: string; code: string }> = [];
+    try {
+      expect((await call("workshopAction", input, memberToken)).status).toBe(
+        403,
+      );
+      const invalid = {
+        ...input,
+        members: [input.members[0], { ...input.members[1], handle: "dave.h" }],
+      };
+      expect(
+        (await call("workshopAction", invalid, adminToken)).status,
+      ).not.toBe(200);
+      expect((await db.doc("workshops/main").get()).data()).toEqual(original);
+      const response = await call("workshopAction", input, adminToken);
+      expect(response.status).toBe(200);
+      invitations = response.result.invitations;
+      expect(invitations).toHaveLength(40);
+      const saved = (
+        await db.doc("workshops/main").get()
+      ).data() as WorkshopState;
+      expect(Object.keys(saved.members)).toHaveLength(
+        Object.keys(original.members).length + 40,
+      );
+      for (const invitation of invitations) {
+        expect(saved.members[invitation.memberId].role).toBe("member");
+        expect(
+          (await db.doc(`members/${invitation.memberId}`).get()).data().role,
+        ).toBe("member");
+        expect(
+          (await db.doc(`invites/${hash(invitation.code)}`).get()).data().uid,
+        ).toBe(invitation.memberId);
+      }
+      expect(
+        (await db.doc("workshops/participants").get()).data().members,
+      ).toEqual(saved.members);
+      expect((await call("workshopAction", input, adminToken)).result).toEqual(
+        response.result,
+      );
+      expect((await db.doc("workshops/main").get()).data()).toEqual(saved);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            {
+              ...input,
+              members: input.members.map((m) => ({ ...m, team: "변경팀" })),
+            },
+            adminToken,
+          )
+        ).status,
+      ).not.toBe(200);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { ...input, requestId: randomUUID() },
+            adminToken,
+          )
+        ).status,
+      ).not.toBe(200);
+      for (const invitation of [invitations[0], invitations[39]]) {
+        const token = await redeem(invitation.code);
+        expect(
+          JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString())
+            .user_id,
+        ).toBe(invitation.memberId);
+      }
+      const marker = (
+        await db.doc(`memberImports/${hash(`dave.h:${requestId}`)}`).get()
+      ).data();
+      expect(JSON.stringify(marker)).not.toContain(invitations[0].code);
+    } finally {
+      const batch = db.batch();
+      batch.set(db.doc("workshops/main"), original);
+      batch.set(db.doc("workshops/participants"), participantView(original));
+      for (const invitation of invitations) {
+        batch.delete(db.doc(`members/${invitation.memberId}`));
+        batch.delete(db.doc(`invites/${hash(invitation.code)}`));
+      }
+      batch.delete(db.doc(`memberImports/${hash(`dave.h:${requestId}`)}`));
+      await batch.commit();
+    }
+  }, 30000);
+  it("exposes device evidence only to administrators, with no raw push tokens and no false uninstall from unknown checks", async () => {
+    const deviceId = randomUUID();
+    const device = {
+      deviceId,
+      platform: "Android",
+      installation: "installed",
+      permission: "granted",
+      push: "subscribed",
+    };
+    const pushToken = "private-test-push-token-for-device-status";
+    const report = (value: unknown) =>
+      call(
+        "workshopAction",
+        {
+          action: "reportDevice",
+          device: value,
+          token: pushToken,
+          uid: "dave.h",
+        },
+        memberToken,
+      );
+    try {
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "getMemberDevices" },
+            memberToken,
+          )
+        ).status,
+      ).toBe(403);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "registerPush", token: pushToken, deviceId },
+            memberToken,
+          )
+        ).status,
+      ).toBe(200);
+      expect((await report(device)).status).toBe(200);
+      let response = await call(
+        "workshopAction",
+        { action: "getMemberDevices" },
+        adminToken,
+      );
+      expect(response.status).toBe(200);
+      expect(JSON.stringify(response)).not.toContain(pushToken);
+      expect(response.result.memberDevices["alex.k"].pushDevices).toBe(1);
+      const found = response.result.memberDevices["alex.k"].devices.find(
+        (d: any) => d.deviceId === deviceId,
+      );
+      expect(found.installation).toBe("installed");
+      expect(found.installedAt).toBeGreaterThan(0);
+      expect(response.result.memberDevices["dave.h"].devices).toHaveLength(0);
+      expect(
+        (await report({ ...device, installation: "unknown" })).status,
+      ).toBe(200);
+      let record = (
+        await db.doc(`devices/${hash(`alex.k:${deviceId}`)}`).get()
+      ).data();
+      expect(record.installation).toBe("installed");
+      expect(record.removedAt).toBeUndefined();
+      expect(
+        (
+          await report({
+            ...device,
+            installation: "not-installed",
+            push: "unsubscribed",
+          })
+        ).status,
+      ).toBe(200);
+      response = await call(
+        "workshopAction",
+        { action: "getMemberDevices" },
+        adminToken,
+      );
+      expect(response.result.memberDevices["alex.k"].pushDevices).toBe(1);
+      record = response.result.memberDevices["alex.k"].devices.find(
+        (d: any) => d.deviceId === deviceId,
+      );
+      expect(record.removedAt).toBeGreaterThanOrEqual(record.installedAt);
+      expect(record.push).toBe("unsubscribed");
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "unregisterPush", token: pushToken },
+            memberToken,
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "getMemberDevices" },
+            adminToken,
+          )
+        ).result.memberDevices["alex.k"].pushDevices,
+      ).toBe(0);
+      expect(
+        (await db.doc("workshops/participants").get()).data(),
+      ).not.toHaveProperty("memberDevices");
+    } finally {
+      await db.doc(`devices/${hash(`alex.k:${deviceId}`)}`).delete();
+      await db.doc(`pushTokens/${hash(pushToken)}`).delete();
+    }
   });
   it("saves a batch to both views and private kinds, and rejects invalid or participant batches atomically", async () => {
     const originalState = (
@@ -513,6 +722,9 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     await db
       .doc("pushTokens/admin-device")
       .set({ uid: "dave.h", token: "admin-device-token" });
+    await db
+      .doc("devices/delete-target-device")
+      .set({ uid: id, deviceId: randomUUID() });
     const treasure = makeSeed(true).treasures.find((t) => t.id === "t4")!;
     const claim = {
       action: "claimCamera",
@@ -555,6 +767,9 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       );
     }
     expect((await db.doc(`members/${id}`).get()).exists).toBe(false);
+    expect(
+      (await db.collection("devices").where("uid", "==", id).get()).empty,
+    ).toBe(true);
     expect(
       (await db.collection("invites").where("uid", "==", id).get()).empty,
     ).toBe(true);
@@ -660,6 +875,14 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       uid: "dave.h",
       token: "admin-device-token",
     });
+    writer.set(db.doc("devices/reset-member-device"), {
+      uid: "alex.k",
+      deviceId: randomUUID(),
+    });
+    writer.set(db.doc("devices/reset-admin-device"), {
+      uid: "dave.h",
+      deviceId: randomUUID(),
+    });
     writer.set(db.doc("workshops/main"), state);
     await writer.close();
     const reset = await call(
@@ -699,6 +922,11 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         (d: { id: string }) => d.id,
       ),
     ).toEqual(["admin-device"]);
+    expect(
+      (await db.collection("devices").get()).docs.map(
+        (d: { id: string }) => d.id,
+      ),
+    ).toEqual(["reset-admin-device"]);
     const invites = (await db.collection("invites").get()).docs;
     expect(invites).toHaveLength(1);
     expect(invites[0].id).toBe(hash(adminCode));

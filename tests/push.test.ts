@@ -179,6 +179,7 @@ describe("device push registration", () => {
     vi.stubGlobal("window", {
       Notification: permission,
       PushManager: class {},
+      dispatchEvent: vi.fn(),
     });
     vi.stubGlobal("Notification", permission);
     vi.stubGlobal("navigator", { serviceWorker: worker });
@@ -225,7 +226,13 @@ describe("device push registration", () => {
     const { enablePush } = await import("../src/lib/pwa");
     await enablePush(act);
     expect(act.mock.calls).toEqual([
-      [{ action: "registerPush", token: "new-token" }],
+      [
+        {
+          action: "registerPush",
+          token: "new-token",
+          deviceId: saved.get("hr-device-id"),
+        },
+      ],
       [{ action: "unregisterPush", token: "old-token" }],
     ]);
     expect(saved.get("hr-push-token")).toBe("new-token");

@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 const base = process.env.BASE_PATH || "/";
+const siteOrigin = process.env.SITE_ORIGIN || "https://dave915.github.io";
 export default defineConfig({
   base,
   plugins: [
@@ -21,6 +22,14 @@ export default defineConfig({
         start_url: base,
         scope: base,
         display: "standalone",
+        related_applications: [
+          {
+            platform: "webapp",
+            url: `${base}manifest.webmanifest`,
+            id: new URL(base, siteOrigin).href,
+          },
+        ],
+        prefer_related_applications: false,
         background_color: "#faf9f3",
         theme_color: "#f9df38",
         icons: [

@@ -4978,3 +4978,129 @@ td .text-button {
     scroll-behavior: auto;
   }
 }
+.member-add-actions,
+.device-toolbar,
+.import-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.device-toolbar {
+  justify-content: space-between;
+  margin-block: 16px;
+}
+.device-toolbar .footnote {
+  margin: 0;
+  flex: 1;
+  min-width: 220px;
+}
+.member-import {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 24px;
+  margin-block: 20px;
+  border-radius: 16px;
+}
+.member-import > p {
+  line-height: 1.7;
+}
+.import-label {
+  display: grid;
+  gap: 8px;
+  margin-block: 16px;
+  font-weight: 600;
+}
+.import-label textarea {
+  min-height: 150px;
+  font-weight: 400;
+}
+.import-preview {
+  max-height: 340px;
+  overflow: auto;
+  margin-block: 12px 20px;
+}
+.import-preview th {
+  position: sticky;
+  top: 0;
+  background: #f4f2e5;
+  z-index: 1;
+}
+.import-preview td:last-child {
+  white-space: normal;
+  min-width: 170px;
+  max-width: 360px;
+}
+.import-error {
+  background: #faeade;
+  color: #8c3f23;
+}
+.form-error {
+  color: #8c3f23;
+  line-height: 1.7;
+}
+.device-cell {
+  display: grid;
+  text-align: left;
+  gap: 4px;
+  min-width: 155px;
+  padding: 8px 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+}
+.device-cell span {
+  font-size: 12px;
+}
+.device-cell small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.device-cell:hover strong {
+  text-decoration: underline;
+}
+.device-explanation {
+  line-height: 1.7;
+}
+.device-list article {
+  padding-block: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.device-list h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.device-list dl {
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+}
+.device-list dl div {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+.device-list dt {
+  color: var(--muted);
+}
+.device-list dd {
+  margin: 0;
+  text-align: right;
+}
+@media (max-width: 600px) {
+  .member-import {
+    padding: 16px;
+  }
+  .member-add-actions {
+    width: 100%;
+  }
+  .member-add-actions > button {
+    flex: 1;
+  }
+  .member-import .form-actions {
+    flex-wrap: wrap;
+  }
+}

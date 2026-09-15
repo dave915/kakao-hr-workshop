@@ -1,5 +1,6 @@
 import { app, demoMode } from "./firebase";
 import type { ActionInput } from "../../shared/validation";
+import { deviceId } from "./device-status";
 let registrationPromise: Promise<ServiceWorkerRegistration> | null = null;
 export function registerWorker() {
   if (!("serviceWorker" in navigator) || import.meta.env.DEV) return null;
@@ -70,12 +71,13 @@ export async function enablePush(
   if (!token)
     throw new Error("알림 등록을 완료하지 못했어요. 다시 시도해주세요.");
   const previousToken = localStorage.getItem("hr-push-token");
-  await act({ action: "registerPush", token });
+  await act({ action: "registerPush", token, deviceId: deviceId() });
   localStorage.setItem("hr-push-token", token);
   if (previousToken && previousToken !== token)
     await act({ action: "unregisterPush", token: previousToken }).catch(() => {
       console.warn("[push] Previous device registration could not be removed.");
     });
+  window.dispatchEvent(new Event("hr-push-change"));
 }
 export async function disablePush(
   act: (input: ActionInput) => Promise<unknown>,
@@ -88,4 +90,5 @@ export async function disablePush(
     if (await isSupported()) await deleteToken(getMessaging(app));
   }
   localStorage.removeItem("hr-push-token");
+  window.dispatchEvent(new Event("hr-push-change"));
 }

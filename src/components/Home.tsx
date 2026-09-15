@@ -13,11 +13,7 @@ import {
 } from "lucide-react";
 import { useWorkshop } from "../lib/store";
 import { englishName, formatDate, formatTime } from "../lib/utils";
-import {
-  remainingTreasures,
-  scheduleStatus,
-  teamRanking,
-} from "../../shared/game";
+import { remainingTreasures, scheduleStatus } from "../../shared/game";
 import type { Page } from "../../shared/types";
 import { ExpeditionArt } from "./ExpeditionArt";
 import { Avatar, SectionTitle } from "./common";
@@ -35,8 +31,11 @@ export default function Home({
   );
   const next = upcoming[0];
   const timeline = (upcoming.length ? upcoming : state.schedule).slice(0, 3);
-  const teams = teamRanking(state);
-  const ourTeam = teams.find((t) => t.name === me.team);
+  const ourTeam = {
+    found: Object.values(state.members)
+      .filter((m) => m.team === me.team)
+      .reduce((sum, m) => sum + m.found, 0),
+  };
   const notice = state.notices.find(
     (n) => n.audience === "all" || n.audience === me.team,
   );

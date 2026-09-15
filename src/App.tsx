@@ -35,6 +35,8 @@ import { app, configured } from "./lib/firebase";
 import { isAdmin } from "../shared/game";
 import { englishName, errorMessage } from "./lib/utils";
 import { registerWorker } from "./lib/pwa";
+import { startDeviceReporting } from "./lib/device-status";
+import { useUnreadNotices } from "./lib/notice-read";
 import type { Page } from "../shared/types";
 const Treasure = lazy(() => import("./components/Treasure"));
 const Admin = lazy(() => import("./components/Admin"));
@@ -59,9 +61,27 @@ const pageFromHash = (): Page => {
   return p in pageNames ? p : "home";
 };
 export default function App() {
-  const { state, me, loading, error, demo, login, clearError, switchDemo } =
-    useWorkshop();
+  const {
+    state,
+    me,
+    loading,
+    error,
+    demo,
+    login,
+    clearError,
+    switchDemo,
+    act,
+  } = useWorkshop();
   const [page, setPage] = useState<Page>(pageFromHash);
+  const visibleNotices =
+    state?.notices.filter(
+      (n) => n.audience === "all" || n.audience === me?.team,
+    ) ?? [];
+  const unread = useUnreadNotices(me?.id, visibleNotices, page === "notices");
+  useEffect(() => {
+    if (!me || demo) return;
+    return startDeviceReporting(act);
+  }, [me?.id, demo, act]);
   const [toast, setToast] = useState("");
   const [now, setNow] = useState(Date.now());
   const [joining, setJoining] = useState(false);
@@ -282,9 +302,6 @@ export default function App() {
         </div>
       </div>
     );
-  const notices = state.notices.filter(
-    (n) => n.audience === "all" || n.audience === me.team,
-  );
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -306,9 +323,7 @@ export default function App() {
             >
               <n.icon size={20} />
               <span>{n.name}</span>
-              {n.id === "notices" && notices.length > 0 && (
-                <small>{notices.length}</small>
-              )}
+              {n.id === "notices" && unread > 0 && <small>{unread}</small>}
               {page === n.id && <span className="nav-spark">✦</span>}
             </button>
           ))}
@@ -369,7 +384,7 @@ export default function App() {
               onClick={() => navigate("notices")}
             >
               <Bell size={19} />
-              {notices.length > 0 && <i />}
+              {unread > 0 && <i aria-label={`읽지 않은 소식 ${unread}개`} />}
             </button>
             <button className="user-menu" onClick={() => navigate("profile")}>
               <Avatar name={englishName(me.handle)} />

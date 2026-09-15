@@ -157,6 +157,11 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
       if (!parsed.success) throw new Error(parsed.error.issues[0].message);
       if (demoMode) {
         if (!uid) throw new Error("입장해주세요.");
+        if (raw.action === "getMemberDevices") {
+          if (dataRef.current.state.members[uid]?.role === "member")
+            throw new Error("추진위원회만 기기 상태를 볼 수 있어요.");
+          return { memberDevices: {} };
+        }
         const next = structuredClone(dataRef.current);
         const result = mutate(
           next.state,
@@ -165,6 +170,14 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
           parsed.data,
           crypto.randomUUID(),
         );
+        if (raw.action === "createMembers" && result.invitations) {
+          const invites = JSON.parse(
+            localStorage.getItem("hr-demo-invites") || "{}",
+          );
+          for (const invitation of result.invitations)
+            invites[invitation.code] = invitation.memberId;
+          localStorage.setItem("hr-demo-invites", JSON.stringify(invites));
+        }
         if (raw.action === "getGuidance" || raw.action === "getArTarget")
           return result;
         if (raw.action === "resetWorkshop" || raw.action === "deleteMember") {

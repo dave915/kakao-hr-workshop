@@ -96,6 +96,7 @@ export function teamRanking(state: Pick<WorkshopState, "members">) {
     { name: string; score: number; found: number; members: number }
   >();
   Object.values(state.members).forEach((p) => {
+    if (["", "미배정", "워추위"].includes(p.team.replace(/\s/g, ""))) return;
     const t = result.get(p.team) ?? {
       name: p.team,
       score: 0,

@@ -98,6 +98,8 @@ export interface ClaimResult {
   blockedUntil: number;
 }
 export interface ActionResponse {
+  invitations?: Array<{ memberId: string; code: string }>;
+  memberDevices?: Record<string, MemberDevices>;
   arTarget?: ArTarget | null;
   guidance?: TreasureGuidance;
   code?: string;
@@ -106,4 +108,21 @@ export interface ActionResponse {
   noticeId?: string;
   delivered?: number;
   failed?: number;
+}
+export interface DeviceReport {
+  deviceId: string;
+  platform: "Android" | "iOS" | "Windows" | "macOS" | "기타";
+  installation: "installed" | "not-installed" | "unknown";
+  permission: "granted" | "denied" | "default" | "unsupported";
+  push: "subscribed" | "unsubscribed" | "unknown";
+}
+export interface DeviceStatus extends DeviceReport {
+  lastSeenAt: number;
+  installedAt?: number;
+  installationCheckedAt?: number;
+  removedAt?: number;
+}
+export interface MemberDevices {
+  devices: DeviceStatus[];
+  pushDevices: number;
 }

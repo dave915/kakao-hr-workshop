@@ -12,6 +12,34 @@ export const memberInput = z.object({
   ),
   team: text(40),
 });
+export const memberBatchInput = z.object({
+  action: z.literal("createMembers"),
+  requestId: z.string().uuid(),
+  members: z
+    .array(
+      memberInput.extend({
+        inviteCode: z.string().regex(/^[A-Za-z0-9_-]{32}$/),
+      }),
+    )
+    .min(1)
+    .max(100)
+    .refine(
+      (items) =>
+        new Set(items.map((m) => m.handle.toLowerCase())).size === items.length,
+      "목록에 같은 영문명이 두 번 있어요.",
+    )
+    .refine(
+      (items) => new Set(items.map((m) => m.inviteCode)).size === items.length,
+      "초대 코드를 다시 생성해주세요.",
+    ),
+});
+export const deviceReportInput = z.object({
+  deviceId: z.string().uuid(),
+  platform: z.enum(["Android", "iOS", "Windows", "macOS", "기타"]),
+  installation: z.enum(["installed", "not-installed", "unknown"]),
+  permission: z.enum(["granted", "denied", "default", "unsupported"]),
+  push: z.enum(["subscribed", "unsubscribed", "unknown"]),
+});
 export const scheduleInput = z
   .object({
     id: text(100),
@@ -83,6 +111,13 @@ export const actionInput = z.discriminatedUnion("action", [
   guidanceInput.extend({ action: z.literal("getGuidance") }),
   guidanceInput.extend({ action: z.literal("getArTarget") }),
   z.object({ action: z.literal("createMember"), member: memberInput }),
+  memberBatchInput,
+  z.object({ action: z.literal("getMemberDevices") }),
+  z.object({
+    action: z.literal("reportDevice"),
+    device: deviceReportInput,
+    token: z.string().min(20).max(4096).optional(),
+  }),
   z.object({ action: z.literal("deleteMember"), memberId: text(100) }),
   z.object({ action: z.literal("rotateInvite"), memberId: text(100) }),
   z.object({
@@ -127,6 +162,7 @@ export const actionInput = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("registerPush"),
     token: z.string().min(20).max(4096),
+    deviceId: z.string().uuid().optional(),
   }),
   z.object({
     action: z.literal("unregisterPush"),
