@@ -39,6 +39,12 @@ async function main() {
         throw new Error("No existing superadmin to recover.");
       const version = member.data()!.sessionVersion + 1;
       tx.update(db.doc(`members/${uid}`), { sessionVersion: version });
+      tx.set(db.doc(`inviteLinks/${uid}`), {
+        uid,
+        code,
+        sessionVersion: version,
+        expiresAt: Date.now() + 30 * 86400000,
+      });
       tx.create(
         db.doc(`invites/${createHash("sha256").update(code).digest("hex")}`),
         { uid, sessionVersion: version, expiresAt: Date.now() + 30 * 86400000 },
@@ -55,6 +61,12 @@ async function main() {
     tx.create(db.doc(`members/${uid}`), {
       role: "superadmin",
       sessionVersion: 1,
+    });
+    tx.create(db.doc(`inviteLinks/${uid}`), {
+      uid,
+      code,
+      sessionVersion: 1,
+      expiresAt: Date.now() + 30 * 86400000,
     });
     tx.create(
       db.doc(`invites/${createHash("sha256").update(code).digest("hex")}`),

@@ -4,10 +4,14 @@ export default function ExplorationDialog({
   children,
   onClose,
   title,
+  directionMode = false,
+  onMap,
 }: {
   children: ReactNode;
   onClose: () => void;
   title: string;
+  directionMode?: boolean;
+  onMap?: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -23,23 +27,26 @@ export default function ExplorationDialog({
   return (
     <dialog
       ref={ref}
-      className="exploration-dialog"
-      aria-label="큰 지도에서 보물 탐색"
+      className={`exploration-dialog ${directionMode ? "is-direction-mode" : ""}`}
+      aria-label={
+        directionMode ? "큰 나침반으로 보물 찾기" : "큰 지도에서 보물 탐색"
+      }
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        if (directionMode) onMap?.();
+        else onClose();
       }}
     >
       <header className="focus-map-header">
         <button
           className="icon-button"
-          onClick={onClose}
-          aria-label="큰 지도 닫기"
+          onClick={directionMode ? onMap : onClose}
+          aria-label={directionMode ? "지도로 돌아가기" : "큰 지도 닫기"}
         >
           <ArrowLeft size={22} />
         </button>
         <div>
-          <span>EXPLORE MODE</span>
+          <span>{directionMode ? "FOLLOW THE DIRECTION" : "EXPLORE MODE"}</span>
           <strong>{title}</strong>
         </div>
         <button className="text-button" onClick={onClose}>

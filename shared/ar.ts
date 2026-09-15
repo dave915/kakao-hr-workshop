@@ -18,6 +18,9 @@ export interface OrientationReading {
 export const wrapDegrees = (value: number) => ((value % 360) + 360) % 360;
 export const angleDifference = (target: number, heading: number) =>
   ((target - heading + 540) % 360) - 180;
+/** Keep CSS rotation continuous when the heading crosses north or ±180°. */
+export const continuousRotation = (previous: number, next: number) =>
+  previous + angleDifference(wrapDegrees(next), wrapDegrees(previous));
 export function directionMatch(
   bearing?: number | null,
   heading?: number | null,

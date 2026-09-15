@@ -31,6 +31,7 @@ import type { Member, Schedule, Settings } from "../../shared/types";
 import type { ActionInput } from "../../shared/validation";
 import { Avatar, Drawer, Empty, type Notify } from "./common";
 import MemberImport from "./MemberImport";
+import InviteExport from "./InviteExport";
 import {
   DeviceCell,
   DeviceRefresh,
@@ -236,6 +237,7 @@ export default function Admin({ notify }: { notify: Notify }) {
               </button>
             </div>
           </div>
+          <InviteExport notify={notify} />
           {bulkMembers && (
             <MemberImport
               notify={notify}
@@ -732,8 +734,8 @@ export default function Admin({ notify }: { notify: Notify }) {
               </datalist>
             </label>
             <p className="footnote">
-              등록 후 개인 입장 링크가 한 번 표시돼요. 이 링크를 가진 사람은
-              해당 참가자로 입장할 수 있어요.
+              등록 후 개인 입장 링크가 표시돼요. 이 링크를 가진 사람은 해당
+              참가자로 입장할 수 있어요.
             </p>
             <button className="button dark full" disabled={busy}>
               {busy ? "초대장 만드는 중…" : "등록하고 개인 링크 발급"}
@@ -766,8 +768,8 @@ export default function Admin({ notify }: { notify: Notify }) {
               링크 복사
             </button>
             <p className="footnote">
-              초대장은 발급 시 한 번만 표시해요. 잃어버렸다면 참가자 목록에서
-              재발급해주세요.
+              슈퍼 어드민은 ‘전체 대원 참가링크 복사’로 다시 복사할 수 있어요.
+              기존 링크를 폐기하려면 참가자 목록에서 재발급해주세요.
               {demo ? " 데모 링크는 같은 브라우저에서만 사용할 수 있어요." : ""}
             </p>
           </div>

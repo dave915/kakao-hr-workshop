@@ -98,6 +98,7 @@ export interface ClaimResult {
   blockedUntil: number;
 }
 export interface ActionResponse {
+  memberInvites?: Array<{ memberId: string; handle: string; code: string }>;
   invitations?: Array<{ memberId: string; code: string }>;
   memberDevices?: Record<string, MemberDevices>;
   arTarget?: ArTarget | null;

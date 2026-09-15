@@ -100,6 +100,159 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       ).status,
     ).not.toBe(200);
   });
+  it("exports stable links for every member without revoking legacy links or sessions, and keeps exports private", async () => {
+    const original = (
+      await db.doc("workshops/main").get()
+    ).data() as WorkshopState;
+    const oldInvites = await db.collection("invites").get();
+    const oldLinks = await db.collection("inviteLinks").get();
+    const originalJune = (await db.doc("members/june.p").get()).data();
+    const knownInvites = new Set(oldInvites.docs.map((d: any) => d.id));
+    let createdId: string | undefined;
+    try {
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "getMemberInvites" },
+            memberToken,
+          )
+        ).status,
+      ).toBe(403);
+      await call(
+        "workshopAction",
+        { action: "setRole", memberId: "june.p", role: "admin" },
+        adminToken,
+      );
+      const committeeToken = await redeem(committeeCode);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "getMemberInvites" },
+            committeeToken,
+          )
+        ).status,
+      ).toBe(403);
+      const first = await call(
+        "workshopAction",
+        { action: "getMemberInvites" },
+        adminToken,
+      );
+      expect(first.status).toBe(200);
+      const links = first.result.memberInvites as Array<{
+        memberId: string;
+        handle: string;
+        code: string;
+      }>;
+      expect(links).toHaveLength(Object.keys(original.members).length);
+      expect(links.map((i) => i.handle)).toEqual(
+        Object.values(original.members)
+          .map((m) => m.handle)
+          .sort((a, b) => a.localeCompare(b)),
+      );
+      for (const link of links)
+        expect(link.code).toMatch(/^[A-Za-z0-9_-]{32}$/);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "getMemberInvites" },
+            adminToken,
+          )
+        ).result,
+      ).toEqual(first.result);
+      expect(await redeem(adminCode)).toBeTruthy();
+      expect(await redeem(memberCode)).toBeTruthy();
+      expect((await db.doc("members/dave.h").get()).data().sessionVersion).toBe(
+        1,
+      );
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "getMemberDevices" },
+            adminToken,
+          )
+        ).status,
+      ).toBe(200);
+      const memberLink = links.find((i) => i.memberId === "alex.k")!;
+      const token = await redeem(memberLink.code);
+      expect(
+        JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString())
+          .user_id,
+      ).toBe("alex.k");
+      expect(
+        JSON.stringify((await db.doc("workshops/participants").get()).data()),
+      ).not.toContain(memberLink.code);
+      const added = await call(
+        "workshopAction",
+        {
+          action: "createMember",
+          member: { name: "링크검증", handle: "export.test", team: "검증팀" },
+        },
+        adminToken,
+      );
+      createdId = added.result.memberId;
+      const exported = await call(
+        "workshopAction",
+        { action: "getMemberInvites" },
+        adminToken,
+      );
+      expect(
+        exported.result.memberInvites.find((i: any) => i.memberId === createdId)
+          .code,
+      ).toBe(added.result.code);
+      const rotated = await call(
+        "workshopAction",
+        { action: "rotateInvite", memberId: createdId },
+        adminToken,
+      );
+      expect(rotated.status).toBe(200);
+      expect(
+        (await call("redeemInvite", { code: added.result.code })).status,
+      ).toBe(401);
+      const afterRotation = await call(
+        "workshopAction",
+        { action: "getMemberInvites" },
+        adminToken,
+      );
+      expect(
+        afterRotation.result.memberInvites.find(
+          (i: any) => i.memberId === createdId,
+        ).code,
+      ).toBe(rotated.result.code);
+      await call(
+        "workshopAction",
+        { action: "deleteMember", memberId: createdId },
+        adminToken,
+      );
+      expect((await db.doc(`inviteLinks/${createdId}`).get()).exists).toBe(
+        false,
+      );
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "getMemberInvites" },
+            adminToken,
+          )
+        ).result.memberInvites,
+      ).toHaveLength(links.length);
+    } finally {
+      const batch = db.batch();
+      batch.set(db.doc("workshops/main"), original);
+      batch.set(db.doc("workshops/participants"), participantView(original));
+      batch.set(db.doc("members/june.p"), originalJune);
+      if (createdId) batch.delete(db.doc(`members/${createdId}`));
+      for (const doc of (await db.collection("invites").get()).docs)
+        if (!knownInvites.has(doc.id)) batch.delete(doc.ref);
+      for (const doc of (await db.collection("inviteLinks").get()).docs)
+        batch.delete(doc.ref);
+      for (const doc of oldLinks.docs) batch.set(doc.ref, doc.data());
+      await batch.commit();
+    }
+  }, 30000);
   it("atomically imports 40 members with usable links and safely retries the same request", async () => {
     const original = (
       await db.doc("workshops/main").get()
@@ -193,6 +346,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       batch.set(db.doc("workshops/participants"), participantView(original));
       for (const invitation of invitations) {
         batch.delete(db.doc(`members/${invitation.memberId}`));
+        batch.delete(db.doc(`inviteLinks/${invitation.memberId}`));
         batch.delete(db.doc(`invites/${hash(invitation.code)}`));
       }
       batch.delete(db.doc(`memberImports/${hash(`dave.h:${requestId}`)}`));

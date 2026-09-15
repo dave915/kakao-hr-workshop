@@ -113,6 +113,7 @@ export const actionInput = z.discriminatedUnion("action", [
   z.object({ action: z.literal("createMember"), member: memberInput }),
   memberBatchInput,
   z.object({ action: z.literal("getMemberDevices") }),
+  z.object({ action: z.literal("getMemberInvites") }),
   z.object({
     action: z.literal("reportDevice"),
     device: deviceReportInput,

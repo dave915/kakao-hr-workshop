@@ -182,6 +182,81 @@ export const workshopAction = onCall(
             "참가자 정보를 찾을 수 없어요.",
           );
         const secrets = (secretSnap.data()?.kinds ?? {}) as TreasureSecrets;
+        if (input.action === "getMemberInvites") {
+          if (state.members[uid].role !== "superadmin")
+            throw new HttpsError(
+              "permission-denied",
+              "전체 참가링크는 슈퍼 어드민만 복사할 수 있어요.",
+            );
+          const [profiles, links] = await Promise.all([
+            tx.get(db.collection("members")),
+            tx.get(db.collection("inviteLinks")),
+          ]);
+          const versions = new Map(
+            profiles.docs.map((d) => [d.id, d.data().sessionVersion as number]),
+          );
+          const saved = new Map(links.docs.map((d) => [d.id, d.data()]));
+          const members = Object.values(state.members).sort((a, b) =>
+            a.handle.localeCompare(b.handle),
+          );
+          const backing = await Promise.all(
+            members.map((member) => {
+              const link = saved.get(member.id);
+              return link && typeof link.code === "string"
+                ? tx.get(db.doc(`invites/${hash(link.code)}`))
+                : Promise.resolve(null);
+            }),
+          );
+          const memberInvites = members.map((member, index) => {
+            const version = versions.get(member.id);
+            if (!version)
+              throw new HttpsError(
+                "failed-precondition",
+                "참가자 계정 정보를 확인하지 못했어요. 잠시 후 다시 시도해주세요.",
+              );
+            const link = saved.get(member.id),
+              invite = backing[index]?.data();
+            if (
+              link &&
+              link.sessionVersion === version &&
+              link.expiresAt > now &&
+              invite?.uid === member.id &&
+              invite.sessionVersion === version &&
+              invite.expiresAt > now
+            )
+              return {
+                memberId: member.id,
+                handle: member.handle,
+                code: link.code as string,
+              };
+            // Legacy links were hash-only. Add a reusable export link without
+            // rotating the session version or invalidating any existing link.
+            const code = randomBytes(24).toString("base64url");
+            const expiresAt = Math.max(
+              Date.parse(state.settings.endsAt) + 86400000,
+              now + 30 * 86400000,
+            );
+            tx.create(db.doc(`invites/${hash(code)}`), {
+              uid: member.id,
+              sessionVersion: version,
+              expiresAt,
+            });
+            tx.set(db.doc(`inviteLinks/${member.id}`), {
+              uid: member.id,
+              code,
+              sessionVersion: version,
+              expiresAt,
+            });
+            return { memberId: member.id, handle: member.handle, code };
+          });
+          tx.create(db.collection("audit").doc(), {
+            actor: uid,
+            action: input.action,
+            at: now,
+            count: memberInvites.length,
+          });
+          return { memberInvites };
+        }
         if (input.action === "getMemberDevices") {
           if (!isAdmin(state.members[uid]))
             throw new HttpsError(
@@ -304,6 +379,7 @@ export const workshopAction = onCall(
             tx.get(db.collection("devices").where("uid", "==", input.memberId)),
           ]);
           tx.delete(db.doc(`members/${input.memberId}`));
+          tx.delete(db.doc(`inviteLinks/${input.memberId}`));
           for (const invite of invites.docs) tx.delete(invite.ref);
           for (const token of pushTokens.docs) tx.delete(token.ref);
           for (const device of devices.docs) tx.delete(device.ref);
@@ -311,12 +387,14 @@ export const workshopAction = onCall(
         if (input.action === "resetWorkshop") {
           // Read and delete in the same transaction as the state reset so old
           // links and sessions lose access atomically, including admin sessions.
-          const [members, invites, pushTokens, devices] = await Promise.all([
-            tx.get(db.collection("members")),
-            tx.get(db.collection("invites")),
-            tx.get(db.collection("pushTokens")),
-            tx.get(db.collection("devices")),
-          ]);
+          const [members, invites, pushTokens, devices, inviteLinks] =
+            await Promise.all([
+              tx.get(db.collection("members")),
+              tx.get(db.collection("invites")),
+              tx.get(db.collection("pushTokens")),
+              tx.get(db.collection("devices")),
+              tx.get(db.collection("inviteLinks")),
+            ]);
           for (const member of members.docs)
             if (!state.members[member.id]) tx.delete(member.ref);
           for (const invite of invites.docs)
@@ -325,6 +403,8 @@ export const workshopAction = onCall(
             if (!state.members[token.data().uid]) tx.delete(token.ref);
           for (const device of devices.docs)
             if (!state.members[device.data().uid]) tx.delete(device.ref);
+          for (const link of inviteLinks.docs)
+            if (!state.members[link.id]) tx.delete(link.ref);
         }
         if (
           input.action === "registerPush" ||
@@ -345,6 +425,10 @@ export const workshopAction = onCall(
         }
         if (input.action === "createMembers" && importRef) {
           for (const invitation of response.invitations!) {
+            const expiresAt = Math.max(
+              Date.parse(state.settings.endsAt) + 86400000,
+              now + 30 * 86400000,
+            );
             tx.create(db.doc(`members/${invitation.memberId}`), {
               role: "member",
               sessionVersion: 1,
@@ -352,10 +436,13 @@ export const workshopAction = onCall(
             tx.create(db.doc(`invites/${hash(invitation.code)}`), {
               uid: invitation.memberId,
               sessionVersion: 1,
-              expiresAt: Math.max(
-                Date.parse(state.settings.endsAt) + 86400000,
-                now + 30 * 86400000,
-              ),
+              expiresAt,
+            });
+            tx.set(db.doc(`inviteLinks/${invitation.memberId}`), {
+              uid: invitation.memberId,
+              code: invitation.code,
+              sessionVersion: 1,
+              expiresAt,
             });
           }
           tx.create(importRef, {
@@ -380,6 +467,15 @@ export const workshopAction = onCall(
           });
           tx.create(db.doc(`invites/${hash(code)}`), {
             uid: targetId,
+            sessionVersion: version,
+            expiresAt: Math.max(
+              Date.parse(state.settings.endsAt) + 86400000,
+              now + 30 * 86400000,
+            ),
+          });
+          tx.set(db.doc(`inviteLinks/${targetId}`), {
+            uid: targetId,
+            code,
             sessionVersion: version,
             expiresAt: Math.max(
               Date.parse(state.settings.endsAt) + 86400000,

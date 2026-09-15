@@ -73,6 +73,7 @@ describe.skipIf(!enabled)("Firestore security rules", () => {
     await assertFails(getDoc(doc(db, "invites", "secret")));
     await assertFails(getDoc(doc(db, "devices", "private-device")));
     await assertFails(getDoc(doc(db, "memberImports", "private-import")));
+    await assertFails(getDoc(doc(db, "inviteLinks", "member")));
   });
   it("allows admins to inspect bomb types but never read invitation tokens", async () => {
     const db = env
@@ -80,6 +81,7 @@ describe.skipIf(!enabled)("Firestore security rules", () => {
       .firestore();
     await assertSucceeds(getDoc(doc(db, "private", "treasures")));
     await assertFails(getDoc(doc(db, "invites", "secret")));
+    await assertFails(getDoc(doc(db, "inviteLinks", "admin")));
   });
   it("denies participants the full coordinates even with a forged role claim", async () => {
     const db = env

@@ -23,6 +23,7 @@ import { useMapHeading } from "../hooks/useMapHeading";
 import ExplorationGuide from "./ExplorationGuide";
 import ExplorationDialog from "./ExplorationDialog";
 import DirectionCompass from "./DirectionCompass";
+import DirectionFocus from "./DirectionFocus";
 export { locate } from "../hooks/useExploration";
 const TreasureMap = lazy(() => import("./TreasureMap"));
 const Camera = lazy(() => import("./Camera"));
@@ -39,6 +40,7 @@ export default function Treasure({
   const [camera, setCamera] = useState(false);
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [directionFocus, setDirectionFocus] = useState(false);
   const [listMode, setListMode] = useState<"clues" | "found">("clues");
   const [result, setResult] = useState<ClaimResult | null>(null);
   const [locating, setLocating] = useState(false);
@@ -67,6 +69,7 @@ export default function Treasure({
     explore.stop();
     setSelected(null);
     setCamera(false);
+    setDirectionFocus(false);
   }, [me?.id]);
   useEffect(() => {
     if (!me?.id) return;
@@ -105,6 +108,7 @@ export default function Treasure({
     ) {
       explore.stop();
       setCamera(false);
+      setDirectionFocus(false);
       if (treasure?.foundBy && treasure.foundBy !== me?.id)
         notify("누군가 먼저 발견했어요! 다른 힌트로 탐험을 이어가요.");
     }
@@ -132,6 +136,7 @@ export default function Treasure({
     explore.position.accuracy <= 100,
   );
   const selectTreasure = (id: string, revealGuide = false) => {
+    setDirectionFocus(false);
     if (id !== selected) explore.stop();
     setSelected(id);
     if (revealGuide)
@@ -145,6 +150,7 @@ export default function Treasure({
       );
   };
   const openLargeMap = () => {
+    setDirectionFocus(false);
     explore.setFollow(true);
     setExpanded(true);
     // Start during the tap so Safari can request motion/orientation permission.
@@ -159,6 +165,7 @@ export default function Treasure({
     if (!treasure || treasure.foundBy || disabled) return;
     explore.stop();
     setExpanded(false);
+    setDirectionFocus(false);
     setCamera(true);
   };
   const onLocate = async () => {
@@ -247,6 +254,14 @@ export default function Treasure({
       heading={expanded ? compass.heading : undefined}
       headingError={compass.error}
       onEnableHeading={expanded ? () => void compass.start() : undefined}
+      onExpandDirection={
+        expanded
+          ? () => {
+              setDirectionFocus(true);
+              if (compass.heading === null) void compass.start();
+            }
+          : undefined
+      }
     />
   ) : treasure ? (
     <section className="found-detail">
@@ -414,49 +429,101 @@ export default function Treasure({
       {expanded && (
         <ExplorationDialog
           title={treasure?.name ?? "우리의 발견 지도"}
-          onClose={() => setExpanded(false)}
+          onClose={() => {
+            setExpanded(false);
+            setDirectionFocus(false);
+          }}
+          directionMode={directionFocus}
+          onMap={() => {
+            setDirectionFocus(false);
+            requestAnimationFrame(() =>
+              document
+                .querySelector<HTMLButtonElement>(
+                  ".exploration-dialog .compass-expand-hit",
+                )
+                ?.focus(),
+            );
+          }}
         >
-          <section className="live-map-status" aria-label="실시간 내 위치">
-            <div className="live-map-readings">
-              <div className="live-map-location">
-                <LocateFixed size={20} />
-                <span>
-                  <strong>
-                    {positionCurrent
-                      ? "실시간 내 위치"
-                      : explore.position
-                        ? "위치 갱신 대기"
-                        : "위치 확인 중"}
-                  </strong>
-                  <small>
-                    {explore.position
-                      ? `GPS 오차 ±${Math.round(explore.position.accuracy)}m · ${explore.follow ? "내 위치 따라가는 중" : "지도 둘러보는 중"}`
-                      : "위치 접근을 허용해주세요"}
-                  </small>
-                </span>
+          <div className="map-exploration-content" hidden={directionFocus}>
+            <section className="live-map-status" aria-label="실시간 내 위치">
+              <div className="live-map-readings">
+                <div className="live-map-location">
+                  <LocateFixed size={20} />
+                  <span>
+                    <strong>
+                      {positionCurrent
+                        ? "실시간 내 위치"
+                        : explore.position
+                          ? "위치 갱신 대기"
+                          : "위치 확인 중"}
+                    </strong>
+                    <small>
+                      {explore.position
+                        ? `GPS 오차 ±${Math.round(explore.position.accuracy)}m · ${explore.follow ? "내 위치 따라가는 중" : "지도 둘러보는 중"}`
+                        : "위치 접근을 허용해주세요"}
+                    </small>
+                  </span>
+                </div>
+                <button className="text-button" onClick={() => void onLocate()}>
+                  <LocateFixed size={15} />내 위치로
+                </button>
               </div>
-              <button className="text-button" onClick={() => void onLocate()}>
-                <LocateFixed size={15} />내 위치로
-              </button>
-            </div>
-            {!positionCurrent && (explore.error || locationError) && (
-              <p role="status">{explore.error || locationError}</p>
-            )}
-          </section>
-          <div className="focus-map-area">{map}</div>
-          <div className="focus-guide-area">
-            {state.settings.gameOpen &&
-              (!treasure ||
-                treasure.foundBy ||
-                explore.target !== treasure.id) && (
-                <DirectionCompass
-                  heading={compass.heading}
-                  error={compass.error}
-                  onEnable={() => void compass.start()}
-                />
+              {!positionCurrent && (explore.error || locationError) && (
+                <p role="status">{explore.error || locationError}</p>
               )}
-            {guide}
+            </section>
+            <div className="focus-map-area">{map}</div>
+            <div className="focus-guide-area">
+              {state.settings.gameOpen &&
+                (!treasure ||
+                  treasure.foundBy ||
+                  explore.target !== treasure.id) && (
+                  <DirectionCompass
+                    heading={compass.heading}
+                    error={compass.error}
+                    onEnable={() => void compass.start()}
+                  />
+                )}
+              {guide}
+            </div>
           </div>
+          {directionFocus && treasure && (
+            <DirectionFocus
+              treasure={treasure}
+              guidance={
+                explore.target === treasure.id && !stale && !explore.error
+                  ? explore.guidance
+                  : null
+              }
+              heading={compass.heading}
+              error={
+                explore.error ||
+                (stale
+                  ? "위치 정보가 오래됐어요. 위치를 다시 확인해주세요."
+                  : disabled
+                    ? "지금은 탐색을 진행할 수 없어요."
+                    : "")
+              }
+              headingError={compass.error}
+              accuracy={explore.position?.accuracy}
+              disabled={disabled}
+              busy={busy}
+              onEnable={() => void compass.start()}
+              onLocate={() => void onLocate()}
+              onAr={startCamera}
+              onMap={() => {
+                setDirectionFocus(false);
+                requestAnimationFrame(() =>
+                  document
+                    .querySelector<HTMLButtonElement>(
+                      ".exploration-dialog .compass-expand-hit",
+                    )
+                    ?.focus(),
+                );
+              }}
+            />
+          )}
         </ExplorationDialog>
       )}
       {camera && treasure && !treasure.foundBy && !disabled && (

@@ -170,6 +170,23 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
           parsed.data,
           crypto.randomUUID(),
         );
+        if (raw.action === "getMemberInvites") {
+          const invites = JSON.parse(
+            localStorage.getItem("hr-demo-invites") || "{}",
+          ) as Record<string, string>;
+          const memberInvites = Object.values(next.state.members)
+            .sort((a, b) => a.handle.localeCompare(b.handle))
+            .map((member) => {
+              const code =
+                Object.keys(invites).find(
+                  (code) => invites[code] === member.id,
+                ) ?? crypto.randomUUID();
+              invites[code] = member.id;
+              return { memberId: member.id, handle: member.handle, code };
+            });
+          localStorage.setItem("hr-demo-invites", JSON.stringify(invites));
+          return { memberInvites };
+        }
         if (raw.action === "createMembers" && result.invitations) {
           const invites = JSON.parse(
             localStorage.getItem("hr-demo-invites") || "{}",

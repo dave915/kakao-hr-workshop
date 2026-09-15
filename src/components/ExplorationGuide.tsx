@@ -24,6 +24,7 @@ interface Props {
   heading?: number | null;
   headingError?: string;
   onEnableHeading?: () => void;
+  onExpandDirection?: () => void;
 }
 export default function ExplorationGuide({
   treasure,
@@ -41,6 +42,7 @@ export default function ExplorationGuide({
   heading,
   headingError,
   onEnableHeading,
+  onExpandDirection,
 }: Props) {
   const current = tracking && !stale && !error ? guidance : null;
   const distance = current
@@ -67,6 +69,7 @@ export default function ExplorationGuide({
             waiting={waiting}
             error={headingError}
             onEnable={onEnableHeading}
+            onExpand={onExpandDirection}
           >
             <div className="guide-reading-copy">
               {(!onEnableHeading || !current || current.withinRange) && (

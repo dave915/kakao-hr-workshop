@@ -1,4 +1,4 @@
-import { ArrowUp, Check, Compass, Sparkles } from "lucide-react";
+import { ArrowUp, Check, Compass, Sparkles, Maximize2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { compassDirection, directionMatch } from "../../shared/ar";
 
@@ -9,6 +9,7 @@ interface Props {
   waiting?: boolean;
   error?: string;
   onEnable?: () => void;
+  onExpand?: () => void;
   children?: ReactNode;
 }
 export default function DirectionCompass({
@@ -18,6 +19,7 @@ export default function DirectionCompass({
   waiting,
   error,
   onEnable,
+  onExpand,
   children,
 }: Props) {
   const live = Boolean(onEnable);
@@ -26,9 +28,21 @@ export default function DirectionCompass({
   const hasBearing = bearing != null && Number.isFinite(bearing);
   return (
     <div
-      className={`guide-reading direction-comparison ${live ? "is-live-comparison" : ""} ${match?.aligned ? "is-aligned" : ""}`}
+      className={`guide-reading direction-comparison ${live ? "is-live-comparison" : ""} ${match?.aligned ? "is-aligned" : ""} ${onExpand ? "is-expandable" : ""}`}
       aria-label={live ? "내 방향과 보물 방향 비교" : "보물 방향 안내"}
     >
+      {onExpand && (
+        <button
+          className="compass-expand-hit"
+          onClick={onExpand}
+          aria-label="나침반 힌트 크게 보기"
+        >
+          <span>
+            <Maximize2 size={12} />
+            크게 보기
+          </span>
+        </button>
+      )}
       <div
         className={`direction-beacon ${live ? "is-live" : ""} ${!live && waiting ? "waiting" : ""}`}
         aria-hidden="true"

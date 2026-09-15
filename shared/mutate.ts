@@ -46,6 +46,10 @@ export function mutate(
   if (!isAdmin(actor))
     throw new GameError("추진위원회만 사용할 수 있는 기능이에요.");
   switch (input.action) {
+    case "getMemberInvites":
+      if (actor.role !== "superadmin")
+        throw new GameError("전체 참가링크는 슈퍼 어드민만 복사할 수 있어요.");
+      return { memberInvites: [] };
     case "getMemberDevices":
       return { memberDevices: {} };
     case "createMembers": {
