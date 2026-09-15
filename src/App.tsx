@@ -33,7 +33,7 @@ import { ExpeditionArt } from "./components/ExpeditionArt";
 import { useWorkshop } from "./lib/store";
 import { app, configured } from "./lib/firebase";
 import { isAdmin } from "../shared/game";
-import { errorMessage } from "./lib/utils";
+import { englishName, errorMessage } from "./lib/utils";
 import { registerWorker } from "./lib/pwa";
 import type { Page } from "../shared/types";
 const Treasure = lazy(() => import("./components/Treasure"));
@@ -372,8 +372,8 @@ export default function App() {
               {notices.length > 0 && <i />}
             </button>
             <button className="user-menu" onClick={() => navigate("profile")}>
-              <Avatar name={me.name} />
-              <span>{me.handle}</span>
+              <Avatar name={englishName(me.handle)} />
+              <span>{englishName(me.handle)}</span>
               <ChevronRight size={13} />
             </button>
           </div>

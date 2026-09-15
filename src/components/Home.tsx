@@ -12,7 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useWorkshop } from "../lib/store";
-import { formatDate, formatTime } from "../lib/utils";
+import { englishName, formatDate, formatTime } from "../lib/utils";
 import {
   remainingTreasures,
   scheduleStatus,
@@ -45,9 +45,7 @@ export default function Home({
       <div className="page-intro">
         <div>
           <span className="eyebrow">A LITTLE BREAK, A BIG ADVENTURE</span>
-          <h1>
-            반가워요, {me.name} 대원님 <span className="wave">✳</span>
-          </h1>
+          <h1>안녕하세요 {englishName(me.handle)}!</h1>
           <p>오늘은 업무 대신, 함께하는 순간을 모아볼까요?</p>
         </div>
         <span className="outline-pill">
@@ -208,11 +206,8 @@ export default function Home({
               <span>01</span>
             </div>
             <div className="passport-person">
-              <Avatar name={me.name} size="large" />
-              <h2>
-                {me.name}
-                <small>{me.handle}</small>
-              </h2>
+              <Avatar name={englishName(me.handle)} size="large" />
+              <h2>{englishName(me.handle)}</h2>
               <span className="team-chip">{me.team}</span>
             </div>
             <div className="passport-rule" />

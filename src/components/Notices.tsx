@@ -1,6 +1,6 @@
 import { Bell, Megaphone } from "lucide-react";
 import { useWorkshop } from "../lib/store";
-import { formatDate, formatTime } from "../lib/utils";
+import { englishName, formatDate, formatTime } from "../lib/utils";
 import { Empty } from "./common";
 export default function Notices() {
   const { state, me } = useWorkshop();
@@ -34,7 +34,11 @@ export default function Notices() {
               </div>
               <h2>{n.title}</h2>
               <p>{n.body}</p>
-              <footer>워크샵 추진위원회 · {n.author}</footer>
+              <footer>
+                워크샵 추진위원회
+                {n.author !== "워크샵 추진위원회" &&
+                  ` · ${englishName(n.author)}`}
+              </footer>
             </article>
           ))}
         </div>

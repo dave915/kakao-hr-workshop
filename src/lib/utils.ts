@@ -1,3 +1,9 @@
+/** Company handles use EnglishName.suffix; the suffix is not a display name. */
+export function englishName(handle?: string | null) {
+  const name = handle?.trim().split(".")[0].toLowerCase();
+  return name ? name[0].toUpperCase() + name.slice(1) : "참가자";
+}
+
 export const formatTime = (iso: string) =>
   new Intl.DateTimeFormat("ko-KR", {
     hour: "2-digit",

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Flag, Medal, Gift, Trophy } from "lucide-react";
 import { useWorkshop } from "../lib/store";
+import { englishName } from "../lib/utils";
 import { memberRanking, teamRanking } from "../../shared/game";
 import { Avatar, Empty, SectionTitle } from "./common";
 export default function Team() {
@@ -28,9 +29,9 @@ export default function Team() {
         <div className="team-members">
           {peers.map((p) => (
             <div key={p.id}>
-              <Avatar name={p.name} />
+              <Avatar name={englishName(p.handle)} />
               <span>
-                {p.name}
+                {englishName(p.handle)}
                 {p.id === me.id ? " (나)" : ""}
               </span>
             </div>
@@ -50,7 +51,9 @@ export default function Team() {
                   <Gift size={24} />
                   <div>
                     <h3>{t.name}</h3>
-                    <p>{state.members[t.foundBy!]?.name} 대원 발견</p>
+                    <p>
+                      {englishName(state.members[t.foundBy!]?.handle)} · 발견
+                    </p>
                   </div>
                   <strong>
                     {t.outcome === "bomb" ? "꽝!" : `+${t.points} P`}
@@ -92,7 +95,7 @@ export default function Team() {
                 }))
               : memberRanking(state).map((m) => ({
                   id: m.id,
-                  name: m.name,
+                  name: englishName(m.handle),
                   score: m.score,
                   found: m.found,
                   self: m.id === me.id,

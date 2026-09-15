@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useWorkshop } from "../lib/store";
 import {
+  englishName,
   errorMessage,
   formatTime,
   fromLocalInput,
@@ -131,7 +132,7 @@ export default function Admin({ notify }: { notify: Notify }) {
     );
     if (r?.code) {
       setMemberForm(false);
-      setNewLink({ code: r.code, name: member.name });
+      setNewLink({ code: r.code, name: englishName(member.handle) });
     }
   };
   const executeConfirm = async () => {
@@ -272,9 +273,9 @@ export default function Admin({ notify }: { notify: Notify }) {
                     <tr key={m.id}>
                       <td>
                         <div className="table-person">
-                          <Avatar name={m.name} />
+                          <Avatar name={englishName(m.handle)} />
                           <span>
-                            <strong>{m.name}</strong>
+                            <strong>{englishName(m.handle)}</strong>
                             <small>
                               {m.handle} ·{" "}
                               {m.joined ? "입장 완료" : "입장 대기"}
@@ -302,7 +303,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                           <span className="mini-tag yellow">슈퍼 어드민</span>
                         ) : me.role === "superadmin" ? (
                           <select
-                            aria-label={`${m.name} 권한`}
+                            aria-label={`${englishName(m.handle)} 권한`}
                             value={m.role}
                             disabled={busy}
                             onChange={(e) =>
@@ -345,9 +346,9 @@ export default function Admin({ notify }: { notify: Notify }) {
                           onClick={() =>
                             setConfirm({
                               title: "개인 입장 링크 재발급",
-                              body: `${m.name}님의 기존 링크와 로그인은 사용할 수 없게 돼요. 새 링크를 전달해주세요.`,
+                              body: `${englishName(m.handle)}의 기존 링크와 로그인은 사용할 수 없게 돼요. 새 링크를 전달해주세요.`,
                               input: { action: "rotateInvite", memberId: m.id },
-                              name: m.name,
+                              name: englishName(m.handle),
                             })
                           }
                         >
@@ -469,7 +470,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                   <h3>{t.name}</h3>
                   <p>
                     {t.foundBy
-                      ? `${state.members[t.foundBy]?.name} 발견`
+                      ? `${englishName(state.members[t.foundBy]?.handle)} · 발견`
                       : `${t.points} P · 반경 ${t.radius}m`}
                   </p>
                 </div>
@@ -749,7 +750,7 @@ export default function Admin({ notify }: { notify: Notify }) {
       )}
       {newLink && (
         <Drawer
-          title={`${newLink.name}님의 개인 초대장`}
+          title={`${newLink.name}의 개인 초대장`}
           onClose={() => setNewLink(null)}
         >
           <div className="form-stack">
@@ -1053,7 +1054,7 @@ function TeamEdit({
       }}
     >
       <input
-        aria-label={`${member.name} 팀`}
+        aria-label={`${englishName(member.handle)} 팀`}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         required

@@ -15,7 +15,7 @@ import { useWorkshop } from "../lib/store";
 import { remainingTreasures } from "../../shared/game";
 import { hasCoordinates } from "../../shared/exploration";
 import type { ClaimResult, Position } from "../../shared/types";
-import { errorMessage } from "../lib/utils";
+import { englishName, errorMessage } from "../lib/utils";
 import { Drawer, Empty, type Notify } from "./common";
 import { TreasureIllustration } from "./ExpeditionArt";
 import { locate, useExploration } from "../hooks/useExploration";
@@ -245,7 +245,7 @@ export default function Treasure({
         <h2>{treasure.name}</h2>
         <p>{treasure.hint}</p>
         <strong>
-          {state.members[treasure.foundBy!]?.name ?? "탐험대원"}님이 발견했어요.
+          발견한 사람: {englishName(state.members[treasure.foundBy!]?.handle)}
         </strong>
         <small>
           {treasure.outcome === "bomb"
@@ -382,7 +382,7 @@ export default function Treasure({
                   <span>{t.hint}</span>
                   <small>
                     {t.foundBy
-                      ? `${state.members[t.foundBy]?.name ?? "탐험대원"}님 발견`
+                      ? `${englishName(state.members[t.foundBy]?.handle)} · 발견`
                       : `${t.points} P · 힌트로 탐색`}
                   </small>
                 </span>

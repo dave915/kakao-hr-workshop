@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useWorkshop } from "../lib/store";
 import { disablePush, enablePush } from "../lib/pwa";
-import { errorMessage } from "../lib/utils";
+import { englishName, errorMessage } from "../lib/utils";
 import type { Page } from "../../shared/types";
 import { isAdmin } from "../../shared/game";
 import { Avatar, Drawer, type Notify } from "./common";
@@ -83,7 +83,7 @@ export default function Profile({
         <Ticket size={38} className="page-symbol" />
       </div>
       <div className="profile-card">
-        <Avatar name={me.name} size="large" />
+        <Avatar name={englishName(me.handle)} size="large" />
         <div>
           <span className="mini-tag green">
             {me.role === "superadmin"
@@ -92,9 +92,7 @@ export default function Profile({
                 ? "추진위원회"
                 : "탐험대원"}
           </span>
-          <h2>
-            {me.name} <small>{me.handle}</small>
-          </h2>
+          <h2>{englishName(me.handle)}</h2>
           <p>{me.team}</p>
         </div>
         <div className="profile-points">
@@ -151,7 +149,7 @@ export default function Profile({
             <select value={me.id} onChange={(e) => switchDemo(e.target.value)}>
               {Object.values(state.members).map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.name} ({m.handle}) ·{" "}
+                  {englishName(m.handle)} ·{" "}
                   {m.role === "superadmin"
                     ? "슈퍼 어드민"
                     : m.role === "admin"
