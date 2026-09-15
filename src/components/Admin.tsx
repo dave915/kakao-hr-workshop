@@ -62,6 +62,8 @@ export default function Admin({ notify }: { notify: Notify }) {
     input: ActionInput;
     name?: string;
     success?: string;
+    danger?: boolean;
+    confirmLabel?: string;
   } | null>(null);
   const [scheduleForm, setScheduleForm] = useState<Schedule | null>(null);
   const [treasureForm, setTreasureForm] = useState<
@@ -259,7 +261,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                   <th>소속 팀</th>
                   <th>권한</th>
                   <th>발견 기록</th>
-                  <th>개인 입장 링크</th>
+                  <th>계정 관리</th>
                 </tr>
               </thead>
               <tbody>
@@ -331,30 +333,71 @@ export default function Admin({ notify }: { notify: Notify }) {
                         <small className="block">보물 {m.found}개</small>
                       </td>
                       <td>
-                        <button
-                          className="text-button"
-                          disabled={
-                            busy ||
-                            m.id === me.id ||
-                            (m.role !== "member" && me.role !== "superadmin")
-                          }
-                          title={
-                            m.id === me.id
-                              ? "내 계정 링크는 운영자 복구 도구에서 재발급해요"
-                              : undefined
-                          }
-                          onClick={() =>
-                            setConfirm({
-                              title: "개인 입장 링크 재발급",
-                              body: `${englishName(m.handle)}의 기존 링크와 로그인은 사용할 수 없게 돼요. 새 링크를 전달해주세요.`,
-                              input: { action: "rotateInvite", memberId: m.id },
-                              name: englishName(m.handle),
-                            })
-                          }
-                        >
-                          <RefreshCw size={14} />
-                          재발급
-                        </button>
+                        <div className="member-actions">
+                          <button
+                            className="text-button"
+                            disabled={
+                              busy ||
+                              m.id === me.id ||
+                              (m.role !== "member" && me.role !== "superadmin")
+                            }
+                            title={
+                              m.id === me.id
+                                ? "내 계정 링크는 운영자 복구 도구에서 재발급해요"
+                                : undefined
+                            }
+                            onClick={() =>
+                              setConfirm({
+                                title: "개인 입장 링크 재발급",
+                                body: `${englishName(m.handle)}의 기존 링크와 로그인은 사용할 수 없게 돼요. 새 링크를 전달해주세요.`,
+                                input: {
+                                  action: "rotateInvite",
+                                  memberId: m.id,
+                                },
+                                name: englishName(m.handle),
+                              })
+                            }
+                          >
+                            <RefreshCw size={14} />
+                            재발급
+                          </button>
+                          <button
+                            className="text-button member-delete"
+                            aria-label={`${englishName(m.handle)} 삭제`}
+                            disabled={
+                              busy ||
+                              m.role === "superadmin" ||
+                              m.id === me.id ||
+                              (m.role === "admin" && me.role !== "superadmin")
+                            }
+                            title={
+                              m.role === "superadmin"
+                                ? "슈퍼 어드민 계정은 삭제할 수 없어요"
+                                : m.id === me.id
+                                  ? "내 계정은 삭제할 수 없어요"
+                                  : m.role === "admin" &&
+                                      me.role !== "superadmin"
+                                    ? "슈퍼 어드민만 추진위원회를 삭제할 수 있어요"
+                                    : undefined
+                            }
+                            onClick={() =>
+                              setConfirm({
+                                title: "탐험대원 삭제",
+                                body: `${englishName(m.handle)} (${m.handle})를 삭제할까요? 기존 입장 링크와 로그인, 기기 알림 등록이 모두 무효가 돼요. ${m.score.toLocaleString()}포인트와 팀 기여도도 순위에서 빠집니다. 이미 찾은 보물·꽝은 발견 완료로 유지해 중복 획득을 막아요. 이 작업은 되돌릴 수 없어요.`,
+                                input: {
+                                  action: "deleteMember",
+                                  memberId: m.id,
+                                },
+                                success: `${englishName(m.handle)}를 삭제했어요.`,
+                                danger: true,
+                                confirmLabel: "탐험대원 삭제",
+                              })
+                            }
+                          >
+                            <Trash2 size={14} />
+                            삭제
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -470,7 +513,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                   <h3>{t.name}</h3>
                   <p>
                     {t.foundBy
-                      ? `${englishName(state.members[t.foundBy]?.handle)} · 발견`
+                      ? `${englishName(state.members[t.foundBy]?.handle, "삭제된 참가자")} · 발견`
                       : `${t.points} P · 반경 ${t.radius}m`}
                   </p>
                 </div>
@@ -803,7 +846,7 @@ export default function Admin({ notify }: { notify: Notify }) {
               취소
             </button>
             <button
-              className={`button ${confirm.input.action === "resetWorkshop" ? "danger" : "dark"}`}
+              className={`button ${confirm.input.action === "resetWorkshop" || confirm.danger ? "danger" : "dark"}`}
               disabled={
                 busy ||
                 (confirm.input.action === "resetWorkshop" &&
@@ -815,7 +858,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                 ? "처리 중…"
                 : confirm.input.action === "resetWorkshop"
                   ? "모두 삭제하고 초기화"
-                  : "확인하고 진행"}
+                  : (confirm.confirmLabel ?? "확인하고 진행")}
             </button>
           </div>
         </Drawer>

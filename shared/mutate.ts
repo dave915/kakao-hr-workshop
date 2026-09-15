@@ -61,6 +61,23 @@ export function mutate(
       };
       return { memberId: id };
     }
+    case "deleteMember": {
+      const target = Object.hasOwn(state.members, input.memberId)
+        ? state.members[input.memberId]
+        : null;
+      if (!target) throw new GameError("참가자를 찾을 수 없어요.");
+      if (target.role === "superadmin")
+        throw new GameError("슈퍼 어드민 계정은 삭제할 수 없어요.");
+      if (target.id === actorId)
+        throw new GameError("현재 로그인한 내 계정은 삭제할 수 없어요.");
+      if (target.role === "admin" && actor.role !== "superadmin")
+        throw new GameError(
+          "추진위원회 계정은 슈퍼 어드민만 삭제할 수 있어요.",
+        );
+      // Keep claimed treasures claimed so an already awarded prize cannot be won twice.
+      delete state.members[input.memberId];
+      break;
+    }
     case "rotateInvite": {
       const target = state.members[input.memberId];
       if (input.memberId === actorId)

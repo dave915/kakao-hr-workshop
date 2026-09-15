@@ -455,3 +455,157 @@ describe("administrator deletion and reset", () => {
     expect(state.members["new-member"].role).toBe("member");
   });
 });
+
+describe("individual participant deletion", () => {
+  it("removes the participant and score contribution while keeping awarded treasures unavailable", () => {
+    const state = makeSeed(true);
+    const secrets = { ...demoSecrets };
+    state.members["june.p"].role = "admin";
+    claimTreasure(state, secrets, "alex.k", "t1", position(), now);
+    claimTreasure(state, secrets, "alex.k", "t3", position("t3"), now);
+    const treasures = structuredClone(state.treasures);
+    const dave = structuredClone(state.members["dave.h"]);
+    mutate(
+      state,
+      secrets,
+      "june.p",
+      { action: "deleteMember", memberId: "alex.k" },
+      "id",
+      now,
+    );
+    expect(state.members).not.toHaveProperty("alex.k");
+    expect(state.members["dave.h"]).toEqual(dave);
+    expect(teamRanking(state).find((t) => t.name === dave.team)).toMatchObject({
+      score: 0,
+      found: 0,
+    });
+    expect(state.treasures).toEqual(treasures);
+    expect(secrets).toEqual(demoSecrets);
+    expect(() =>
+      claimTreasure(state, secrets, "dave.h", "t1", position(), now),
+    ).toThrow("먼저 발견");
+    expect(() =>
+      claimTreasure(state, secrets, "alex.k", "t2", position("t2"), now),
+    ).toThrow("참가자");
+  });
+  it("rejects deletion by a participant without changing state", () => {
+    const state = makeSeed(true);
+    const before = structuredClone(state);
+    expect(() =>
+      mutate(
+        state,
+        {},
+        "alex.k",
+        { action: "deleteMember", memberId: "june.p" },
+        "id",
+        now,
+      ),
+    ).toThrow("추진위원회");
+    expect(state).toEqual(before);
+  });
+  it("protects every superadmin and the signed-in admin account", () => {
+    const state = makeSeed(true);
+    state.members["june.p"].role = "superadmin";
+    state.members["ryan.j"].role = "admin";
+    const before = structuredClone(state);
+    for (const memberId of ["dave.h", "june.p"])
+      expect(() =>
+        mutate(
+          state,
+          {},
+          "dave.h",
+          { action: "deleteMember", memberId },
+          "id",
+          now,
+        ),
+      ).toThrow("슈퍼");
+    expect(() =>
+      mutate(
+        state,
+        {},
+        "ryan.j",
+        { action: "deleteMember", memberId: "ryan.j" },
+        "id",
+        now,
+      ),
+    ).toThrow("내 계정");
+    expect(state).toEqual(before);
+  });
+  it("only lets a superadmin delete another committee account", () => {
+    const state = makeSeed(true);
+    state.members["june.p"].role = "admin";
+    state.members["ryan.j"].role = "admin";
+    expect(() =>
+      mutate(
+        state,
+        {},
+        "june.p",
+        { action: "deleteMember", memberId: "ryan.j" },
+        "id",
+        now,
+      ),
+    ).toThrow("슈퍼");
+    mutate(
+      state,
+      {},
+      "dave.h",
+      { action: "deleteMember", memberId: "ryan.j" },
+      "id",
+      now,
+    );
+    expect(state.members).not.toHaveProperty("ryan.j");
+    expect(state.members["june.p"].role).toBe("admin");
+  });
+  it("rejects unknown or inherited member keys", () => {
+    const state = makeSeed(true);
+    const before = structuredClone(state);
+    for (const memberId of ["missing", "__proto__", "constructor"])
+      expect(() =>
+        mutate(
+          state,
+          {},
+          "dave.h",
+          { action: "deleteMember", memberId },
+          "id",
+          now,
+        ),
+      ).toThrow("참가자");
+    expect(state).toEqual(before);
+    expect(
+      actionInput.safeParse({ action: "deleteMember", memberId: "" }).success,
+    ).toBe(false);
+  });
+  it("allows reinviting the handle with a new identity without inheriting old awards", () => {
+    const state = makeSeed(true);
+    const secrets = { ...demoSecrets };
+    claimTreasure(state, secrets, "alex.k", "t1", position(), now);
+    mutate(
+      state,
+      secrets,
+      "dave.h",
+      { action: "deleteMember", memberId: "alex.k" },
+      "id",
+      now,
+    );
+    mutate(
+      state,
+      secrets,
+      "dave.h",
+      {
+        action: "createMember",
+        member: { name: "Alex", handle: "alex.k", team: "새 팀" },
+      },
+      "new-alex",
+      now,
+    );
+    expect(state.members["new-alex"]).toMatchObject({
+      score: 0,
+      found: 0,
+      joined: false,
+    });
+    expect(state.treasures[0].foundBy).toBe("alex.k");
+    expect(() =>
+      claimTreasure(state, secrets, "new-alex", "t1", position(), now),
+    ).toThrow("먼저 발견");
+  });
+});

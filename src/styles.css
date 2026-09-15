@@ -4448,3 +4448,16 @@ td .text-button {
     font-size: 11px;
   }
 }
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.member-actions .text-button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.member-delete {
+  color: #a13f32;
+}

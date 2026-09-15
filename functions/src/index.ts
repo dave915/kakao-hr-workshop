@@ -185,6 +185,17 @@ export const workshopAction = onCall(
             ? await tx.get(db.doc(`members/${input.memberId}`))
             : null;
         const response = mutate(state, secrets, uid, input, id, now);
+        if (input.action === "deleteMember") {
+          const [invites, pushTokens] = await Promise.all([
+            tx.get(db.collection("invites").where("uid", "==", input.memberId)),
+            tx.get(
+              db.collection("pushTokens").where("uid", "==", input.memberId),
+            ),
+          ]);
+          tx.delete(db.doc(`members/${input.memberId}`));
+          for (const invite of invites.docs) tx.delete(invite.ref);
+          for (const token of pushTokens.docs) tx.delete(token.ref);
+        }
         if (input.action === "resetWorkshop") {
           // Read and delete in the same transaction as the state reset so old
           // links and sessions lose access atomically, including admin sessions.

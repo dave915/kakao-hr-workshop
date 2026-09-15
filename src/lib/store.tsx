@@ -167,7 +167,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
         );
         if (raw.action === "getGuidance" || raw.action === "getArTarget")
           return result;
-        if (raw.action === "resetWorkshop") {
+        if (raw.action === "resetWorkshop" || raw.action === "deleteMember") {
           const invites = JSON.parse(
             localStorage.getItem("hr-demo-invites") || "{}",
           ) as Record<string, string>;
@@ -175,8 +175,10 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
             "hr-demo-invites",
             JSON.stringify(
               Object.fromEntries(
-                Object.entries(invites).filter(
-                  ([, memberId]) => next.state.members[memberId],
+                Object.entries(invites).filter(([, memberId]) =>
+                  raw.action === "deleteMember"
+                    ? memberId !== raw.memberId
+                    : next.state.members[memberId],
                 ),
               ),
             ),

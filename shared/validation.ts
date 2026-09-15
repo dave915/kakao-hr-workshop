@@ -76,6 +76,7 @@ export const actionInput = z.discriminatedUnion("action", [
   guidanceInput.extend({ action: z.literal("getGuidance") }),
   guidanceInput.extend({ action: z.literal("getArTarget") }),
   z.object({ action: z.literal("createMember"), member: memberInput }),
+  z.object({ action: z.literal("deleteMember"), memberId: text(100) }),
   z.object({ action: z.literal("rotateInvite"), memberId: text(100) }),
   z.object({
     action: z.literal("setRole"),

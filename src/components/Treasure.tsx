@@ -248,7 +248,11 @@ export default function Treasure({
         <h2>{treasure.name}</h2>
         <p>{treasure.hint}</p>
         <strong>
-          발견한 사람: {englishName(state.members[treasure.foundBy!]?.handle)}
+          발견한 사람:{" "}
+          {englishName(
+            state.members[treasure.foundBy!]?.handle,
+            "삭제된 참가자",
+          )}
         </strong>
         <small>
           {treasure.outcome === "bomb"
@@ -373,7 +377,7 @@ export default function Treasure({
                   <span>{t.hint}</span>
                   <small>
                     {t.foundBy
-                      ? `${englishName(state.members[t.foundBy]?.handle)} · 발견`
+                      ? `${englishName(state.members[t.foundBy]?.handle, "삭제된 참가자")} · 발견`
                       : `${t.points} P · 힌트로 탐색`}
                   </small>
                 </span>

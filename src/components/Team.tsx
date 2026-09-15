@@ -52,7 +52,11 @@ export default function Team() {
                   <div>
                     <h3>{t.name}</h3>
                     <p>
-                      {englishName(state.members[t.foundBy!]?.handle)} · 발견
+                      {englishName(
+                        state.members[t.foundBy!]?.handle,
+                        "삭제된 참가자",
+                      )}{" "}
+                      · 발견
                     </p>
                   </div>
                   <strong>

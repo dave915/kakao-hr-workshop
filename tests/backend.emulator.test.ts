@@ -315,6 +315,180 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     expect(r.status).toBe(200);
     expect((await db.doc("members/june.p").get()).data().role).toBe("admin");
   });
+  it("enforces individual deletion permissions and preserves superadmin access", async () => {
+    const committeeToken = await redeem(committeeCode);
+    const created = await call(
+      "workshopAction",
+      {
+        action: "createMember",
+        member: {
+          name: "Delete Admin",
+          handle: "delete.admin",
+          team: "테스트팀",
+        },
+      },
+      adminToken,
+    );
+    expect(created.status).toBe(200);
+    const id = created.result.memberId;
+    expect(
+      (
+        await call(
+          "workshopAction",
+          { action: "setRole", memberId: id, role: "admin" },
+          adminToken,
+        )
+      ).status,
+    ).toBe(200);
+    const before = (await db.doc("workshops/main").get()).data();
+    for (const [token, memberId] of [
+      [memberToken, id],
+      [committeeToken, id],
+      [committeeToken, "june.p"],
+      [adminToken, "dave.h"],
+    ]) {
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "deleteMember", memberId },
+            token,
+          )
+        ).status,
+      ).not.toBe(200);
+      expect((await db.doc("workshops/main").get()).data()).toEqual(before);
+    }
+    expect(
+      (
+        await call(
+          "workshopAction",
+          { action: "deleteMember", memberId: id },
+          adminToken,
+        )
+      ).status,
+    ).toBe(200);
+    expect((await db.doc(`members/${id}`).get()).exists).toBe(false);
+    expect((await db.doc("members/dave.h").get()).data().role).toBe(
+      "superadmin",
+    );
+    expect(await redeem(adminCode)).toBeTruthy();
+  });
+  it("atomically deletes a participant, all of their links and devices, while preserving claimed prizes", async () => {
+    const committeeToken = await redeem(committeeCode);
+    const created = await call(
+      "workshopAction",
+      {
+        action: "createMember",
+        member: {
+          name: "Delete Member",
+          handle: "delete.member",
+          team: "삭제 테스트",
+        },
+      },
+      adminToken,
+    );
+    expect(created.status).toBe(200);
+    const id = created.result.memberId;
+    const firstToken = await redeem(created.result.code);
+    expect(
+      (
+        await call(
+          "workshopAction",
+          { action: "registerPush", token: "first-device-for-deleted-member" },
+          firstToken,
+        )
+      ).status,
+    ).toBe(200);
+    const rotated = await call(
+      "workshopAction",
+      { action: "rotateInvite", memberId: id },
+      adminToken,
+    );
+    expect(rotated.status).toBe(200);
+    const currentToken = await redeem(rotated.result.code);
+    expect(
+      (
+        await call(
+          "workshopAction",
+          { action: "registerPush", token: "second-device-for-deleted-member" },
+          currentToken,
+        )
+      ).status,
+    ).toBe(200);
+    await db
+      .doc("pushTokens/admin-device")
+      .set({ uid: "dave.h", token: "admin-device-token" });
+    const treasure = makeSeed(true).treasures.find((t) => t.id === "t4")!;
+    const claim = {
+      action: "claimCamera",
+      treasureId: treasure.id,
+      position: {
+        lat: treasure.lat,
+        lng: treasure.lng,
+        accuracy: 5,
+        timestamp: Date.now(),
+      },
+    };
+    expect((await call("workshopAction", claim, currentToken)).status).toBe(
+      200,
+    );
+    const before = (await db.doc("workshops/main").get()).data();
+    const remainingMembers = { ...before.members };
+    delete remainingMembers[id];
+    expect(
+      (await db.collection("invites").where("uid", "==", id).get()).size,
+    ).toBe(2);
+    expect(
+      (await db.collection("pushTokens").where("uid", "==", id).get()).size,
+    ).toBe(2);
+    expect(
+      (
+        await call(
+          "workshopAction",
+          { action: "deleteMember", memberId: id },
+          committeeToken,
+        )
+      ).status,
+    ).toBe(200);
+    for (const path of ["workshops/main", "workshops/participants"]) {
+      const state = (await db.doc(path).get()).data();
+      expect(state.members).toEqual(remainingMembers);
+      expect(
+        state.treasures.find((t: { id: string }) => t.id === treasure.id),
+      ).toEqual(
+        before.treasures.find((t: { id: string }) => t.id === treasure.id),
+      );
+    }
+    expect((await db.doc(`members/${id}`).get()).exists).toBe(false);
+    expect(
+      (await db.collection("invites").where("uid", "==", id).get()).empty,
+    ).toBe(true);
+    expect(
+      (await db.collection("pushTokens").where("uid", "==", id).get()).empty,
+    ).toBe(true);
+    expect((await db.doc("pushTokens/admin-device").get()).data().uid).toBe(
+      "dave.h",
+    );
+    for (const code of [created.result.code, rotated.result.code])
+      expect((await call("redeemInvite", { code })).status).toBe(401);
+    expect(
+      (
+        await call(
+          "workshopAction",
+          { action: "registerPush", token: "revoked-deleted-member-device" },
+          currentToken,
+        )
+      ).status,
+    ).toBe(401);
+    const read = await fetch(
+      `http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-workshop/databases/(default)/documents/workshops/participants`,
+      { headers: { Authorization: `Bearer ${currentToken}` } },
+    );
+    expect(read.status).toBe(403);
+    expect((await call("workshopAction", claim, adminToken)).status).not.toBe(
+      200,
+    );
+  }, 30000);
   it("deletes notices and claimed treasures in both views and corrects only the awarded score", async () => {
     const committeeToken = await redeem(committeeCode);
     const before = (await db.doc("workshops/main").get()).data();
