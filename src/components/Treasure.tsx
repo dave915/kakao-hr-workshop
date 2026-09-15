@@ -218,54 +218,60 @@ export default function Treasure({
       />
     </Suspense>
   );
-  const guide =
-    treasure && !treasure.foundBy ? (
-      <ExplorationGuide
-        treasure={treasure}
-        guidance={
-          explore.guidance?.treasureId === treasure.id ? explore.guidance : null
-        }
-        tracking={explore.target === treasure.id}
-        waiting={explore.waiting}
-        stale={stale}
-        error={explore.error}
-        trend={explore.trend}
-        disabled={disabled}
-        busy={busy}
-        onStart={start}
-        onStop={explore.stop}
-        onAr={startCamera}
-        heading={expanded ? compass.heading : undefined}
-        headingError={compass.error}
-        onEnableHeading={expanded ? () => void compass.start() : undefined}
-      />
-    ) : treasure ? (
-      <section className="found-detail">
-        <span className="mini-tag green">
-          <Check size={13} />
-          발견 완료
-        </span>
-        <h2>{treasure.name}</h2>
-        <p>{treasure.hint}</p>
-        <strong>
-          발견한 사람:{" "}
-          {englishName(
-            state.members[treasure.foundBy!]?.handle,
-            "삭제된 참가자",
-          )}
-        </strong>
-        <small>
-          {treasure.outcome === "bomb"
-            ? "깜짝 꽝이 숨어있던 곳이에요."
-            : `${treasure.points} 포인트의 보물이었어요.`}
-        </small>
-      </section>
-    ) : (
-      <Empty
-        title="정답 대신, 작은 힌트부터"
-        body="힌트를 고르면 큰 지도에서 보물을 향한 방향과 가까워지는 정도를 안내해요."
-      />
-    );
+  const guide = !state.settings.gameOpen ? (
+    <section
+      className="guide-card guide-not-started"
+      role="status"
+      aria-label="보물찾기 시작 안내"
+    >
+      <span className="mini-tag">시작 대기</span>
+      <h2>아직 보물찾기 시작 전이에요</h2>
+      <p>추진위원회가 보물찾기를 시작하면 힌트를 따라 탐색할 수 있어요.</p>
+    </section>
+  ) : treasure && !treasure.foundBy ? (
+    <ExplorationGuide
+      treasure={treasure}
+      guidance={
+        explore.guidance?.treasureId === treasure.id ? explore.guidance : null
+      }
+      tracking={explore.target === treasure.id}
+      waiting={explore.waiting}
+      stale={stale}
+      error={explore.error}
+      trend={explore.trend}
+      disabled={disabled}
+      busy={busy}
+      onStart={start}
+      onStop={explore.stop}
+      onAr={startCamera}
+      heading={expanded ? compass.heading : undefined}
+      headingError={compass.error}
+      onEnableHeading={expanded ? () => void compass.start() : undefined}
+    />
+  ) : treasure ? (
+    <section className="found-detail">
+      <span className="mini-tag green">
+        <Check size={13} />
+        발견 완료
+      </span>
+      <h2>{treasure.name}</h2>
+      <p>{treasure.hint}</p>
+      <strong>
+        발견한 사람:{" "}
+        {englishName(state.members[treasure.foundBy!]?.handle, "삭제된 참가자")}
+      </strong>
+      <small>
+        {treasure.outcome === "bomb"
+          ? "깜짝 꽝이 숨어있던 곳이에요."
+          : `${treasure.points} 포인트의 보물이었어요.`}
+      </small>
+    </section>
+  ) : (
+    <Empty
+      title="정답 대신, 작은 힌트부터"
+      body="힌트를 고르면 큰 지도에서 보물을 향한 방향과 가까워지는 정도를 안내해요."
+    />
+  );
   return (
     <div className="hunt-page page-enter">
       <div className="page-intro">
@@ -439,15 +445,16 @@ export default function Treasure({
           </section>
           <div className="focus-map-area">{map}</div>
           <div className="focus-guide-area">
-            {(!treasure ||
-              treasure.foundBy ||
-              explore.target !== treasure.id) && (
-              <DirectionCompass
-                heading={compass.heading}
-                error={compass.error}
-                onEnable={() => void compass.start()}
-              />
-            )}
+            {state.settings.gameOpen &&
+              (!treasure ||
+                treasure.foundBy ||
+                explore.target !== treasure.id) && (
+                <DirectionCompass
+                  heading={compass.heading}
+                  error={compass.error}
+                  onEnable={() => void compass.start()}
+                />
+              )}
             {guide}
           </div>
         </ExplorationDialog>

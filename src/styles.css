@@ -3406,6 +3406,24 @@ td .text-button {
   --heat-color: #a4a84e;
   --heat-tint: #f0f0cd;
 }
+.guide-card.guide-not-started,
+.focus-guide-area .guide-card.guide-not-started {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.guide-not-started h2 {
+  font-size: 20px;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.guide-not-started p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #657752;
+  word-break: keep-all;
+}
 .guide-card.heat-close {
   --heat-color: #c1aa40;
   --heat-tint: #f5edbd;
