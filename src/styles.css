@@ -3886,6 +3886,10 @@ td .text-button {
   width: 100%;
   margin-top: 12px;
 }
+.focus-guide-area .ar-guide-button {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
 .ar-dialog {
   position: fixed;
   inset: 0;
@@ -4196,5 +4200,124 @@ td .text-button {
   }
   .ar-intro {
     padding-top: 16px;
+  }
+}
+
+/* Heading turns independently of the north-up map and its GPS marker. */
+.map-current-marker {
+  display: block;
+  position: relative;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+}
+.map-current-marker .map-current-position {
+  position: absolute;
+  left: 23px;
+  top: 23px;
+}
+.map-current-marker.is-stale {
+  opacity: 0.45;
+}
+.map-heading-arrow {
+  position: absolute;
+  inset: 0;
+  transform-origin: center;
+}
+.map-heading-arrow[hidden] {
+  display: none;
+}
+.map-heading-arrow::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  top: 1px;
+  width: 22px;
+  height: 23px;
+  background: #365638;
+  clip-path: polygon(50% 0, 100% 100%, 50% 75%, 0 100%);
+}
+.live-map-status {
+  padding: 12px 24px;
+  background: #edf1df;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.live-map-readings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.live-map-location,
+.live-map-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.live-map-location > svg,
+.live-map-heading > svg {
+  color: #477357;
+  flex-shrink: 0;
+}
+.live-map-readings span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.live-map-readings strong {
+  font-size: 13px;
+}
+.live-map-readings small {
+  font-size: 10px;
+  color: #5f6b4d;
+}
+.live-map-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+}
+.live-map-actions > span {
+  margin-right: auto;
+  font-size: 10px;
+  color: #5f6b4d;
+}
+.live-map-actions .text-button {
+  font-size: 11px;
+  min-height: 36px;
+}
+.live-map-status > p {
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 6px;
+  color: #8d513b;
+}
+@media (max-width: 540px) {
+  .live-map-status {
+    padding: 10px 12px 6px;
+  }
+  .live-map-readings {
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .live-map-location,
+  .live-map-heading {
+    gap: 6px;
+  }
+  .live-map-readings strong {
+    font-size: 12px;
+  }
+  .live-map-readings small {
+    max-width: 170px;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+  .live-map-actions {
+    gap: 10px;
+  }
+  .live-map-actions .text-button {
+    min-height: 44px;
   }
 }

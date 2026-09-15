@@ -37,6 +37,7 @@ export function locate(): Promise<Position> {
 export function useExploration(
   act: (input: ActionInput) => Promise<ActionResponse>,
   mode: "map" | "ar" = "map",
+  trackPosition = false,
 ) {
   const [arTarget, setArTarget] = useState<ArTarget | null>(null);
   const [target, setTarget] = useState<string | null>(null);
@@ -76,7 +77,7 @@ export function useExploration(
     return p;
   }, []);
   useEffect(() => {
-    if (!target) return;
+    if (!target && !trackPosition) return;
     const run = ++generation.current;
     let watch: number | undefined;
     let inFlight = false,
@@ -85,6 +86,7 @@ export function useExploration(
     const pump = async () => {
       const p = latest.current;
       if (
+        !target ||
         document.hidden ||
         !navigator.onLine ||
         inFlight ||
@@ -151,6 +153,10 @@ export function useExploration(
         };
         latest.current = point;
         setPosition(point);
+        if (!target) {
+          setError("");
+          setWaiting(false);
+        }
         void pump();
       },
       (e) => {
@@ -172,7 +178,7 @@ export function useExploration(
       clearInterval(interval);
       if (watch !== undefined) navigator.geolocation.clearWatch(watch);
     };
-  }, [target, act, mode]);
+  }, [target, act, mode, trackPosition]);
   return {
     arTarget,
     target,

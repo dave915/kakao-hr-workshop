@@ -10,15 +10,19 @@ import {
   ArrowUpRight,
   Check,
   MapPin,
+  ArrowUp,
+  LocateFixed,
 } from "lucide-react";
 import { useWorkshop } from "../lib/store";
 import { remainingTreasures } from "../../shared/game";
 import { hasCoordinates } from "../../shared/exploration";
+import { compassDirection } from "../../shared/ar";
 import type { ClaimResult, Position } from "../../shared/types";
 import { englishName, errorMessage } from "../lib/utils";
 import { Drawer, Empty, type Notify } from "./common";
 import { TreasureIllustration } from "./ExpeditionArt";
 import { locate, useExploration } from "../hooks/useExploration";
+import { useMapHeading } from "../hooks/useMapHeading";
 import ExplorationGuide from "./ExplorationGuide";
 import ExplorationDialog from "./ExplorationDialog";
 export { locate } from "../hooks/useExploration";
@@ -45,7 +49,8 @@ export default function Treasure({
     memberId: string;
     request: Promise<Position>;
   } | null>(null);
-  const explore = useExploration(act);
+  const explore = useExploration(act, "map", expanded);
+  const compass = useMapHeading(expanded, now);
   const { setPosition, setFollow } = explore;
   const treasure = state?.treasures.find((t) => t.id === selected);
   const found = useMemo(
@@ -122,6 +127,12 @@ export default function Treasure({
       !explore.position ||
       now - explore.position.timestamp > 20000),
   );
+  const positionCurrent = Boolean(
+    explore.position &&
+    Math.abs(now - explore.position.timestamp) <= 20000 &&
+    explore.position.accuracy > 0 &&
+    explore.position.accuracy <= 100,
+  );
   const selectTreasure = (id: string, revealGuide = false) => {
     if (id !== selected) explore.stop();
     setSelected(id);
@@ -135,10 +146,16 @@ export default function Treasure({
         }),
       );
   };
+  const openLargeMap = () => {
+    explore.setFollow(true);
+    setExpanded(true);
+    // Start during the tap so Safari can request motion/orientation permission.
+    void compass.start();
+  };
   const start = () => {
     if (!treasure || disabled) return;
     explore.start(treasure.id);
-    setExpanded(true);
+    openLargeMap();
   };
   const startCamera = () => {
     if (!treasure || treasure.foundBy || disabled) return;
@@ -147,6 +164,7 @@ export default function Treasure({
     setCamera(true);
   };
   const onLocate = async () => {
+    explore.setFollow(true);
     setLocating(true);
     setLocationError("");
     try {
@@ -214,6 +232,8 @@ export default function Treasure({
         followPosition={explore.follow}
         onManualPan={() => explore.setFollow(false)}
         locationName={state.settings.location}
+        heading={compass.heading}
+        positionCurrent={!expanded || positionCurrent}
       />
     </Suspense>
   );
@@ -300,7 +320,7 @@ export default function Treasure({
               <MapPin size={16} />
               지도에는 발견한 보물만 표시해요
             </span>
-            <button className="text-button" onClick={() => setExpanded(true)}>
+            <button className="text-button" onClick={openLargeMap}>
               <Maximize2 size={16} />
               지도 크게 보기
             </button>
@@ -415,6 +435,66 @@ export default function Treasure({
           title={treasure?.name ?? "우리의 발견 지도"}
           onClose={() => setExpanded(false)}
         >
+          <section className="live-map-status" aria-label="실시간 위치와 방향">
+            <div className="live-map-readings">
+              <div className="live-map-location">
+                <LocateFixed size={20} />
+                <span>
+                  <strong>
+                    {positionCurrent
+                      ? "실시간 내 위치"
+                      : explore.position
+                        ? "위치 갱신 대기"
+                        : "위치 확인 중"}
+                  </strong>
+                  <small>
+                    {explore.position
+                      ? `GPS 오차 ±${Math.round(explore.position.accuracy)}m · ${explore.follow ? "내 위치 따라가는 중" : "지도 둘러보는 중"}`
+                      : "위치 접근을 허용해주세요"}
+                  </small>
+                </span>
+              </div>
+              <div className="live-map-heading">
+                <ArrowUp
+                  size={22}
+                  style={{
+                    transform: `rotate(${compass.heading ?? 0}deg)`,
+                    opacity: compass.heading === null ? 0.35 : 1,
+                  }}
+                  aria-hidden="true"
+                />
+                <span>
+                  <small>바라보는 방향</small>
+                  <strong>
+                    {compass.heading === null
+                      ? "방향 확인 대기"
+                      : `${compassDirection(compass.heading)} ${Math.round(compass.heading) % 360}°`}
+                  </strong>
+                </span>
+              </div>
+            </div>
+            <div className="live-map-actions">
+              <span>지도 위쪽이 북쪽이에요</span>
+              {compass.heading === null && (
+                <button
+                  className="text-button"
+                  onClick={() => void compass.start()}
+                >
+                  <Compass size={15} />
+                  방향 켜기
+                </button>
+              )}
+              <button className="text-button" onClick={() => void onLocate()}>
+                <LocateFixed size={15} />내 위치로
+              </button>
+            </div>
+            {(compass.error ||
+              (!positionCurrent && (explore.error || locationError))) && (
+              <p role="status">
+                {compass.error || explore.error || locationError}
+              </p>
+            )}
+          </section>
           <div className="focus-map-area">{map}</div>
           <div className="focus-guide-area">{guide}</div>
         </ExplorationDialog>

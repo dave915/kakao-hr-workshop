@@ -4,6 +4,8 @@ import {
   devicePose,
   projectArTarget,
   angleDifference,
+  mapHeading,
+  compassDirection,
 } from "../shared/ar";
 import { arGuidance, participantView } from "../shared/exploration";
 import { makeSeed } from "../shared/seed";
@@ -28,6 +30,23 @@ const point = (offset = 0) => ({
 });
 
 describe("location AR projection", () => {
+  it("keeps map headings correct when the phone is flat or upright", () => {
+    for (const beta of [0, 30, 60, 90]) {
+      expect(mapHeading({ ...north, beta })).toBeCloseTo(0);
+      expect(mapHeading({ ...north, alpha: 270, beta })).toBeCloseTo(90);
+      expect(mapHeading({ ...north, alpha: 180, beta })).toBeCloseTo(180);
+    }
+  });
+  it("compensates map heading for landscape and wraps cardinal labels around north", () => {
+    expect(
+      mapHeading({ ...north, alpha: 90, beta: 0, gamma: -90 }, 90),
+    ).toBeCloseTo(0);
+    expect(compassDirection(359)).toBe("북쪽");
+    expect(compassDirection(0)).toBe("북쪽");
+    expect(compassDirection(45)).toBe("북동쪽");
+    expect(compassDirection(90)).toBe("동쪽");
+    expect(compassDirection(270)).toBe("서쪽");
+  });
   it("projects the actual coordinate ahead and shifts with physical movement", () => {
     const center = projectArTarget(origin, target, north, portrait)!;
     expect(center.visible).toBe(true);

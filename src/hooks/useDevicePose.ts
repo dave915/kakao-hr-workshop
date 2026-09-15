@@ -28,15 +28,15 @@ export function useDevicePose() {
       const orientation = window.DeviceOrientationEvent as
         OrientationConstructor | undefined;
       if (!orientation)
-        throw new Error(
-          "방향 센서가 없는 기기예요. 휴대폰에서 열거나 지도 탐색을 이용해주세요.",
-        );
+        throw new Error("방향 센서를 지원하는 휴대폰 브라우저에서 열어주세요.");
       // Called directly from the start button, before awaiting camera/GPS permission.
       if (
         orientation.requestPermission &&
         (await orientation.requestPermission(true)) !== "granted"
       )
-        throw new Error("동작 및 방향 권한을 허용해야 AR을 사용할 수 있어요.");
+        throw new Error(
+          "동작 및 방향 권한을 허용해야 방향을 표시할 수 있어요.",
+        );
       if (run !== generation.current) return false;
       let frame = 0;
       let latest: DevicePose | null = null;
@@ -60,7 +60,7 @@ export function useDevicePose() {
       const timeout = setTimeout(() => {
         if (!seen && run === generation.current)
           setError(
-            "북쪽 방향을 확인하지 못했어요. 휴대폰을 8자로 움직인 뒤 다시 켜주세요. 지원되지 않는 브라우저에서는 지도 탐색을 이용해주세요.",
+            "북쪽 방향을 확인하지 못했어요. 휴대폰을 8자로 움직인 뒤 다시 켜주세요.",
           );
       }, 8000);
       cleanup.current = () => {

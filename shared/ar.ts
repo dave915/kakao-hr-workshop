@@ -93,6 +93,25 @@ export function cameraBasis(pose: DevicePose, screenAngle = 0) {
   };
 }
 
+/** Use the top of a flat map screen; when upright, use the rear-facing direction. */
+export function mapHeading(pose: DevicePose, screenAngle = 0) {
+  const { up, forward } = cameraBasis(pose, screenAngle);
+  const direction = Math.abs(up[2]) < Math.SQRT1_2 ? up : forward;
+  return wrapDegrees((Math.atan2(direction[0], direction[1]) * 180) / Math.PI);
+}
+export function compassDirection(heading: number) {
+  return [
+    "북쪽",
+    "북동쪽",
+    "동쪽",
+    "남동쪽",
+    "남쪽",
+    "남서쪽",
+    "서쪽",
+    "북서쪽",
+  ][Math.round(wrapDegrees(heading) / 45) % 8];
+}
+
 /** Project an ENU ground point through the rear camera, accounting for cover cropping. */
 export function projectArTarget(
   position: { lat: number; lng: number },

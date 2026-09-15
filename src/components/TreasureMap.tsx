@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LocateFixed, Plus, Minus, MapPin, RefreshCw } from "lucide-react";
 import type { Position, Treasure, TreasureSecrets } from "../../shared/types";
+import { compassDirection } from "../../shared/ar";
 import {
   kakaoMapConfigured,
   loadKakaoMaps,
@@ -23,6 +24,8 @@ interface Props {
   foundOnly?: boolean;
   followPosition?: boolean;
   onManualPan?: () => void;
+  heading?: number | null;
+  positionCurrent?: boolean;
 }
 const NO_SECRETS: TreasureSecrets = {};
 export default function TreasureMap({
@@ -39,6 +42,8 @@ export default function TreasureMap({
   foundOnly = false,
   followPosition = true,
   onManualPan,
+  heading = null,
+  positionCurrent = true,
 }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const callbacks = useRef({ onSelect, onPlace, center, onManualPan });
@@ -49,6 +54,30 @@ export default function TreasureMap({
   } | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const locationMarker = useRef<{
+    node: HTMLSpanElement;
+    arrow: HTMLSpanElement;
+  } | null>(null);
+  const direction = useRef({ heading, positionCurrent });
+  direction.current = { heading, positionCurrent };
+  const updateDirection = () => {
+    const marker = locationMarker.current;
+    if (!marker) return;
+    const { heading, positionCurrent } = direction.current;
+    const showHeading =
+      positionCurrent && heading !== null && Number.isFinite(heading);
+    marker.node.classList.toggle("is-stale", !positionCurrent);
+    marker.arrow.hidden = !showHeading;
+    marker.arrow.style.transform = `rotate(${heading ?? 0}deg)`;
+    marker.node.setAttribute(
+      "aria-label",
+      !positionCurrent
+        ? "마지막 확인 위치"
+        : showHeading
+          ? `내 위치 · ${compassDirection(heading)}을 바라보는 중`
+          : "내 위치",
+    );
+  };
   useEffect(() => {
     const container = root.current;
     if (!container) return;
@@ -183,21 +212,33 @@ export default function TreasureMap({
       overlays.push(accuracyCircle);
       const dot = document.createElement("span");
       dot.className = "map-current-position";
-      dot.setAttribute("role", "img");
-      dot.setAttribute("aria-label", "내 위치");
+      const marker = document.createElement("span");
+      marker.className = "map-current-marker";
+      marker.setAttribute("role", "img");
+      const arrow = document.createElement("span");
+      arrow.className = "map-heading-arrow";
+      arrow.setAttribute("aria-hidden", "true");
+      marker.append(arrow, dot);
+      locationMarker.current = { node: marker, arrow };
+      updateDirection();
       overlays.push(
         new sdk.CustomOverlay({
           map,
           position: location,
-          content: dot,
+          content: marker,
           xAnchor: 0.5,
           yAnchor: 0.5,
           zIndex: 20,
         }),
       );
     }
-    return () => overlays.forEach((overlay) => overlay.setMap(null));
+    return () => {
+      overlays.forEach((overlay) => overlay.setMap(null));
+      locationMarker.current = null;
+    };
   }, [context, position]);
+  // Turning the phone only rotates the marker; it never rebuilds or recenters the map.
+  useEffect(updateDirection, [heading, positionCurrent]);
   const selectedTreasure = treasures.find(
     (treasure) =>
       treasure.id === selected && (!foundOnly || Boolean(treasure.foundBy)),
