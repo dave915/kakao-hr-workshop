@@ -14,7 +14,7 @@ import {
 import { useWorkshop } from "../lib/store";
 import { remainingTreasures } from "../../shared/game";
 import { hasCoordinates } from "../../shared/exploration";
-import type { ClaimResult } from "../../shared/types";
+import type { ClaimResult, Position } from "../../shared/types";
 import { errorMessage } from "../lib/utils";
 import { Drawer, Empty, type Notify } from "./common";
 import { TreasureIllustration } from "./ExpeditionArt";
@@ -56,17 +56,25 @@ export default function Treasure({
   useEffect(() => {
     explore.stop();
     setSelected(null);
+    setCamera(false);
   }, [me?.id]);
   useEffect(() => {
     if (
-      explore.target &&
+      (explore.target || camera) &&
       (!treasure || treasure.foundBy || locked || !state?.settings.gameOpen)
     ) {
       explore.stop();
+      setCamera(false);
       if (treasure?.foundBy && treasure.foundBy !== me?.id)
         notify("누군가 먼저 발견했어요! 다른 힌트로 탐험을 이어가요.");
     }
-  }, [treasure?.id, treasure?.foundBy, locked, state?.settings.gameOpen]);
+  }, [
+    treasure?.id,
+    treasure?.foundBy,
+    locked,
+    state?.settings.gameOpen,
+    camera,
+  ]);
   if (!state || !me) return null;
   const seconds = Math.max(0, Math.ceil((me.blockedUntil - now) / 1000));
   const disabled = locked || !state.settings.gameOpen || !navigator.onLine;
@@ -95,6 +103,12 @@ export default function Treasure({
     explore.start(treasure.id);
     setExpanded(true);
   };
+  const startCamera = () => {
+    if (!treasure || treasure.foundBy || disabled) return;
+    explore.stop();
+    setExpanded(false);
+    setCamera(true);
+  };
   const onLocate = async () => {
     try {
       await explore.refresh();
@@ -102,16 +116,20 @@ export default function Treasure({
       notify(errorMessage(e));
     }
   };
-  const claim = async (simulate = false) => {
+  const claim = async (
+    simulate = false,
+    arPosition?: Position,
+  ): Promise<string | undefined> => {
     if (!treasure || busy || disabled) return;
     setBusy(true);
     try {
+      const candidate = arPosition ?? explore.position;
       const fresh =
-        explore.position &&
-        Date.now() - explore.position.timestamp < 10000 &&
-        explore.position.accuracy > 0 &&
-        explore.position.accuracy <= 100
-          ? explore.position
+        candidate &&
+        Date.now() - candidate.timestamp < 10000 &&
+        candidate.accuracy > 0 &&
+        candidate.accuracy <= 100
+          ? candidate
           : null;
       const p =
         simulate && demo && hasCoordinates(treasure)
@@ -130,9 +148,11 @@ export default function Treasure({
       });
       explore.stop();
       setExpanded(false);
+      setCamera(false);
       setResult(r.result ?? null);
     } catch (e) {
       notify(errorMessage(e));
+      return errorMessage(e);
     } finally {
       setBusy(false);
     }
@@ -172,6 +192,7 @@ export default function Treasure({
         onStart={start}
         onStop={explore.stop}
         onClaim={() => void claim()}
+        onAr={startCamera}
       />
     ) : treasure ? (
       <section className="found-detail">
@@ -251,11 +272,12 @@ export default function Treasure({
             </span>
             <button
               className="text-button"
-              onClick={() => setCamera(true)}
-              disabled={locked}
+              onClick={startCamera}
+              disabled={disabled || !treasure || Boolean(treasure.foundBy)}
+              title={!treasure ? "먼저 보물 힌트를 골라주세요" : undefined}
             >
               <CameraIcon size={15} />
-              카메라 보기
+              AR로 찾기
             </button>
           </div>
           {!expanded && <div ref={guideRef}>{guide}</div>}
@@ -348,12 +370,21 @@ export default function Treasure({
           <div className="focus-guide-area">{guide}</div>
         </ExplorationDialog>
       )}
-      {camera && (
-        <Drawer title="카메라로 둘러보기" onClose={() => setCamera(false)}>
-          <Suspense fallback={<p>카메라를 준비하고 있어요…</p>}>
-            <Camera />
-          </Suspense>
-        </Drawer>
+      {camera && treasure && !treasure.foundBy && !disabled && (
+        <Suspense fallback={<p role="status">AR 카메라를 준비하고 있어요…</p>}>
+          <Camera
+            treasure={treasure}
+            act={act}
+            now={now}
+            busy={busy}
+            onClaim={(position) => claim(false, position)}
+            onClose={() => setCamera(false)}
+            onMap={() => {
+              setCamera(false);
+              start();
+            }}
+          />
+        </Suspense>
       )}
       {result && (
         <Drawer

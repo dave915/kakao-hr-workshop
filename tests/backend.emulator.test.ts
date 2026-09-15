@@ -147,6 +147,53 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       ),
     ).toBe(true);
   });
+  it("serves only a nearby selected AR target through an authenticated read without changing state", async () => {
+    const before = (await db.doc("workshops/main").get()).data();
+    const target = before.treasures.find((t: { id: string }) => t.id === "t3");
+    const input = {
+      action: "getArTarget",
+      treasureId: target.id,
+      position: {
+        lat: target.lat,
+        lng: target.lng,
+        accuracy: 5,
+        timestamp: Date.now(),
+      },
+    };
+    expect((await call("workshopAction", input)).status).toBe(401);
+    const near = await call("workshopAction", input, memberToken);
+    expect(near.status).toBe(200);
+    expect(near.result.arTarget).toMatchObject({
+      treasureId: target.id,
+      lat: target.lat,
+      lng: target.lng,
+    });
+    expect(near.result.arTarget).not.toHaveProperty("kind");
+    expect(near.result.arTarget).not.toHaveProperty("outcome");
+    const far = await call(
+      "workshopAction",
+      { ...input, position: { ...input.position, lat: target.lat - 0.01 } },
+      memberToken,
+    );
+    expect(far.status).toBe(200);
+    expect(far.result.arTarget).toBeNull();
+    expect(
+      (
+        await call(
+          "workshopAction",
+          { ...input, position: { ...input.position, accuracy: 50 } },
+          memberToken,
+        )
+      ).status,
+    ).not.toBe(200);
+    expect((await db.doc("workshops/main").get()).data()).toEqual(before);
+    const publicState = (await db.doc("workshops/participants").get()).data();
+    expect(
+      publicState.treasures.every(
+        (t: object) => !("lat" in t) && !("lng" in t),
+      ),
+    ).toBe(true);
+  });
   it("serializes simultaneous discoveries so exactly one person wins", async () => {
     const treasure = makeSeed(true).treasures[0];
     const data = {

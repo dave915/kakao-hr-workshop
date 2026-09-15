@@ -1903,37 +1903,13 @@ main {
   font-size: 40px;
   color: #727940;
 }
-.camera-view {
-  position: relative;
-}
-.camera-view video {
-  width: 100%;
-  height: 440px;
-  object-fit: cover;
-  background: #293128;
-  border-radius: 12px;
-}
-.camera-overlay {
-  position: absolute;
-  inset: 80px 0 auto;
-  text-align: center;
-  color: #faf6db;
-  text-shadow: 0 2px 3px #283427;
-}
-.camera-overlay p {
-  color: #faf6db;
-}
 .discovery-object {
   font-size: 120px;
   line-height: 1.5;
   filter: drop-shadow(0 10px 13px #59431d29);
   animation: reveal 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.camera-caption {
-  font-size: 11px;
-  margin-top: 15px;
-  line-height: 1.9;
-}
+
 .result-view {
   text-align: center;
   display: flex;
@@ -3902,5 +3878,323 @@ td .text-button {
   }
   .focus-guide-area .found-detail p {
     width: 100%;
+  }
+}
+
+/* Outdoor location AR uses the existing expedition palette and type. */
+.ar-guide-button {
+  width: 100%;
+  margin-top: 12px;
+}
+.ar-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: auto;
+}
+.ar-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.ar-dialog::backdrop {
+  background: #243527;
+}
+.ar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: max(12px, env(safe-area-inset-top)) 24px 12px;
+  background: var(--paper);
+  flex-shrink: 0;
+}
+.ar-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.ar-header span {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #657752;
+  font-weight: 700;
+}
+.ar-header strong {
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ar-header .icon-button {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+}
+.ar-scene {
+  position: relative;
+  flex: 1;
+  min-height: 400px;
+  overflow: hidden;
+  background: #e9ecd9;
+}
+.ar-scene.is-active {
+  background: #243527;
+  min-height: 240px;
+}
+.ar-scene > video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  visibility: hidden;
+}
+.ar-scene.is-active > video {
+  visibility: visible;
+}
+.ar-intro {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  margin: auto;
+  padding: 32px 24px;
+  max-width: 480px;
+}
+.ar-intro > svg {
+  width: 150px;
+  height: 130px;
+}
+.ar-intro h2 {
+  font-family: var(--font-display, "Jua", sans-serif);
+  font-size: 29px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+.ar-intro p {
+  font-size: 13px;
+  line-height: 1.85;
+}
+.ar-intro .ar-permission-copy {
+  font-size: 11px;
+  color: #56644b;
+}
+.ar-intro .button {
+  min-height: 48px;
+  margin-top: 4px;
+}
+.ar-start-error,
+.ar-claim-error {
+  color: #953c2c;
+}
+.ar-readings {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+.ar-readings > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #faf9ec;
+  background: #263823eb;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+.ar-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #faf9ecd0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 4px #25352570;
+  pointer-events: none;
+}
+.ar-treasure {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: 44px;
+  overflow: visible;
+  color: #faf9ec;
+  cursor: pointer;
+  filter: drop-shadow(0 8px 7px #233c2b55);
+}
+.ar-treasure > svg {
+  width: 100%;
+  height: auto;
+}
+.ar-treasure > span {
+  position: absolute;
+  top: 100%;
+  white-space: nowrap;
+  background: #263823eb;
+  color: #faf9ec;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 20px;
+}
+.ar-treasure.in-range > span {
+  background: #f9df38;
+  color: #293b24;
+}
+.ar-treasure:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.ar-treasure:focus-visible {
+  outline: 3px solid #f9df38;
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+.ar-direction,
+.ar-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: calc(100% - 40px);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+  background: #263823ee;
+  color: #faf9ec;
+  border-radius: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+.ar-direction strong {
+  font-size: 18px;
+}
+.ar-direction span,
+.ar-status p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #faf9ec;
+}
+.ar-footer {
+  flex-shrink: 0;
+  padding: 18px 24px max(16px, env(safe-area-inset-bottom));
+  background: var(--paper);
+}
+.ar-distance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto 12px;
+}
+.ar-distance > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ar-distance span {
+  font-size: 11px;
+  color: #657752;
+}
+.ar-distance strong {
+  font-family: "Jua", sans-serif;
+  font-weight: 400;
+  font-size: 27px;
+}
+.ar-distance .button {
+  min-height: 48px;
+}
+.ar-footer p {
+  max-width: 900px;
+  margin: 0 auto;
+}
+.ar-accuracy-note {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #657752;
+}
+.ar-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 900px;
+  margin: 8px auto 0;
+}
+.ar-footer-actions .text-button {
+  min-height: 44px;
+  font-size: 12px;
+}
+@media (min-width: 900px) {
+  .ar-intro {
+    padding-top: 48px;
+  }
+}
+@media (max-width: 540px) {
+  .ar-header {
+    padding-left: 16px;
+    padding-right: 12px;
+  }
+  .ar-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .ar-intro {
+    padding: 28px 20px;
+    gap: 12px;
+  }
+  .ar-intro > svg {
+    width: 130px;
+    height: 110px;
+  }
+  .ar-readings {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+  }
+  .ar-readings > span {
+    font-size: 10px;
+  }
+  .ar-distance .button {
+    font-size: 11px;
+    padding: 12px;
+  }
+  .ar-distance strong {
+    font-size: 24px;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .ar-scene.is-active {
+    min-height: 240px;
+    flex: auto;
+  }
+  .ar-intro {
+    padding-top: 16px;
   }
 }

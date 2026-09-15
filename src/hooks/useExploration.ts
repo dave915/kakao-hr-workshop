@@ -4,6 +4,7 @@ import type {
   ActionResponse,
   Position,
   TreasureGuidance,
+  ArTarget,
 } from "../../shared/types";
 import { approachTrend } from "../../shared/exploration";
 import { errorMessage } from "../lib/utils";
@@ -35,7 +36,9 @@ export function locate(): Promise<Position> {
 }
 export function useExploration(
   act: (input: ActionInput) => Promise<ActionResponse>,
+  mode: "map" | "ar" = "map",
 ) {
+  const [arTarget, setArTarget] = useState<ArTarget | null>(null);
   const [target, setTarget] = useState<string | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const [guidance, setGuidance] = useState<TreasureGuidance | null>(null);
@@ -50,8 +53,10 @@ export function useExploration(
     generation.current++;
     setTarget(null);
     setWaiting(false);
+    setArTarget(null);
   }, []);
   const start = useCallback((id: string) => {
+    setArTarget(null);
     generation.current++;
     setGuidance(null);
     previous.current = null;
@@ -90,6 +95,7 @@ export function useExploration(
       )
         return;
       if (p.accuracy <= 0 || p.accuracy > 100) {
+        setArTarget(null);
         setError("위치가 정확하지 않아요. 탁 트인 곳에서 다시 확인해주세요.");
         setWaiting(false);
         return;
@@ -99,11 +105,12 @@ export function useExploration(
       lastTimestamp = p.timestamp;
       try {
         const result = await act({
-          action: "getGuidance",
+          action: mode === "ar" ? "getArTarget" : "getGuidance",
           treasureId: target,
           position: p,
         });
         if (run !== generation.current) return;
+        setArTarget(result.arTarget ?? null);
         if (result.guidance) {
           const nextTrend = approachTrend(
             previous.current,
@@ -120,6 +127,7 @@ export function useExploration(
         if (run === generation.current) {
           setError(errorMessage(e));
           setGuidance(null);
+          setArTarget(null);
           lastTimestamp = 0;
         }
       } finally {
@@ -153,6 +161,7 @@ export function useExploration(
             : "위치를 다시 확인하고 있어요. 야외에서 잠시 기다려주세요.",
         );
         setGuidance(null);
+        setArTarget(null);
         setWaiting(false);
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 2000 },
@@ -163,8 +172,9 @@ export function useExploration(
       clearInterval(interval);
       if (watch !== undefined) navigator.geolocation.clearWatch(watch);
     };
-  }, [target, act]);
+  }, [target, act, mode]);
   return {
+    arTarget,
     target,
     position,
     setPosition,

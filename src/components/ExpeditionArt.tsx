@@ -189,3 +189,57 @@ export function TreasureIllustration({ bomb = false }: { bomb?: boolean }) {
     </div>
   );
 }
+
+/** The same chest as the expedition map, sized for a projected AR marker. */
+export function TreasureChestArt() {
+  return (
+    <svg viewBox="-24 -30 148 145" aria-hidden="true">
+      <ellipse cx="50" cy="91" rx="62" ry="12" fill="#243b2b" opacity=".2" />
+      <path
+        d="M-9 32Q-12-3 19-8L88-8Q107-5 107 30L105 73Q52 92-4 73Z"
+        fill="#6b4c30"
+      />
+      <path
+        d="M-8 27Q-10-5 17-8L88-8Q109-5 106 29Z"
+        fill="#b9823e"
+        stroke="#694d30"
+        strokeWidth="3"
+      />
+      <path
+        d="M-7 29 50 42 106 29V72L51 88-7 73Z"
+        fill="#d4a34b"
+        stroke="#694d30"
+        strokeWidth="3"
+      />
+      <path d="M50 42v45" stroke="#9e7339" strokeWidth="3" />
+      <path
+        d="M17-8Q9 3 14 34V77m68-85q13 15 7 42v43"
+        stroke="#f5d571"
+        strokeWidth="12"
+        fill="none"
+      />
+      <path
+        d="M-7 29 50 42 106 29"
+        stroke="#694d30"
+        strokeWidth="4"
+        fill="none"
+      />
+      <rect
+        x="40"
+        y="35"
+        width="23"
+        height="28"
+        rx="5"
+        fill="#f4d576"
+        stroke="#785735"
+        strokeWidth="2"
+      />
+      <circle cx="51" cy="47" r="4" fill="#795e37" />
+      <path d="m51 47-3 9h6Z" fill="#795e37" />
+      <path
+        d="m6-27 3 8 8 3-8 3-3 8-3-8-8-3 8-3Zm106 8 2 6 6 2-6 2-2 6-2-6-6-2 6-2Z"
+        fill="#f8e168"
+      />
+    </svg>
+  );
+}

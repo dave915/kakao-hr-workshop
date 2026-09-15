@@ -1,4 +1,4 @@
-import { treasureGuidance } from "./exploration";
+import { arGuidance, treasureGuidance } from "./exploration";
 import { claimTreasure, GameError, isAdmin } from "./game";
 import { makeSeed } from "./seed";
 import type { ActionInput } from "./validation";
@@ -13,6 +13,8 @@ export function mutate(
 ): ActionResponse {
   const actor = state.members[actorId];
   if (!actor) throw new GameError("다시 입장해주세요.");
+  if (input.action === "getArTarget")
+    return arGuidance(state, actorId, input.treasureId, input.position, now);
   if (input.action === "getGuidance")
     return {
       guidance: treasureGuidance(

@@ -165,7 +165,8 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
           parsed.data,
           crypto.randomUUID(),
         );
-        if (raw.action === "getGuidance") return result;
+        if (raw.action === "getGuidance" || raw.action === "getArTarget")
+          return result;
         if (raw.action === "resetWorkshop") {
           const invites = JSON.parse(
             localStorage.getItem("hr-demo-invites") || "{}",

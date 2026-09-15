@@ -1,4 +1,8 @@
-import { participantView, treasureGuidance } from "../../shared/exploration";
+import {
+  arGuidance,
+  participantView,
+  treasureGuidance,
+} from "../../shared/exploration";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
@@ -115,7 +119,7 @@ export const workshopAction = onCall(
     const now = Date.now();
     let result: ActionResponse;
     try {
-      if (input.action === "getGuidance") {
+      if (input.action === "getGuidance" || input.action === "getArTarget") {
         const [memberSnapshot, stateSnapshot] = await Promise.all([
           db.doc(`members/${uid}`).get(),
           stateRef.get(),
@@ -132,6 +136,14 @@ export const workshopAction = onCall(
           throw new HttpsError(
             "failed-precondition",
             "워크샵 정보를 찾을 수 없어요.",
+          );
+        if (input.action === "getArTarget")
+          return arGuidance(
+            stateSnapshot.data() as WorkshopState,
+            uid,
+            input.treasureId,
+            input.position,
+            now,
           );
         return {
           guidance: treasureGuidance(

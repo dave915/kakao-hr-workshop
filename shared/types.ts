@@ -78,6 +78,13 @@ export interface TreasureGuidance {
   updatedAt: number;
 }
 export type TreasureSecrets = Record<string, "treasure" | "bomb">;
+export interface ArTarget {
+  treasureId: string;
+  lat: number;
+  lng: number;
+  visibilityRange: number;
+  updatedAt: number;
+}
 export interface Position {
   lat: number;
   lng: number;
@@ -90,6 +97,7 @@ export interface ClaimResult {
   blockedUntil: number;
 }
 export interface ActionResponse {
+  arTarget?: ArTarget | null;
   guidance?: TreasureGuidance;
   code?: string;
   memberId?: string;

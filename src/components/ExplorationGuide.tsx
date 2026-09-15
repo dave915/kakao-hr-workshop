@@ -5,6 +5,7 @@ import {
   LocateFixed,
   Pause,
   Sparkles,
+  Camera,
 } from "lucide-react";
 import type { TreasureGuidance, VisibleTreasure } from "../../shared/types";
 const labels = {
@@ -27,6 +28,7 @@ interface Props {
   onStart: () => void;
   onStop: () => void;
   onClaim: () => void;
+  onAr: () => void;
 }
 export default function ExplorationGuide({
   treasure,
@@ -41,6 +43,7 @@ export default function ExplorationGuide({
   onStart,
   onStop,
   onClaim,
+  onAr,
 }: Props) {
   const current = tracking && !stale && !error ? guidance : null;
   const distance = current
@@ -170,6 +173,14 @@ export default function ExplorationGuide({
           </button>
         </>
       )}
+      <button
+        className="button ar-guide-button"
+        onClick={onAr}
+        disabled={disabled || busy}
+      >
+        <Camera size={17} />
+        카메라 AR로 찾기
+      </button>
     </section>
   );
 }

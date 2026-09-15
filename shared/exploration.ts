@@ -6,7 +6,11 @@ import type {
   VisibleTreasure,
   WorkshopState,
   WorkshopView,
+  ActionResponse,
 } from "./types";
+export const AR_MAX_ACCURACY = 40;
+export const AR_POSITION_MAX_AGE = 20000;
+export const AR_TARGET_MAX_AGE = 30000;
 export function hasCoordinates(t: VisibleTreasure): t is Treasure {
   return Number.isFinite(t.lat) && Number.isFinite(t.lng);
 }
@@ -133,4 +137,36 @@ export function approachTrend(
     : difference < -threshold
       ? "farther"
       : "steady";
+}
+
+/** Reveal only the selected nearby target for location AR, never its outcome. */
+export function arGuidance(
+  state: WorkshopState,
+  uid: string,
+  id: string,
+  position: Position,
+  now = Date.now(),
+): ActionResponse {
+  const guidance = treasureGuidance(state, uid, id, position, now);
+  if (Math.abs(now - position.timestamp) > AR_POSITION_MAX_AGE)
+    throw new GameError("AR에 사용할 위치를 다시 확인해주세요.");
+  if (position.accuracy > AR_MAX_ACCURACY)
+    throw new GameError(
+      "GPS 오차가 커요. 탁 트인 곳에서 위치를 다시 확인해주세요.",
+    );
+  const target = state.treasures.find((t) => t.id === id)!;
+  const visibilityRange = Math.max(100, target.radius + 40);
+  return {
+    guidance,
+    arTarget:
+      distanceMeters(position, target) <= visibilityRange
+        ? {
+            treasureId: id,
+            lat: target.lat,
+            lng: target.lng,
+            visibilityRange,
+            updatedAt: now,
+          }
+        : null,
+  };
 }
