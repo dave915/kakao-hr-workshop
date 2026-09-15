@@ -35,7 +35,7 @@ export default function Treasure({
   notify: Notify;
   now: number;
 }) {
-  const { state, me, act, demo } = useWorkshop();
+  const { state, me, act } = useWorkshop();
   const guideRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [camera, setCamera] = useState(false);
@@ -176,35 +176,18 @@ export default function Treasure({
       setLocating(false);
     }
   };
-  const claim = async (
-    simulate = false,
-    arPosition?: Position,
+  const claimFromCamera = async (
+    position: Position,
   ): Promise<string | undefined> => {
-    if (!treasure || busy || disabled) return;
+    if (!camera || !treasure || busy || disabled)
+      return "카메라를 켜고 다시 시도해주세요.";
     setBusy(true);
     try {
-      const candidate = arPosition ?? explore.position;
-      const fresh =
-        candidate &&
-        Date.now() - candidate.timestamp < 10000 &&
-        candidate.accuracy > 0 &&
-        candidate.accuracy <= 100
-          ? candidate
-          : null;
-      const p =
-        simulate && demo && hasCoordinates(treasure)
-          ? {
-              lat: treasure.lat,
-              lng: treasure.lng,
-              accuracy: 5,
-              timestamp: Date.now(),
-            }
-          : (fresh ?? (await locate()));
-      explore.setPosition(p);
+      explore.setPosition(position);
       const r = await act({
-        action: "claim",
+        action: "claimCamera",
         treasureId: treasure.id,
-        position: p,
+        position,
       });
       explore.stop();
       setExpanded(false);
@@ -253,7 +236,6 @@ export default function Treasure({
         busy={busy}
         onStart={start}
         onStop={explore.stop}
-        onClaim={() => void claim()}
         onAr={startCamera}
       />
     ) : treasure ? (
@@ -350,18 +332,6 @@ export default function Treasure({
             </button>
           </div>
           {!expanded && <div ref={guideRef}>{guide}</div>}
-          {demo &&
-            treasure &&
-            !treasure.foundBy &&
-            hasCoordinates(treasure) && (
-              <button
-                className="text-button demo-claim"
-                disabled={busy || disabled}
-                onClick={() => void claim(true)}
-              >
-                미리보기: 이 힌트의 보물 발견 체험
-              </button>
-            )}
         </div>
         <aside className="clue-panel">
           <div className="clue-panel-heading">
@@ -506,7 +476,7 @@ export default function Treasure({
             act={act}
             now={now}
             busy={busy}
-            onClaim={(position) => claim(false, position)}
+            onClaim={claimFromCamera}
             onClose={() => setCamera(false)}
             onMap={() => {
               setCamera(false);

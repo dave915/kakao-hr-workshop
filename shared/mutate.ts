@@ -25,7 +25,7 @@ export function mutate(
         now,
       ),
     };
-  if (input.action === "claim")
+  if (input.action === "claimCamera")
     return {
       result: claimTreasure(
         state,

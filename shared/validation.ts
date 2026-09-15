@@ -64,7 +64,7 @@ export const guidanceInput = z.object({
 });
 export const actionInput = z.discriminatedUnion("action", [
   z.object({
-    action: z.literal("claim"),
+    action: z.literal("claimCamera"),
     treasureId: text(100),
     position: z.object({
       lat: z.number(),

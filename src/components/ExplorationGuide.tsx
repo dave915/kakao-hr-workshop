@@ -1,12 +1,4 @@
-import {
-  ArrowUp,
-  Compass,
-  Flame,
-  LocateFixed,
-  Pause,
-  Sparkles,
-  Camera,
-} from "lucide-react";
+import { ArrowUp, Compass, Flame, Pause, Sparkles, Camera } from "lucide-react";
 import type { TreasureGuidance, VisibleTreasure } from "../../shared/types";
 const labels = {
   far: "아직 조금 멀어요",
@@ -27,7 +19,6 @@ interface Props {
   busy: boolean;
   onStart: () => void;
   onStop: () => void;
-  onClaim: () => void;
   onAr: () => void;
 }
 export default function ExplorationGuide({
@@ -42,7 +33,6 @@ export default function ExplorationGuide({
   busy,
   onStart,
   onStop,
-  onClaim,
   onAr,
 }: Props) {
   const current = tracking && !stale && !error ? guidance : null;
@@ -140,13 +130,13 @@ export default function ExplorationGuide({
             <button
               className="button dark"
               disabled={disabled || busy || !current?.withinRange}
-              onClick={onClaim}
+              onClick={onAr}
             >
-              <LocateFixed size={16} />
+              <Camera size={16} />
               {busy
                 ? "보물을 확인하고 있어요…"
                 : current?.withinRange
-                  ? "여기서 보물 찾기"
+                  ? "카메라 켜고 획득하기"
                   : "조금 더 가까이 가볼까요?"}
             </button>
             <button
@@ -173,14 +163,16 @@ export default function ExplorationGuide({
           </button>
         </>
       )}
-      <button
-        className="button ar-guide-button"
-        onClick={onAr}
-        disabled={disabled || busy}
-      >
-        <Camera size={17} />
-        카메라 AR로 찾기
-      </button>
+      {(!tracking || !current?.withinRange) && (
+        <button
+          className="button ar-guide-button"
+          onClick={onAr}
+          disabled={disabled || busy}
+        >
+          <Camera size={17} />
+          카메라 AR로 찾기
+        </button>
+      )}
     </section>
   );
 }

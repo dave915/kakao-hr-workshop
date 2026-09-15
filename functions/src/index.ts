@@ -108,6 +108,11 @@ export const workshopAction = onCall(
         "unauthenticated",
         "개인 입장 링크로 먼저 접속해주세요.",
       );
+    if (request.data?.action === "claim")
+      throw new HttpsError(
+        "failed-precondition",
+        "보물은 카메라를 켜고 획득할 수 있어요. 앱을 업데이트한 뒤 다시 시도해주세요.",
+      );
     const parsed = actionInput.safeParse(request.data);
     if (!parsed.success)
       throw new HttpsError("invalid-argument", parsed.error.issues[0].message);

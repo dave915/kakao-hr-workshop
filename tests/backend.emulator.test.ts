@@ -194,10 +194,31 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       ),
     ).toBe(true);
   });
-  it("serializes simultaneous discoveries so exactly one person wins", async () => {
+  it("rejects legacy map claims even when the user is at the treasure", async () => {
+    const before = (await db.doc("workshops/main").get()).data();
+    const treasure = before.treasures[0];
+    const response = await call(
+      "workshopAction",
+      {
+        action: "claim",
+        treasureId: treasure.id,
+        position: {
+          lat: treasure.lat,
+          lng: treasure.lng,
+          accuracy: 5,
+          timestamp: Date.now(),
+        },
+      },
+      memberToken,
+    );
+    expect(response.status).toBe(400);
+    expect(response.error.message).toContain("카메라");
+    expect((await db.doc("workshops/main").get()).data()).toEqual(before);
+  });
+  it("serializes simultaneous camera discoveries so exactly one person wins", async () => {
     const treasure = makeSeed(true).treasures[0];
     const data = {
-      action: "claim",
+      action: "claimCamera",
       treasureId: treasure.id,
       position: {
         lat: treasure.lat,
@@ -229,7 +250,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     const result = await call(
       "workshopAction",
       {
-        action: "claim",
+        action: "claimCamera",
         treasureId: bomb.id,
         position: {
           lat: bomb.lat,
@@ -250,7 +271,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         await call(
           "workshopAction",
           {
-            action: "claim",
+            action: "claimCamera",
             treasureId: t.id,
             position: {
               lat: t.lat,

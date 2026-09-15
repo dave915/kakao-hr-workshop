@@ -28,6 +28,7 @@ import type {
   VisibleTreasure,
 } from "../../shared/types";
 import { errorMessage } from "../lib/utils";
+import { isCameraLive } from "../lib/camera";
 
 interface Props {
   treasure: VisibleTreasure;
@@ -230,8 +231,14 @@ export default function Camera({
     active && target && position && pose
       ? projectArTarget(position, target, pose, viewport)
       : null;
+  const cameraLive = isCameraLive(
+    stream.current,
+    video.current,
+    !document.hidden,
+  );
   const ready =
     active &&
+    cameraLive &&
     positionFresh &&
     pose &&
     guidance &&
@@ -266,14 +273,20 @@ export default function Camera({
     ? "연결이 끊겼어요. 인터넷이 연결되면 다시 안내해요."
     : tracking.error ||
       sensor.error ||
-      (active && !positionFresh
-        ? "정확한 GPS 위치를 확인하고 있어요…"
-        : active && !pose
-          ? "방향을 확인하고 있어요. 휴대폰을 세우고 천천히 주변을 비춰보세요."
-          : active && !guidance
-            ? "보물 위치를 확인하고 있어요…"
-            : "");
+      (active && !cameraLive
+        ? "카메라 영상이 멈췄어요. 다시 켜야 보물을 획득할 수 있어요."
+        : active && !positionFresh
+          ? "정확한 GPS 위치를 확인하고 있어요…"
+          : active && !pose
+            ? "방향을 확인하고 있어요. 휴대폰을 세우고 천천히 주변을 비춰보세요."
+            : active && !guidance
+              ? "보물 위치를 확인하고 있어요…"
+              : "");
   const claim = async () => {
+    if (!isCameraLive(stream.current, video.current, !document.hidden)) {
+      setClaimError("카메라를 켠 상태에서만 보물을 획득할 수 있어요.");
+      return;
+    }
     if (!canClaim || !position || busy) return;
     setClaimError("");
     try {
@@ -421,7 +434,7 @@ export default function Camera({
                 onClick={() => void claim()}
               >
                 <LocateFixed size={17} />
-                {busy ? "확인 중…" : "이 위치에서 발견하기"}
+                {busy ? "확인 중…" : "카메라로 획득하기"}
               </button>
             </div>
             {claimError && (
