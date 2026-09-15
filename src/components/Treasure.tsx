@@ -39,7 +39,14 @@ export default function Treasure({
   const [expanded, setExpanded] = useState(false);
   const [listMode, setListMode] = useState<"clues" | "found">("clues");
   const [result, setResult] = useState<ClaimResult | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const entryLocation = useRef<{
+    memberId: string;
+    request: Promise<Position>;
+  } | null>(null);
   const explore = useExploration(act);
+  const { setPosition, setFollow } = explore;
   const treasure = state?.treasures.find((t) => t.id === selected);
   const found = useMemo(
     () =>
@@ -58,6 +65,36 @@ export default function Treasure({
     setSelected(null);
     setCamera(false);
   }, [me?.id]);
+  useEffect(() => {
+    if (!me?.id) return;
+    let cancelled = false;
+    setPosition(null);
+    setFollow(true);
+    setLocating(true);
+    setLocationError("");
+    // Reuse the pending request during StrictMode's effect replay.
+    if (entryLocation.current?.memberId !== me.id)
+      entryLocation.current = { memberId: me.id, request: locate() };
+    void entryLocation.current.request
+      .then((position) => {
+        if (cancelled) return;
+        // A later exploration fix must not be replaced by a slower entry fix.
+        setPosition((current) =>
+          current && current.timestamp > position.timestamp
+            ? current
+            : position,
+        );
+      })
+      .catch((e) => {
+        if (!cancelled) setLocationError(errorMessage(e));
+      })
+      .finally(() => {
+        if (!cancelled) setLocating(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [me?.id, setPosition, setFollow]);
   useEffect(() => {
     if (
       (explore.target || camera) &&
@@ -110,10 +147,15 @@ export default function Treasure({
     setCamera(true);
   };
   const onLocate = async () => {
+    setLocating(true);
+    setLocationError("");
     try {
       await explore.refresh();
     } catch (e) {
+      setLocationError(errorMessage(e));
       notify(errorMessage(e));
+    } finally {
+      setLocating(false);
     }
   };
   const claim = async (
@@ -264,6 +306,13 @@ export default function Treasure({
             </button>
           </div>
           {!expanded && map}
+          {!explore.position && (locating || locationError) && (
+            <p className="guide-status" role="status">
+              {locating
+                ? "현재 위치를 확인하고 있어요. 위치 접근을 허용하면 지도가 자동으로 이동해요."
+                : locationError}
+            </p>
+          )}
           <div className="hunt-map-caption">
             <span>
               <Gift size={15} />
