@@ -18,6 +18,9 @@ export interface KakaoMap {
 export interface KakaoOverlay {
   setMap(map: KakaoMap | null): void;
 }
+export interface KakaoMarker extends KakaoOverlay {
+  getPosition(): KakaoLatLng;
+}
 export interface KakaoMapClick {
   latLng: KakaoLatLng;
 }
@@ -33,6 +36,21 @@ export interface KakaoMaps {
       keyboardShortcuts?: boolean;
     },
   ) => KakaoMap;
+  Size: new (width: number, height: number) => object;
+  Point: new (x: number, y: number) => object;
+  MarkerImage: new (
+    src: string,
+    size: object,
+    options?: { offset: object },
+  ) => object;
+  Marker: new (options: {
+    map: KakaoMap;
+    position: KakaoLatLng;
+    draggable: boolean;
+    title: string;
+    image: object;
+    zIndex: number;
+  }) => KakaoMarker;
   CustomOverlay: new (options: {
     map: KakaoMap;
     position: KakaoLatLng;
@@ -52,6 +70,22 @@ export interface KakaoMaps {
     fillOpacity: number;
   }) => KakaoOverlay;
   event: {
+    addListener(
+      target: KakaoMap | KakaoMarker,
+      type: "idle" | "dragend" | "dragstart",
+      callback: () => void,
+    ): void;
+    removeListener(
+      target: KakaoMap | KakaoMarker,
+      type: "idle" | "dragend" | "dragstart",
+      callback: () => void,
+    ): void;
+    addListener(target: KakaoMarker, type: "click", callback: () => void): void;
+    removeListener(
+      target: KakaoMarker,
+      type: "click",
+      callback: () => void,
+    ): void;
     addListener(
       target: KakaoMap,
       type: "dragstart",

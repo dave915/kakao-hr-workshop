@@ -1,6 +1,7 @@
 import { arGuidance, treasureGuidance } from "./exploration";
 import { claimTreasure, GameError, isAdmin } from "./game";
 import { makeSeed } from "./seed";
+import { saveTreasures } from "./treasure-registration";
 import type { ActionInput } from "./validation";
 import type { ActionResponse, TreasureSecrets, WorkshopState } from "./types";
 export function mutate(
@@ -120,6 +121,9 @@ export function mutate(
     case "deleteSchedule":
       state.schedule = state.schedule.filter((s) => s.id !== input.id);
       break;
+    case "saveTreasures":
+      saveTreasures(state, secrets, input);
+      break;
     case "saveTreasure": {
       const current = state.treasures.find((t) => t.id === input.treasure.id);
       if (current?.foundBy)
@@ -166,7 +170,10 @@ export function mutate(
             { ...member, team: "미배정", score: 0, found: 0, blockedUntil: 0 },
           ]),
       );
-      Object.assign(state, makeSeed(false), { members });
+      Object.assign(state, makeSeed(false), {
+        members,
+        resetGeneration: (state.resetGeneration ?? 0) + 1,
+      });
       for (const treasureId of Object.keys(secrets)) delete secrets[treasureId];
       break;
     }

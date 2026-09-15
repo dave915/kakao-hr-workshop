@@ -58,6 +58,7 @@ export type VisibleTreasure = Omit<Treasure, "lat" | "lng"> & {
   lng?: number;
 };
 export interface WorkshopState<T extends VisibleTreasure = Treasure> {
+  resetGeneration?: number;
   version: 1;
   settings: Settings;
   members: Record<string, Member>;

@@ -27,17 +27,10 @@ import {
   toLocalInput,
 } from "../lib/utils";
 import { isAdmin, memberRanking } from "../../shared/game";
-import type {
-  Member,
-  Schedule,
-  Treasure,
-  Settings,
-  Position,
-} from "../../shared/types";
+import type { Member, Schedule, Settings } from "../../shared/types";
 import type { ActionInput } from "../../shared/validation";
 import { Avatar, Drawer, Empty, type Notify } from "./common";
-import { locate } from "./Treasure";
-const TreasureMap = lazy(() => import("./TreasureMap"));
+const TreasureManager = lazy(() => import("./TreasureManager"));
 type Tab = "members" | "schedule" | "treasures" | "notices" | "settings";
 const tabs = [
   { id: "members", label: "참가자·권한", icon: Users },
@@ -47,7 +40,7 @@ const tabs = [
   { id: "settings", label: "워크샵 설정", icon: Settings2 },
 ] as const;
 export default function Admin({ notify }: { notify: Notify }) {
-  const { state, me, act, secrets, demo } = useWorkshop();
+  const { state, me, act, demo } = useWorkshop();
   const [tab, setTab] = useState<Tab>("members");
   const [busy, setBusy] = useState(false);
   const [resetConfirmation, setResetConfirmation] = useState("");
@@ -66,11 +59,6 @@ export default function Admin({ notify }: { notify: Notify }) {
     confirmLabel?: string;
   } | null>(null);
   const [scheduleForm, setScheduleForm] = useState<Schedule | null>(null);
-  const [treasureForm, setTreasureForm] = useState<
-    (Treasure & { kind: "treasure" | "bomb" }) | null
-  >(null);
-  const [position, setPosition] = useState<Position | null>(null);
-  const [chosen, setChosen] = useState<string | null>(null);
   if (!state || !me || !isAdmin(me))
     return (
       <Empty
@@ -104,22 +92,6 @@ export default function Admin({ notify }: { notify: Notify }) {
       description: "",
       category: "activity",
     });
-  const newTreasure = (
-    lat = state.settings.center[0],
-    lng = state.settings.center[1],
-  ) =>
-    setTreasureForm({
-      id: crypto.randomUUID(),
-      name: "",
-      hint: "",
-      lat,
-      lng,
-      points: 100,
-      radius: 50,
-      foundBy: null,
-      foundAt: null,
-      kind: "treasure",
-    });
   const addMember = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -152,8 +124,6 @@ export default function Admin({ notify }: { notify: Notify }) {
       if (r.code) setNewLink({ code: r.code, name: confirm.name ?? "" });
       if (confirm.input.action === "resetWorkshop") {
         setNewLink(null);
-        setChosen(null);
-        setPosition(null);
         setQuery("");
       }
       setConfirm(null);
@@ -465,93 +435,22 @@ export default function Admin({ notify }: { notify: Notify }) {
         </section>
       )}
       {tab === "treasures" && (
-        <section>
-          <div className="admin-section-heading">
-            <div>
-              <h2>설렘을 숨겨둘 곳</h2>
-              <p>
-                지도를 눌러 보물을 배치하세요. 꽝의 정체는 참가자에게 숨겨져요.
-              </p>
-            </div>
-            <button className="button dark" onClick={() => newTreasure()}>
-              <Plus size={17} />
-              보물 추가
-            </button>
-          </div>
-          <Suspense
-            fallback={<div className="map-loading">지도를 펼치고 있어요…</div>}
-          >
-            <TreasureMap
-              treasures={locatedTreasures}
-              center={state.settings.center}
-              position={position}
-              selected={chosen}
-              onSelect={(id) => {
-                setChosen(id);
-                const t = locatedTreasures.find((t) => t.id === id)!;
-                setTreasureForm({ ...t, kind: secrets[t.id] ?? "treasure" });
-              }}
-              onPlace={(lat, lng) => newTreasure(lat, lng)}
-              secrets={secrets}
-              onLocate={() =>
-                void locate()
-                  .then(setPosition)
-                  .catch((e) => notify(errorMessage(e)))
-              }
-              locationName={state.settings.location}
-            />
-          </Suspense>
-          <div className="admin-item-list treasure-admin-list">
-            {locatedTreasures.map((t) => (
-              <article key={t.id}>
-                <span
-                  className={`mini-tag ${secrets[t.id] === "bomb" ? "orange" : "green"}`}
-                >
-                  {secrets[t.id] === "bomb" ? "꽝 · 5분" : "보물"}
-                </span>
-                <div>
-                  <h3>{t.name}</h3>
-                  <p>
-                    {t.foundBy
-                      ? `${englishName(state.members[t.foundBy]?.handle, "삭제된 참가자")} · 발견`
-                      : `${t.points} P · 반경 ${t.radius}m`}
-                  </p>
-                </div>
-                <button
-                  className="icon-button"
-                  aria-label={`${t.name} 수정`}
-                  disabled={Boolean(t.foundBy)}
-                  onClick={() =>
-                    setTreasureForm({ ...t, kind: secrets[t.id] ?? "treasure" })
-                  }
-                >
-                  <Pencil size={17} />
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label={`${t.name} 삭제`}
-                  disabled={busy}
-                  onClick={() =>
-                    setConfirm({
-                      title: "보물 삭제",
-                      body: `‘${t.name}’ 보물을 삭제할까요?${
-                        t.foundBy
-                          ? t.outcome === "bomb"
-                            ? " 발견 기록과 이 꽝으로 생긴 휴식 제한도 함께 지워져요."
-                            : ` 발견 기록과 획득한 ${t.points}포인트도 함께 지워지고 개인·팀 순위에 반영돼요.`
-                          : " 지도와 힌트 목록에서 사라져요."
-                      }`,
-                      input: { action: "deleteTreasure", id: t.id },
-                      success: "보물을 삭제했어요.",
-                    })
-                  }
-                >
-                  <Trash2 size={17} />
-                </button>
-              </article>
-            ))}
-          </div>
-        </section>
+        <Suspense
+          fallback={<p className="muted">보물 등록 화면을 준비하고 있어요…</p>}
+        >
+          <TreasureManager
+            busy={busy}
+            notify={notify}
+            onDelete={(t) =>
+              setConfirm({
+                title: "보물 삭제",
+                body: `‘${t.name}’ 보물을 삭제할까요?${t.foundBy ? (t.outcome === "bomb" ? " 발견 기록과 이 꽝으로 생긴 휴식 제한도 함께 지워져요." : ` 발견 기록과 획득한 ${t.points}포인트도 함께 지워지고 개인·팀 순위에 반영돼요.`) : " 지도와 힌트 목록에서 사라져요."}`,
+                input: { action: "deleteTreasure", id: t.id },
+                success: "보물을 삭제했어요.",
+              })
+            }
+          />
+        </Suspense>
       )}
       {tab === "notices" && (
         <section className="notice-admin">
@@ -949,124 +848,6 @@ export default function Admin({ notify }: { notify: Notify }) {
             </label>
             <button className="button dark full" disabled={busy}>
               일정 저장하기
-            </button>
-          </form>
-        </Drawer>
-      )}
-      {treasureForm && (
-        <Drawer
-          title="보물 숨기기"
-          onClose={() => !busy && setTreasureForm(null)}
-        >
-          <form
-            className="form-stack"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const fd = new FormData(e.currentTarget);
-              const r = await run(
-                {
-                  action: "saveTreasure",
-                  treasure: {
-                    id: treasureForm.id,
-                    name: String(fd.get("name")),
-                    hint: String(fd.get("hint")),
-                    lat: Number(fd.get("lat")),
-                    lng: Number(fd.get("lng")),
-                    points: Number(fd.get("points")),
-                    radius: Number(fd.get("radius")),
-                    kind: String(fd.get("kind")) as "treasure" | "bomb",
-                  },
-                },
-                "지도에 보물을 숨겼어요.",
-              );
-              if (r) setTreasureForm(null);
-            }}
-          >
-            <label>
-              보물 이름
-              <input
-                name="name"
-                required
-                maxLength={80}
-                defaultValue={treasureForm.name}
-              />
-            </label>
-            <label>
-              작은 힌트
-              <textarea
-                name="hint"
-                required
-                maxLength={300}
-                rows={3}
-                defaultValue={treasureForm.hint}
-              />
-            </label>
-            <div className="form-pair">
-              <label>
-                위도
-                <input
-                  name="lat"
-                  type="number"
-                  step="any"
-                  min={-90}
-                  max={90}
-                  required
-                  defaultValue={treasureForm.lat}
-                />
-              </label>
-              <label>
-                경도
-                <input
-                  name="lng"
-                  type="number"
-                  step="any"
-                  min={-180}
-                  max={180}
-                  required
-                  defaultValue={treasureForm.lng}
-                />
-              </label>
-            </div>
-            <label>
-              숨길 선물
-              <select name="kind" defaultValue={treasureForm.kind}>
-                <option value="treasure">보물 · 포인트 획득</option>
-                <option value="bomb">꽝 · 탐험 5분 휴식</option>
-              </select>
-            </label>
-            <div className="form-pair">
-              <label>
-                포인트
-                <input
-                  name="points"
-                  type="number"
-                  min={10}
-                  max={1000}
-                  required
-                  defaultValue={treasureForm.points}
-                />
-              </label>
-              <label>
-                발견 반경 (m)
-                <input
-                  name="radius"
-                  type="number"
-                  min={10}
-                  max={200}
-                  required
-                  defaultValue={treasureForm.radius}
-                />
-              </label>
-            </div>
-            <p className="footnote">
-              꽝의 종류는 발견하기 전까지 참가자에게 공개되지 않아요. 이름과
-              힌트에 정답을 적지 마세요.
-            </p>
-            <button
-              className="button dark full"
-              disabled={busy || Boolean(treasureForm.foundBy)}
-            >
-              보물 저장하기
             </button>
           </form>
         </Drawer>

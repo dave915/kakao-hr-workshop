@@ -4479,3 +4479,502 @@ td .text-button {
 .member-delete {
   color: #a13f32;
 }
+
+/* Admin registration keeps placement and draft editing in one workspace. */
+.treasure-manager .section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.treasure-manager .section-heading p {
+  margin-top: 6px;
+}
+.registration-modes {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.registration-modes > button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.registration-modes > button[aria-pressed="true"] {
+  background: var(--soft-green);
+  border: 2px solid var(--green);
+  padding: 15px 19px;
+}
+.registration-modes span {
+  font-weight: 700;
+}
+.registration-modes small {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.registration-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.registration-map-column {
+  position: sticky;
+  top: 22px;
+  min-width: 0;
+  scroll-margin-top: 20px;
+}
+.registration-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.registration-toolbar .button {
+  min-height: 48px;
+}
+.placement-instruction {
+  margin-top: 14px;
+  min-height: 44px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.placement-stop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+.placement-map {
+  position: relative;
+  height: 520px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--soft-green);
+}
+.placement-map.is-placing {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.placement-map-canvas {
+  width: 100%;
+  height: 100%;
+}
+.placement-map-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.placement-map-tools {
+  position: absolute;
+  z-index: 10;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 2px 8px #26372b16;
+}
+.placement-map-tools .icon-button {
+  border-radius: 0;
+  width: 44px;
+  height: 44px;
+}
+.placement-map-tools > button + button {
+  border-top: 1px solid var(--line);
+}
+.placement-map-legend {
+  position: absolute;
+  bottom: 32px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  pointer-events: none;
+}
+.placement-map-legend span {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.placement-map-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.placement-map-legend i.draft {
+  background: var(--yellow);
+  border: 1px solid #80753e;
+}
+.placement-location-dot {
+  width: 18px;
+  height: 18px;
+  border: 3px solid white;
+  background: #2777c8;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 6px #2777c830,
+    0 1px 5px #0004;
+}
+.registration-editor {
+  min-width: 0;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  scroll-margin-top: 20px;
+}
+.draft-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.draft-heading h3 span,
+.registered-heading h3 span {
+  color: var(--green);
+  margin-left: 6px;
+}
+.draft-heading > small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.draft-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 4px 12px;
+  margin: 0 -4px 8px;
+}
+.draft-tabs > button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  min-height: 44px;
+  max-width: 220px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.draft-tabs > button[aria-pressed="true"] {
+  background: var(--soft-green);
+  border-color: var(--green);
+}
+.draft-tabs span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.draft-tabs small {
+  flex: none;
+  color: var(--muted);
+}
+.draft-tabs b {
+  flex: none;
+  font-size: 11px;
+  color: var(--green);
+}
+.registration-form fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.draft-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.registration-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.registration-form textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+.registration-form input,
+.registration-form textarea,
+.registration-form select {
+  width: 100%;
+  min-width: 0;
+  font-size: 14px;
+}
+.registration-form .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.draft-location {
+  display: flex;
+  gap: 10px;
+  border-block: 1px solid var(--line);
+  padding: 14px 0;
+}
+.draft-location > svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--green);
+}
+.draft-location strong {
+  display: block;
+  font-size: 13px;
+}
+.draft-location small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.draft-location-actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.draft-location-actions button {
+  min-height: 44px;
+  padding: 0;
+  font-size: 12px;
+}
+.registration-form details {
+  font-size: 13px;
+}
+.registration-form summary {
+  cursor: pointer;
+  padding: 10px 0;
+  min-height: 44px;
+  font-weight: 600;
+}
+.registration-form summary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  margin-left: 8px;
+}
+.registration-details {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 10px;
+}
+.registration-details .text-button {
+  text-align: left;
+  min-height: 44px;
+}
+.registration-form .footnote {
+  font-size: 11px;
+}
+.draft-save-actions {
+  display: flex;
+  gap: 8px;
+}
+.draft-save-actions > .dark {
+  flex: 1;
+}
+.draft-save-actions .button {
+  min-height: 48px;
+}
+.registration-empty {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 230px;
+  padding: 30px 4px;
+}
+.registration-empty > svg {
+  color: var(--green);
+}
+.registration-empty p {
+  font-size: 13px;
+  line-height: 1.9;
+}
+.draft-batch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 18px;
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.draft-batch span {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+.draft-batch .button {
+  min-height: 48px;
+}
+.registration-error {
+  padding: 12px;
+  margin-bottom: 14px;
+  border-left: 3px solid #a44829;
+  background: #fdf0e5;
+  color: #7d341d;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.draft-discard {
+  background: var(--paper);
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.draft-discard p {
+  color: var(--ink);
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.draft-discard button {
+  margin-right: 8px;
+}
+.registered-heading {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 34px;
+  margin-bottom: 8px;
+}
+.registered-heading p {
+  font-size: 12px;
+}
+.registration-saved-list article {
+  gap: 12px;
+}
+.registration-saved-list article > div.registered-actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+.registration-saved-list .registered-actions .icon-button {
+  width: 44px;
+  height: 44px;
+}
+.registration-saved-list h3 {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1050px) {
+  .registration-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(285px, 1fr);
+    gap: 16px;
+  }
+  .registration-editor {
+    padding: 16px;
+  }
+}
+@media (max-width: 760px) {
+  .treasure-manager .section-heading {
+    margin-bottom: 18px;
+  }
+  .treasure-manager .section-heading h2 {
+    font-size: 20px;
+  }
+  .treasure-manager .section-heading p {
+    font-size: 12px;
+  }
+  .treasure-manager .section-heading > .mini-tag {
+    flex: none;
+  }
+  .registration-modes {
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .registration-modes > button {
+    gap: 8px;
+    padding: 12px;
+  }
+  .registration-modes > button[aria-pressed="true"] {
+    padding: 11px;
+  }
+  .registration-modes > button > svg {
+    width: 18px;
+    flex: none;
+  }
+  .registration-modes span {
+    font-size: 13px;
+  }
+  .registration-modes small {
+    font-size: 10px;
+  }
+  .registration-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .registration-map-column {
+    position: relative;
+    top: auto;
+  }
+  .placement-map {
+    height: 310px;
+  }
+  .placement-instruction {
+    font-size: 12px;
+    min-height: 38px;
+    margin-top: 10px;
+  }
+  .registration-toolbar .button {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+  .registration-toolbar .text-button {
+    font-size: 12px;
+    min-height: 44px;
+  }
+  .registration-editor {
+    padding: 16px;
+  }
+  .registration-form input,
+  .registration-form textarea,
+  .registration-form select {
+    font-size: 16px;
+  }
+  .registration-saved-list article {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .registration-saved-list article > div:not(.registered-actions) {
+    flex: 1;
+    min-width: 100px;
+  }
+  .registration-saved-list article > div.registered-actions {
+    margin-left: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .registration-workspace {
+    scroll-behavior: auto;
+  }
+}

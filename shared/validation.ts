@@ -36,6 +36,13 @@ export const treasureInput = z.object({
   points: z.number().int().min(10).max(1000),
   kind: z.enum(["treasure", "bomb"]),
 });
+export type TreasureInput = z.infer<typeof treasureInput>;
+export const treasureBatchItem = treasureInput
+  .extend({ original: treasureInput.optional() })
+  .refine(
+    (t) => !t.original || t.original.id === t.id,
+    "수정할 보물을 다시 선택해주세요.",
+  );
 export const settingsInput = z
   .object({
     title: text(60),
@@ -91,6 +98,18 @@ export const actionInput = z.discriminatedUnion("action", [
   z.object({ action: z.literal("saveSchedule"), schedule: scheduleInput }),
   z.object({ action: z.literal("deleteSchedule"), id: text(100) }),
   z.object({ action: z.literal("saveTreasure"), treasure: treasureInput }),
+  z.object({
+    action: z.literal("saveTreasures"),
+    resetGeneration: z.number().int().nonnegative(),
+    treasures: z
+      .array(treasureBatchItem)
+      .min(1)
+      .max(100)
+      .refine(
+        (items) => new Set(items.map((t) => t.id)).size === items.length,
+        "같은 보물이 중복되어 있어요.",
+      ),
+  }),
   z.object({ action: z.literal("deleteTreasure"), id: text(100) }),
   z.object({ action: z.literal("deleteNotice"), id: text(100) }),
   z.object({

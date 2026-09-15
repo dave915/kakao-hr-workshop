@@ -251,6 +251,7 @@ export const workshopAction = onCall(
         writeState(tx, state);
         if (
           input.action === "saveTreasure" ||
+          input.action === "saveTreasures" ||
           input.action === "deleteTreasure" ||
           input.action === "resetWorkshop"
         )

@@ -437,6 +437,7 @@ describe("administrator deletion and reset", () => {
       );
       expect(state).toEqual({
         ...makeSeed(false),
+        resetGeneration: retry + 1,
         members: Object.fromEntries(survivors.map((m) => [m.id, m])),
       });
       expect(secrets).toEqual({});

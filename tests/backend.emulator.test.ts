@@ -2,6 +2,8 @@ import { createRequire } from "node:module";
 import { createHash, randomBytes } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { makeSeed, demoSecrets } from "../shared/seed";
+import type { Treasure, WorkshopState } from "../shared/types";
+import { registrationValues } from "../shared/treasure-registration";
 const require = createRequire(
   new URL("../functions/package.json", import.meta.url),
 );
@@ -96,6 +98,99 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         )
       ).status,
     ).not.toBe(200);
+  });
+  it("saves a batch to both views and private kinds, and rejects invalid or participant batches atomically", async () => {
+    const originalState = (
+      await db.doc("workshops/main").get()
+    ).data() as WorkshopState;
+    const originalSecrets = (await db.doc("private/treasures").get()).data();
+    const first = {
+      id: "batch-a",
+      name: "보물 A",
+      hint: "나무 아래",
+      lat: 37.54,
+      lng: 127.04,
+      points: 200,
+      radius: 40,
+      kind: "treasure",
+    };
+    const second = { ...first, id: "batch-b", name: "보물 B", kind: "bomb" };
+    const input = {
+      action: "saveTreasures",
+      resetGeneration: 0,
+      treasures: [first, second],
+    };
+    try {
+      expect(
+        (await call("workshopAction", input, memberToken)).status,
+      ).not.toBe(200);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { ...input, treasures: [first, { ...second, radius: 1 }] },
+            adminToken,
+          )
+        ).status,
+      ).not.toBe(200);
+      expect((await db.doc("workshops/main").get()).data()).toEqual(
+        originalState,
+      );
+      expect((await call("workshopAction", input, adminToken)).status).toBe(
+        200,
+      );
+      const saved = (
+        await db.doc("workshops/main").get()
+      ).data() as WorkshopState;
+      expect(saved.treasures.slice(-2).map((t) => t.id)).toEqual([
+        first.id,
+        second.id,
+      ]);
+      expect(
+        (await db.doc("private/treasures").get()).data().kinds[second.id],
+      ).toBe("bomb");
+      const visible = (await db.doc("workshops/participants").get()).data();
+      expect(
+        visible.treasures.find((t: Treasure) => t.id === second.id),
+      ).not.toHaveProperty("lat");
+      expect(
+        visible.treasures.find((t: Treasure) => t.id === second.id),
+      ).not.toHaveProperty("kind");
+      expect((await call("workshopAction", input, adminToken)).status).toBe(
+        200,
+      );
+      expect((await db.doc("workshops/main").get()).data()).toEqual(saved);
+      const existing = saved.treasures.find((t) => t.id === first.id)!;
+      const original = registrationValues(existing, "treasure");
+      existing.foundBy = "alex.k";
+      existing.foundAt = Date.now();
+      existing.outcome = "treasure";
+      await db.doc("workshops/main").set(saved);
+      const conflict = {
+        ...input,
+        treasures: [
+          { ...second, id: "partial-must-not-exist" },
+          { ...first, hint: "바뀐 힌트", original },
+        ],
+      };
+      expect(
+        (await call("workshopAction", conflict, adminToken)).status,
+      ).not.toBe(200);
+      expect((await db.doc("workshops/main").get()).data()).toEqual(saved);
+      expect(
+        (await db.doc("private/treasures").get()).data().kinds,
+      ).not.toHaveProperty("partial-must-not-exist");
+      expect((await call("workshopAction", input, adminToken)).status).toBe(
+        200,
+      );
+      expect((await db.doc("workshops/main").get()).data()).toEqual(saved);
+    } finally {
+      const restore = db.batch();
+      restore.set(db.doc("workshops/main"), originalState);
+      restore.set(db.doc("private/treasures"), originalSecrets);
+      // The next normal mutation regenerates the participant view.
+      await restore.commit();
+    }
   });
   it("issues an unguessable personal link and redeems it as the exact member", async () => {
     const created = await call(
@@ -575,6 +670,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     expect(reset.status).toBe(200);
     const expected = {
       ...makeSeed(false),
+      resetGeneration: 1,
       members: {
         "dave.h": {
           ...state.members["dave.h"],
