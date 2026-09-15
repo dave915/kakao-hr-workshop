@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   Download,
@@ -9,7 +9,12 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { useWorkshop } from "../lib/store";
-import { disablePush, enablePush } from "../lib/pwa";
+import {
+  disablePush,
+  enablePush,
+  getPushStatus,
+  type PushStatus,
+} from "../lib/pwa";
 import { englishName, errorMessage } from "../lib/utils";
 import type { Page } from "../../shared/types";
 import { isAdmin } from "../../shared/game";
@@ -29,25 +34,51 @@ export default function Profile({
 }) {
   const { me, state, demo, logout, switchDemo, act } = useWorkshop();
   const [busy, setBusy] = useState(false);
-  const [push, setPush] = useState(
-    Boolean(localStorage.getItem("hr-push-token")),
-  );
+  const [pushStatus, setPushStatus] = useState<
+    PushStatus | "checking" | "error"
+  >("checking");
+  const push = pushStatus === "enabled";
   const [guide, setGuide] = useState(false);
+  useEffect(() => {
+    if (busy) return;
+    let cancelled = false;
+    const check = () => {
+      void getPushStatus().then(
+        (status) => {
+          if (!cancelled) setPushStatus(status);
+        },
+        () => {
+          if (!cancelled) setPushStatus("error");
+        },
+      );
+    };
+    check();
+    window.addEventListener("focus", check);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", check);
+    };
+  }, [busy]);
   if (!me || !state) return null;
-  const toggle = async () => {
+  const toggle = async (reconnect = false) => {
     setBusy(true);
     try {
-      if (push) {
+      if (push && !reconnect) {
         await disablePush(act);
-        setPush(false);
+        setPushStatus("disabled");
         notify("알림 받기를 해제했어요.");
       } else {
         await enablePush(act);
-        setPush(true);
-        notify("워크샵 소식을 가장 먼저 알려드릴게요.");
+        setPushStatus("enabled");
+        notify(
+          reconnect
+            ? "이 기기의 알림을 다시 연결했어요."
+            : "워크샵 소식을 가장 먼저 알려드릴게요.",
+        );
       }
     } catch (e) {
       notify(errorMessage(e));
+      setPushStatus(await getPushStatus().catch(() => "error" as const));
     } finally {
       setBusy(false);
     }
@@ -55,7 +86,7 @@ export default function Profile({
   const exit = async () => {
     setBusy(true);
     try {
-      if (push) await disablePush(act);
+      if (localStorage.getItem("hr-push-token")) await disablePush(act);
       await logout();
       navigate("home");
     } catch (e) {
@@ -109,16 +140,43 @@ export default function Profile({
           </span>
           <ArrowUpRight size={20} />
         </button>
-        <button disabled={busy} onClick={() => void toggle()}>
+        <button
+          disabled={busy || pushStatus === "checking"}
+          role="switch"
+          aria-checked={push}
+          onClick={() => void toggle()}
+        >
           <Bell />
           <span>
             <strong>워크샵 소식 받기</strong>
             <small>
-              {push ? "알림을 받고 있어요" : "중요한 안내를 푸시로 받아보세요"}
+              {pushStatus === "checking"
+                ? "이 기기의 알림 상태를 확인하고 있어요"
+                : push
+                  ? "이 기기에 알림이 연결되어 있어요"
+                  : pushStatus === "stale"
+                    ? "알림 연결이 끊겼어요. 눌러서 다시 연결해주세요"
+                    : pushStatus === "blocked"
+                      ? "기기 설정에서 이 앱의 알림을 허용해주세요"
+                      : pushStatus === "unsupported"
+                        ? "푸시를 지원하는 브라우저에서 열어주세요"
+                        : pushStatus === "error"
+                          ? "상태를 확인하지 못했어요. 눌러서 다시 연결해주세요"
+                          : "중요한 안내를 푸시로 받아보세요"}
             </small>
           </span>
           <span className={`toggle ${push ? "on" : ""}`} />
         </button>
+        {push && (
+          <button disabled={busy} onClick={() => void toggle(true)}>
+            <Smartphone />
+            <span>
+              <strong>알림 다시 연결하기</strong>
+              <small>알림이 오지 않으면 이 기기를 다시 등록해주세요</small>
+            </span>
+            <ArrowUpRight size={20} />
+          </button>
+        )}
         {isAdmin(me) && (
           <button onClick={() => navigate("admin")}>
             <ShieldCheck />

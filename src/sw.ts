@@ -7,7 +7,7 @@ import {
 } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
 import { initializeApp } from "firebase/app";
-import { getMessaging, onBackgroundMessage } from "firebase/messaging/sw";
+import { getMessaging } from "firebase/messaging/sw";
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
 };
@@ -18,7 +18,27 @@ clientsClaim();
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")));
-// Data-only FCM payload: this worker is the sole notification renderer, preventing duplicates.
+// Handle FCM's data-only Web Push here, including while an app window is visible.
+// Firebase's default foreground routing skips showNotification; Safari can revoke
+// subscriptions for such silent pushes. Keep display inside the push lifetime and
+// use one renderer so multiple tabs cannot produce duplicate notifications.
+self.addEventListener("push", (event) => {
+  let payload: { data?: { title?: string; body?: string; noticeId?: string } } =
+    {};
+  try {
+    payload = event.data?.json() ?? {};
+  } catch {
+    // Even an unreadable push must show a visible notification.
+  }
+  const title = payload.data?.title || "워크샵 소식";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.data?.body || "새로운 안내가 도착했어요.",
+      icon: new URL("./icon-192.png", self.registration.scope).href,
+      tag: payload.data?.noticeId || "workshop",
+    }),
+  );
+});
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = new URL("./#/notices", self.registration.scope).href;
@@ -37,6 +57,8 @@ self.addEventListener("notificationclick", (event) => {
       }),
   );
 });
+// Keep Firebase's foreground messages and subscription renewal. The server sends
+// data-only payloads; do not add an onBackgroundMessage notification renderer.
 if (
   import.meta.env.VITE_FIREBASE_PROJECT_ID &&
   import.meta.env.VITE_FIREBASE_API_KEY
@@ -47,11 +69,5 @@ if (
     messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
     appId: import.meta.env.VITE_FIREBASE_APP_ID,
   });
-  onBackgroundMessage(getMessaging(app), (payload) =>
-    self.registration.showNotification(payload.data?.title || "워크샵 소식", {
-      body: payload.data?.body || "새로운 안내가 도착했어요.",
-      icon: new URL("./icon-192.png", self.registration.scope).href,
-      tag: payload.data?.noticeId || "workshop",
-    }),
-  );
+  getMessaging(app);
 }
