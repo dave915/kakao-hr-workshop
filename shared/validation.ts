@@ -90,6 +90,11 @@ export const actionInput = z.discriminatedUnion("action", [
   z.object({ action: z.literal("deleteSchedule"), id: text(100) }),
   z.object({ action: z.literal("saveTreasure"), treasure: treasureInput }),
   z.object({ action: z.literal("deleteTreasure"), id: text(100) }),
+  z.object({ action: z.literal("deleteNotice"), id: text(100) }),
+  z.object({
+    action: z.literal("resetWorkshop"),
+    confirmation: z.literal("전체 초기화"),
+  }),
   z.object({ action: z.literal("saveSettings"), settings: settingsInput }),
   z.object({
     action: z.literal("publishNotice"),

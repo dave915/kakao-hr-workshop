@@ -49,6 +49,7 @@ export default function Admin({ notify }: { notify: Notify }) {
   const { state, me, act, secrets, demo } = useWorkshop();
   const [tab, setTab] = useState<Tab>("members");
   const [busy, setBusy] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState("");
   const [query, setQuery] = useState("");
   const [memberForm, setMemberForm] = useState(false);
   const [newLink, setNewLink] = useState<{ code: string; name: string } | null>(
@@ -59,6 +60,7 @@ export default function Admin({ notify }: { notify: Notify }) {
     body: string;
     input: ActionInput;
     name?: string;
+    success?: string;
   } | null>(null);
   const [scheduleForm, setScheduleForm] = useState<Schedule | null>(null);
   const [treasureForm, setTreasureForm] = useState<
@@ -133,10 +135,24 @@ export default function Admin({ notify }: { notify: Notify }) {
     }
   };
   const executeConfirm = async () => {
-    if (!confirm) return;
-    const r = await run(confirm.input, "변경 내용을 저장했어요.");
+    if (!confirm || busy) return;
+    if (
+      confirm.input.action === "resetWorkshop" &&
+      resetConfirmation !== "전체 초기화"
+    )
+      return;
+    const r = await run(
+      confirm.input,
+      confirm.success ?? "변경 내용을 저장했어요.",
+    );
     if (r) {
       if (r.code) setNewLink({ code: r.code, name: confirm.name ?? "" });
+      if (confirm.input.action === "resetWorkshop") {
+        setNewLink(null);
+        setChosen(null);
+        setPosition(null);
+        setQuery("");
+      }
       setConfirm(null);
     }
   };
@@ -470,12 +486,19 @@ export default function Admin({ notify }: { notify: Notify }) {
                 <button
                   className="icon-button"
                   aria-label={`${t.name} 삭제`}
-                  disabled={Boolean(t.foundBy)}
+                  disabled={busy}
                   onClick={() =>
                     setConfirm({
                       title: "보물 삭제",
-                      body: `‘${t.name}’ 보물을 지도에서 지울까요?`,
+                      body: `‘${t.name}’ 보물을 삭제할까요?${
+                        t.foundBy
+                          ? t.outcome === "bomb"
+                            ? " 발견 기록과 이 꽝으로 생긴 휴식 제한도 함께 지워져요."
+                            : ` 발견 기록과 획득한 ${t.points}포인트도 함께 지워지고 개인·팀 순위에 반영돼요.`
+                          : " 지도와 힌트 목록에서 사라져요."
+                      }`,
                       input: { action: "deleteTreasure", id: t.id },
+                      success: "보물을 삭제했어요.",
                     })
                   }
                 >
@@ -571,9 +594,26 @@ export default function Admin({ notify }: { notify: Notify }) {
             <div className="sent-notices">
               {state.notices.map((n) => (
                 <article key={n.id}>
-                  <span className="mini-tag">
-                    {n.audience === "all" ? "전체" : n.audience}
-                  </span>
+                  <div className="sent-notice-heading">
+                    <span className="mini-tag">
+                      {n.audience === "all" ? "전체" : n.audience}
+                    </span>
+                    <button
+                      className="icon-button"
+                      aria-label={`${n.title} 삭제`}
+                      disabled={busy}
+                      onClick={() =>
+                        setConfirm({
+                          title: "공지 삭제",
+                          body: `‘${n.title}’ 공지를 삭제할까요? 앱의 공지 목록에서 사라져요. 이미 전송된 푸시 알림은 회수되지 않아요.`,
+                          input: { action: "deleteNotice", id: n.id },
+                          success: "공지를 삭제했어요.",
+                        })
+                      }
+                    >
+                      <Trash2 size={17} />
+                    </button>
+                  </div>
                   <h4>{n.title}</h4>
                   <p>
                     {n.pushStatus === "none"
@@ -587,6 +627,12 @@ export default function Admin({ notify }: { notify: Notify }) {
                   )}
                 </article>
               ))}
+              {state.notices.length === 0 && (
+                <Empty
+                  title="보낸 소식이 없어요"
+                  body="첫 공지를 작성해 탐험대원에게 알려주세요."
+                />
+              )}
             </div>
             <p className="footnote">
               FCM 접수는 기기 전달·열람을 보장하지 않아요. 대상 팀 안내는 수신
@@ -596,17 +642,56 @@ export default function Admin({ notify }: { notify: Notify }) {
         </section>
       )}
       {tab === "settings" && (
-        <SettingsForm
-          key={state.settings.title + state.settings.startsAt}
-          settings={state.settings}
-          busy={busy}
-          onSave={(settings) =>
-            void run(
-              { action: "saveSettings", settings },
-              "워크샵 설정을 저장했어요.",
-            )
-          }
-        />
+        <>
+          <SettingsForm
+            key={JSON.stringify(state.settings)}
+            settings={state.settings}
+            busy={busy}
+            onSave={(settings) =>
+              void run(
+                { action: "saveSettings", settings },
+                "워크샵 설정을 저장했어요.",
+              )
+            }
+          />
+          {me.role === "superadmin" && (
+            <section
+              className="reset-workshop"
+              aria-labelledby="reset-workshop-title"
+            >
+              <h2 id="reset-workshop-title">전체 초기화</h2>
+              <p>
+                공지, 보물·꽝, 일정, 팀, 점수와 발견·휴식 기록을 모두 지워요.
+                슈퍼 어드민을 제외한 추진위원회와 참가자도 삭제하며, 기존 입장
+                링크와 로그인은 사용할 수 없게 돼요.
+              </p>
+              <p>
+                워크샵 설정은 기본값으로 돌아가고 보물찾기는 중지돼요. 슈퍼
+                어드민 계정과 입장 링크는 유지돼요.
+              </p>
+              <button
+                className="button danger"
+                disabled={busy}
+                onClick={() => {
+                  setResetConfirmation("");
+                  setConfirm({
+                    title: "워크샵 전체 초기화",
+                    body: `공지 ${state.notices.length}개, 보물·꽝 ${state.treasures.length}개, 일정 ${state.schedule.length}개와 슈퍼 어드민을 제외한 인원 ${Object.values(state.members).filter((m) => m.role !== "superadmin").length}명을 삭제해요. 팀·점수·발견·휴식 기록을 지우고 워크샵 설정을 기본값으로 되돌려요. 삭제된 인원의 입장 링크와 기기 알림 등록도 지워져요. 슈퍼 어드민 계정과 입장 링크는 유지돼요. 이 작업은 되돌릴 수 없어요.`,
+                    input: {
+                      action: "resetWorkshop",
+                      confirmation: "전체 초기화",
+                    },
+                    success:
+                      "전체 초기화를 완료했어요. 슈퍼 어드민 계정은 유지돼요.",
+                  });
+                }}
+              >
+                <Trash2 size={17} />
+                모두 초기화하기
+              </button>
+            </section>
+          )}
+        </>
       )}
       {memberForm && (
         <Drawer
@@ -697,6 +782,17 @@ export default function Admin({ notify }: { notify: Notify }) {
       {confirm && (
         <Drawer title={confirm.title} onClose={() => !busy && setConfirm(null)}>
           <p className="confirm-copy">{confirm.body}</p>
+          {confirm.input.action === "resetWorkshop" && (
+            <label className="reset-confirmation">
+              계속하려면 ‘전체 초기화’를 입력해주세요.
+              <input
+                value={resetConfirmation}
+                onChange={(e) => setResetConfirmation(e.target.value)}
+                autoComplete="off"
+                disabled={busy}
+              />
+            </label>
+          )}
           <div className="form-actions">
             <button
               className="button"
@@ -706,11 +802,19 @@ export default function Admin({ notify }: { notify: Notify }) {
               취소
             </button>
             <button
-              className="button dark"
-              disabled={busy}
+              className={`button ${confirm.input.action === "resetWorkshop" ? "danger" : "dark"}`}
+              disabled={
+                busy ||
+                (confirm.input.action === "resetWorkshop" &&
+                  resetConfirmation !== "전체 초기화")
+              }
               onClick={() => void executeConfirm()}
             >
-              {busy ? "처리 중…" : "확인하고 진행"}
+              {busy
+                ? "처리 중…"
+                : confirm.input.action === "resetWorkshop"
+                  ? "모두 삭제하고 초기화"
+                  : "확인하고 진행"}
             </button>
           </div>
         </Drawer>

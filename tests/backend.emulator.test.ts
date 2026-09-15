@@ -44,6 +44,8 @@ async function redeem(code: string) {
 describe.skipIf(!enabled)("callable backend integration", () => {
   let db: ReturnType<typeof getFirestore>,
     adminToken: string,
+    adminCode: string,
+    committeeCode: string,
     memberToken: string,
     memberCode: string;
   beforeAll(async () => {
@@ -53,7 +55,6 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     const batch = db.batch();
     batch.set(db.doc("workshops/main"), state);
     batch.set(db.doc("private/treasures"), { kinds: demoSecrets });
-    let adminCode = "";
     for (const m of Object.values(state.members)) {
       batch.set(db.doc(`members/${m.id}`), { role: m.role, sessionVersion: 1 });
       const code = randomBytes(24).toString("base64url");
@@ -64,6 +65,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       });
       if (m.id === "dave.h") adminCode = code;
       if (m.id === "alex.k") memberCode = code;
+      if (m.id === "june.p") committeeCode = code;
     }
     await batch.commit();
     adminToken = await redeem(adminCode);
@@ -232,7 +234,9 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         )
       ).status,
     ).toBe(401);
-    expect(await redeem(rotated.result.code)).toBeTruthy();
+    memberCode = rotated.result.code;
+    memberToken = await redeem(memberCode);
+    expect(memberToken).toBeTruthy();
   });
   it("keeps privileged roles in server-owned records", async () => {
     const r = await call(
@@ -243,4 +247,157 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     expect(r.status).toBe(200);
     expect((await db.doc("members/june.p").get()).data().role).toBe("admin");
   });
+  it("deletes notices and claimed treasures in both views and corrects only the awarded score", async () => {
+    const committeeToken = await redeem(committeeCode);
+    const before = (await db.doc("workshops/main").get()).data();
+    const treasure = before.treasures.find(
+      (t: { id: string }) => t.id === "t1",
+    );
+    const finder = before.members[treasure.foundBy];
+    for (const input of [
+      { action: "deleteNotice", id: "n1" },
+      { action: "deleteTreasure", id: "t1" },
+    ]) {
+      expect(
+        (await call("workshopAction", input, memberToken)).status,
+      ).not.toBe(200);
+      expect((await call("workshopAction", input, committeeToken)).status).toBe(
+        200,
+      );
+    }
+    for (const path of ["workshops/main", "workshops/participants"]) {
+      const state = (await db.doc(path).get()).data();
+      expect(state.notices.some((n: { id: string }) => n.id === "n1")).toBe(
+        false,
+      );
+      expect(state.treasures.some((t: { id: string }) => t.id === "t1")).toBe(
+        false,
+      );
+      expect(state.members[finder.id].score).toBe(
+        finder.score - treasure.points,
+      );
+      expect(state.members[finder.id].found).toBe(finder.found - 1);
+    }
+    expect(
+      (await db.doc("private/treasures").get()).data().kinds,
+    ).not.toHaveProperty("t1");
+  });
+  it("requires superadmin permission and explicit confirmation before any reset writes", async () => {
+    const before = (await db.doc("workshops/main").get()).data();
+    const input = { action: "resetWorkshop", confirmation: "전체 초기화" };
+    for (const token of [memberToken, await redeem(committeeCode)]) {
+      expect((await call("workshopAction", input, token)).status).not.toBe(200);
+    }
+    expect(
+      (await call("workshopAction", { action: "resetWorkshop" }, adminToken))
+        .status,
+    ).toBe(400);
+    expect((await db.doc("workshops/main").get()).data()).toEqual(before);
+  });
+  it("atomically resets a full workshop, revokes removed sessions and preserves superadmin access", async () => {
+    const committeeToken = await redeem(committeeCode);
+    const adminProfile = (await db.doc("members/dave.h").get()).data();
+    const state = (await db.doc("workshops/main").get()).data();
+    const writer = db.bulkWriter();
+    // Exercise the 500-person capacity, including more than 500 document deletes.
+    for (let i = Object.keys(state.members).length; i < 500; i++) {
+      const uid = `reset-member-${i}`;
+      state.members[uid] = { ...state.members["alex.k"], id: uid, handle: uid };
+      writer.set(db.doc(`members/${uid}`), {
+        role: "member",
+        sessionVersion: 1,
+      });
+      writer.set(db.doc(`invites/reset-invite-${i}`), {
+        uid,
+        sessionVersion: 1,
+        expiresAt: Date.now() + 86400000,
+      });
+    }
+    writer.set(db.doc("members/orphan"), { role: "admin", sessionVersion: 1 });
+    writer.set(db.doc("invites/orphan"), { uid: "orphan" });
+    writer.set(db.doc("pushTokens/member-device"), {
+      uid: "alex.k",
+      token: "member-device-token",
+    });
+    writer.set(db.doc("pushTokens/admin-device"), {
+      uid: "dave.h",
+      token: "admin-device-token",
+    });
+    writer.set(db.doc("workshops/main"), state);
+    await writer.close();
+    const reset = await call(
+      "workshopAction",
+      { action: "resetWorkshop", confirmation: "전체 초기화" },
+      adminToken,
+    );
+    expect(reset.status).toBe(200);
+    const expected = {
+      ...makeSeed(false),
+      members: {
+        "dave.h": {
+          ...state.members["dave.h"],
+          team: "미배정",
+          score: 0,
+          found: 0,
+          blockedUntil: 0,
+        },
+      },
+    };
+    expect((await db.doc("workshops/main").get()).data()).toEqual(expected);
+    expect((await db.doc("workshops/participants").get()).data()).toEqual(
+      expected,
+    );
+    expect((await db.doc("private/treasures").get()).data()).toEqual({
+      kinds: {},
+    });
+    expect(
+      (await db.collection("members").get()).docs.map(
+        (d: { id: string }) => d.id,
+      ),
+    ).toEqual(["dave.h"]);
+    expect((await db.doc("members/dave.h").get()).data()).toEqual(adminProfile);
+    expect(
+      (await db.collection("pushTokens").get()).docs.map(
+        (d: { id: string }) => d.id,
+      ),
+    ).toEqual(["admin-device"]);
+    const invites = (await db.collection("invites").get()).docs;
+    expect(invites).toHaveLength(1);
+    expect(invites[0].id).toBe(hash(adminCode));
+    expect((await call("redeemInvite", { code: memberCode })).status).toBe(401);
+    expect((await call("redeemInvite", { code: committeeCode })).status).toBe(
+      401,
+    );
+    for (const token of [memberToken, committeeToken]) {
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "registerPush", token: "deleted-user-device-token" },
+            token,
+          )
+        ).status,
+      ).toBe(401);
+      const read = await fetch(
+        `http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-workshop/databases/(default)/documents/workshops/participants`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      expect(read.status).toBe(403);
+    }
+    expect(await redeem(adminCode)).toBeTruthy();
+    expect(
+      (
+        await call(
+          "workshopAction",
+          {
+            action: "createMember",
+            member: { name: "다시 초대", handle: "alex.k", team: "새 팀" },
+          },
+          adminToken,
+        )
+      ).status,
+    ).toBe(200);
+  }, 30000);
 });

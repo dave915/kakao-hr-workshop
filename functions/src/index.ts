@@ -168,6 +168,21 @@ export const workshopAction = onCall(
             ? await tx.get(db.doc(`members/${input.memberId}`))
             : null;
         const response = mutate(state, secrets, uid, input, id, now);
+        if (input.action === "resetWorkshop") {
+          // Read and delete in the same transaction as the state reset so old
+          // links and sessions lose access atomically, including admin sessions.
+          const [members, invites, pushTokens] = await Promise.all([
+            tx.get(db.collection("members")),
+            tx.get(db.collection("invites")),
+            tx.get(db.collection("pushTokens")),
+          ]);
+          for (const member of members.docs)
+            if (!state.members[member.id]) tx.delete(member.ref);
+          for (const invite of invites.docs)
+            if (!state.members[invite.data().uid]) tx.delete(invite.ref);
+          for (const token of pushTokens.docs)
+            if (!state.members[token.data().uid]) tx.delete(token.ref);
+        }
         if (
           input.action === "registerPush" ||
           input.action === "unregisterPush"
@@ -208,7 +223,8 @@ export const workshopAction = onCall(
         writeState(tx, state);
         if (
           input.action === "saveTreasure" ||
-          input.action === "deleteTreasure"
+          input.action === "deleteTreasure" ||
+          input.action === "resetWorkshop"
         )
           tx.set(secretsRef, { kinds: secrets });
         if (isAdmin(state.members[uid]))
@@ -216,7 +232,12 @@ export const workshopAction = onCall(
             actor: uid,
             action: input.action,
             at: now,
-            target: "memberId" in input ? input.memberId : null,
+            target:
+              "memberId" in input
+                ? input.memberId
+                : "id" in input
+                  ? input.id
+                  : null,
           });
         return response;
       });
@@ -240,7 +261,11 @@ export const workshopAction = onCall(
         const state = stateSnap.data() as WorkshopState;
         const tokens = tokensSnap.docs.filter((t) => {
           const p = state.members[t.data().uid];
-          return p && (input.audience === "all" || p.team === input.audience);
+          return (
+            state.notices.some((n) => n.id === result.noticeId) &&
+            p &&
+            (input.audience === "all" || p.team === input.audience)
+          );
         });
         for (let i = 0; i < tokens.length; i += 500) {
           const batch = tokens.slice(i, i + 500);

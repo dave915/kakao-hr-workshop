@@ -139,6 +139,9 @@ describe("administrator boundaries", () => {
         push: false,
       },
       { action: "saveSettings", settings: state.settings },
+      { action: "deleteNotice", id: "n1" },
+      { action: "deleteTreasure", id: "t1" },
+      { action: "resetWorkshop", confirmation: "전체 초기화" },
     ] as const) {
       expect(() =>
         mutate(state, { ...demoSecrets }, "alex.k", input, "id", now),
@@ -244,7 +247,7 @@ describe("administrator boundaries", () => {
       }).success,
     ).toBe(false);
   });
-  it("keeps historical scores stable by rejecting team changes and deletion of found treasures", () => {
+  it("rejects team changes while discovered treasures remain", () => {
     const state = makeSeed(true);
     claimTreasure(state, demoSecrets, "dave.h", "t1", position(), now);
     expect(() =>
@@ -257,16 +260,6 @@ describe("administrator boundaries", () => {
         now,
       ),
     ).toThrow();
-    expect(() =>
-      mutate(
-        state,
-        { ...demoSecrets },
-        "dave.h",
-        { action: "deleteTreasure", id: "t1" },
-        "id",
-        now,
-      ),
-    ).toThrow();
   });
   it("production bootstrap starts without demo members, treasures or notices", () => {
     const state = makeSeed(false);
@@ -274,5 +267,191 @@ describe("administrator boundaries", () => {
     expect(state.treasures).toHaveLength(0);
     expect(state.notices).toHaveLength(0);
     expect(state.settings.gameOpen).toBe(false);
+  });
+});
+
+describe("administrator deletion and reset", () => {
+  it("deletes a notice for all viewers without changing other notices", () => {
+    const state = makeSeed(true);
+    state.members["june.p"].role = "admin";
+    state.notices.push({
+      ...state.notices[0],
+      id: "n2",
+      pushStatus: "pending",
+    });
+    mutate(
+      state,
+      {},
+      "june.p",
+      { action: "deleteNotice", id: "n1" },
+      "id",
+      now,
+    );
+    expect(state.notices.map((n) => n.id)).toEqual(["n2"]);
+    mutate(
+      state,
+      {},
+      "june.p",
+      { action: "deleteNotice", id: "n1" },
+      "id",
+      now,
+    );
+    expect(state.notices.map((n) => n.id)).toEqual(["n2"]);
+  });
+  it("removes found treasure points once and keeps other discoveries and team totals", () => {
+    const state = makeSeed(true);
+    const secrets = { ...demoSecrets };
+    claimTreasure(state, secrets, "alex.k", "t1", position(), now);
+    claimTreasure(state, secrets, "alex.k", "t2", position("t2"), now);
+    claimTreasure(state, secrets, "dave.h", "t4", position("t4"), now);
+    state.members["june.p"].role = "admin";
+    for (let retry = 0; retry < 2; retry++) {
+      mutate(
+        state,
+        secrets,
+        "june.p",
+        { action: "deleteTreasure", id: "t1" },
+        "id",
+        now,
+      );
+      expect(state.members["alex.k"]).toMatchObject({ score: 150, found: 1 });
+      expect(state.members["dave.h"]).toMatchObject({ score: 200, found: 1 });
+      expect(teamRanking(state)[0]).toMatchObject({ score: 350, found: 2 });
+      expect(state.treasures.some((t) => t.id === "t1")).toBe(false);
+      expect(secrets).not.toHaveProperty("t1");
+    }
+  });
+  it("deleting an unfound treasure does not alter scores", () => {
+    const state = makeSeed(true);
+    const members = structuredClone(state.members);
+    const secrets = { ...demoSecrets };
+    mutate(
+      state,
+      secrets,
+      "dave.h",
+      { action: "deleteTreasure", id: "t1" },
+      "id",
+      now,
+    );
+    expect(state.members).toEqual(members);
+    expect(secrets).not.toHaveProperty("t1");
+  });
+  it("deleting a found bomb clears its lock without deducting points", () => {
+    const state = makeSeed(true);
+    const secrets = { ...demoSecrets };
+    claimTreasure(state, secrets, "alex.k", "t1", position(), now);
+    claimTreasure(state, secrets, "alex.k", "t3", position("t3"), now);
+    mutate(
+      state,
+      secrets,
+      "dave.h",
+      { action: "deleteTreasure", id: "t3" },
+      "id",
+      now,
+    );
+    expect(state.members["alex.k"]).toMatchObject({
+      score: 100,
+      found: 1,
+      blockedUntil: 0,
+    });
+  });
+  it("deleting an older bomb preserves the lock from a newer bomb", () => {
+    const state = makeSeed(true);
+    const secrets = { ...demoSecrets, t2: "bomb" as const };
+    claimTreasure(state, secrets, "alex.k", "t3", position("t3"), now);
+    const later = now + 300001;
+    claimTreasure(
+      state,
+      secrets,
+      "alex.k",
+      "t2",
+      { ...position("t2"), timestamp: later },
+      later,
+    );
+    mutate(
+      state,
+      secrets,
+      "dave.h",
+      { action: "deleteTreasure", id: "t3" },
+      "id",
+      later,
+    );
+    expect(state.members["alex.k"].blockedUntil).toBe(later + 300000);
+  });
+  it("rejects a reset from committee admins without changing any data", () => {
+    const state = makeSeed(true);
+    state.members["june.p"].role = "admin";
+    const before = structuredClone(state);
+    const secrets = { ...demoSecrets };
+    expect(() =>
+      mutate(
+        state,
+        secrets,
+        "june.p",
+        { action: "resetWorkshop", confirmation: "전체 초기화" },
+        "id",
+        now,
+      ),
+    ).toThrow("슈퍼");
+    expect(state).toEqual(before);
+    expect(secrets).toEqual(demoSecrets);
+  });
+  it("requires the explicit reset confirmation in the request", () => {
+    for (const confirmation of [undefined, "", "초기화", true]) {
+      expect(
+        actionInput.safeParse({ action: "resetWorkshop", confirmation })
+          .success,
+      ).toBe(false);
+    }
+    expect(
+      actionInput.safeParse({
+        action: "resetWorkshop",
+        confirmation: "전체 초기화",
+      }).success,
+    ).toBe(true);
+  });
+  it("resets all workshop data and retains every superadmin identity", () => {
+    const state = makeSeed(true);
+    const secrets = { ...demoSecrets };
+    state.members["june.p"].role = "superadmin";
+    state.members["ryan.j"].role = "admin";
+    claimTreasure(state, secrets, "dave.h", "t1", position(), now);
+    claimTreasure(state, secrets, "dave.h", "t3", position("t3"), now);
+    const survivors = [state.members["dave.h"], state.members["june.p"]].map(
+      (m) => ({
+        ...m,
+        team: "미배정",
+        score: 0,
+        found: 0,
+        blockedUntil: 0,
+      }),
+    );
+    for (let retry = 0; retry < 2; retry++) {
+      mutate(
+        state,
+        secrets,
+        "dave.h",
+        { action: "resetWorkshop", confirmation: "전체 초기화" },
+        "id",
+        now,
+      );
+      expect(state).toEqual({
+        ...makeSeed(false),
+        members: Object.fromEntries(survivors.map((m) => [m.id, m])),
+      });
+      expect(secrets).toEqual({});
+    }
+    mutate(
+      state,
+      secrets,
+      "dave.h",
+      {
+        action: "createMember",
+        member: { name: "알렉스", handle: "alex.k", team: "새 팀" },
+      },
+      "new-member",
+      now,
+    );
+    expect(state.members["new-member"].role).toBe("member");
   });
 });

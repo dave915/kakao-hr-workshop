@@ -166,6 +166,21 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
           crypto.randomUUID(),
         );
         if (raw.action === "getGuidance") return result;
+        if (raw.action === "resetWorkshop") {
+          const invites = JSON.parse(
+            localStorage.getItem("hr-demo-invites") || "{}",
+          ) as Record<string, string>;
+          localStorage.setItem(
+            "hr-demo-invites",
+            JSON.stringify(
+              Object.fromEntries(
+                Object.entries(invites).filter(
+                  ([, memberId]) => next.state.members[memberId],
+                ),
+              ),
+            ),
+          );
+        }
         if (raw.action === "createMember" || raw.action === "rotateInvite") {
           const code = crypto.randomUUID();
           result.code = code;
@@ -215,7 +230,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
         localStorage.getItem("hr-demo-invites") || "{}",
       );
       const id = invites[code];
-      if (!id)
+      if (!id || !dataRef.current.state.members[id])
         throw new Error(
           "사용할 수 없는 코드예요. 데모 코드는 발급한 브라우저에서만 사용할 수 있어요.",
         );

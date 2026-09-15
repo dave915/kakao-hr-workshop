@@ -1,5 +1,6 @@
 import { treasureGuidance } from "./exploration";
 import { claimTreasure, GameError, isAdmin } from "./game";
+import { makeSeed } from "./seed";
 import type { ActionInput } from "./validation";
 import type { ActionResponse, TreasureSecrets, WorkshopState } from "./types";
 export function mutate(
@@ -114,10 +115,40 @@ export function mutate(
       break;
     }
     case "deleteTreasure": {
-      if (state.treasures.find((t) => t.id === input.id)?.foundBy)
-        throw new GameError("이미 발견된 보물은 삭제할 수 없어요.");
+      const treasure = state.treasures.find((t) => t.id === input.id);
+      const finder = treasure?.foundBy && state.members[treasure.foundBy];
+      if (treasure && finder) {
+        if (treasure.outcome === "treasure") {
+          finder.score = Math.max(0, finder.score - treasure.points);
+          finder.found = Math.max(0, finder.found - 1);
+        } else if (
+          treasure.outcome === "bomb" &&
+          treasure.foundAt !== null &&
+          finder.blockedUntil === treasure.foundAt + 5 * 60 * 1000
+        ) {
+          finder.blockedUntil = 0;
+        }
+      }
       state.treasures = state.treasures.filter((t) => t.id !== input.id);
       delete secrets[input.id];
+      break;
+    }
+    case "deleteNotice":
+      state.notices = state.notices.filter((n) => n.id !== input.id);
+      break;
+    case "resetWorkshop": {
+      if (actor.role !== "superadmin")
+        throw new GameError("슈퍼 어드민만 전체 초기화할 수 있어요.");
+      const members = Object.fromEntries(
+        Object.entries(state.members)
+          .filter(([, member]) => member.role === "superadmin")
+          .map(([memberId, member]) => [
+            memberId,
+            { ...member, team: "미배정", score: 0, found: 0, blockedUntil: 0 },
+          ]),
+      );
+      Object.assign(state, makeSeed(false), { members });
+      for (const treasureId of Object.keys(secrets)) delete secrets[treasureId];
       break;
     }
     case "saveSettings":
