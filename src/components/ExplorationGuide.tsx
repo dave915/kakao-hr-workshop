@@ -1,4 +1,5 @@
-import { ArrowUp, Compass, Flame, Pause, Sparkles, Camera } from "lucide-react";
+import { Compass, Flame, Pause, Camera } from "lucide-react";
+import DirectionCompass from "./DirectionCompass";
 import type { TreasureGuidance, VisibleTreasure } from "../../shared/types";
 const labels = {
   far: "아직 조금 멀어요",
@@ -20,6 +21,9 @@ interface Props {
   onStart: () => void;
   onStop: () => void;
   onAr: () => void;
+  heading?: number | null;
+  headingError?: string;
+  onEnableHeading?: () => void;
 }
 export default function ExplorationGuide({
   treasure,
@@ -34,6 +38,9 @@ export default function ExplorationGuide({
   onStart,
   onStop,
   onAr,
+  heading,
+  headingError,
+  onEnableHeading,
 }: Props) {
   const current = tracking && !stale && !error ? guidance : null;
   const distance = current
@@ -53,32 +60,26 @@ export default function ExplorationGuide({
       </div>
       {tracking ? (
         <>
-          <div className="guide-reading">
-            <div
-              className={`direction-beacon ${waiting ? "waiting" : ""}`}
-              aria-hidden="true"
-            >
-              {current?.withinRange ? (
-                <Sparkles size={38} />
-              ) : current?.bearing != null ? (
-                <ArrowUp
-                  size={44}
-                  style={{ transform: `rotate(${current.bearing}deg)` }}
-                />
-              ) : (
-                <Compass size={38} />
-              )}
-            </div>
+          <DirectionCompass
+            heading={heading}
+            bearing={current?.bearing}
+            withinRange={current?.withinRange}
+            waiting={waiting}
+            error={headingError}
+            onEnable={onEnableHeading}
+          >
             <div className="guide-reading-copy">
-              <span>
-                {current
-                  ? current.withinRange
-                    ? "천천히 주변을 살펴보세요"
-                    : `${current.direction}으로 이동해요`
-                  : waiting
-                    ? "위치를 찾고 있어요"
-                    : "안내를 기다려주세요"}
-              </span>
+              {(!onEnableHeading || !current || current.withinRange) && (
+                <span>
+                  {current
+                    ? current.withinRange
+                      ? "천천히 주변을 살펴보세요"
+                      : `${current.direction}으로 이동해요`
+                    : waiting
+                      ? "위치를 찾고 있어요"
+                      : "안내를 기다려주세요"}
+                </span>
+              )}
               <strong>
                 {current?.withinRange ? "발견 가능 범위" : distance}
               </strong>
@@ -92,7 +93,7 @@ export default function ExplorationGuide({
                   : "위치가 확인되면 방향을 알려드릴게요."}
               </small>
             </div>
-          </div>
+          </DirectionCompass>
           <div className="warmth-line">
             <span>
               <Flame size={14} />
@@ -123,9 +124,7 @@ export default function ExplorationGuide({
                 "위치 정보가 오래됐어요. 내 위치 버튼으로 다시 확인해주세요."}
             </p>
           )}
-          <p className="guide-north">
-            지도 위쪽이 북쪽 · 약 5초 간격으로 안내해요
-          </p>
+          <p className="guide-north">위치·방향이 바뀌면 바로 안내해요</p>
           <div className="guide-actions">
             <button
               className="button dark"

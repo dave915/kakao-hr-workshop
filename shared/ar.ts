@@ -18,6 +18,23 @@ export interface OrientationReading {
 export const wrapDegrees = (value: number) => ((value % 360) + 360) % 360;
 export const angleDifference = (target: number, heading: number) =>
   ((target - heading + 540) % 360) - 180;
+export function directionMatch(
+  bearing?: number | null,
+  heading?: number | null,
+) {
+  if (
+    bearing == null ||
+    heading == null ||
+    !Number.isFinite(bearing) ||
+    !Number.isFinite(heading)
+  )
+    return null;
+  const difference = angleDifference(
+    wrapDegrees(bearing),
+    wrapDegrees(heading),
+  );
+  return { difference, aligned: Math.abs(difference) <= 20 };
+}
 const rad = (angle: number) => (angle * Math.PI) / 180;
 type Vector = [number, number, number];
 const dot = (a: Vector, b: Vector) =>

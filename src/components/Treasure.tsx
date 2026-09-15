@@ -1,7 +1,6 @@
 import { lazy, Suspense, useState, useMemo, useEffect, useRef } from "react";
 import {
   Camera as CameraIcon,
-  Compass,
   Gift,
   Timer,
   X,
@@ -10,13 +9,11 @@ import {
   ArrowUpRight,
   Check,
   MapPin,
-  ArrowUp,
   LocateFixed,
 } from "lucide-react";
 import { useWorkshop } from "../lib/store";
 import { remainingTreasures } from "../../shared/game";
 import { hasCoordinates } from "../../shared/exploration";
-import { compassDirection } from "../../shared/ar";
 import type { ClaimResult, Position } from "../../shared/types";
 import { englishName, errorMessage } from "../lib/utils";
 import { Drawer, Empty, type Notify } from "./common";
@@ -25,6 +22,7 @@ import { locate, useExploration } from "../hooks/useExploration";
 import { useMapHeading } from "../hooks/useMapHeading";
 import ExplorationGuide from "./ExplorationGuide";
 import ExplorationDialog from "./ExplorationDialog";
+import DirectionCompass from "./DirectionCompass";
 export { locate } from "../hooks/useExploration";
 const TreasureMap = lazy(() => import("./TreasureMap"));
 const Camera = lazy(() => import("./Camera"));
@@ -237,6 +235,9 @@ export default function Treasure({
         onStart={start}
         onStop={explore.stop}
         onAr={startCamera}
+        heading={expanded ? compass.heading : undefined}
+        headingError={compass.error}
+        onEnableHeading={expanded ? () => void compass.start() : undefined}
       />
     ) : treasure ? (
       <section className="found-detail">
@@ -405,7 +406,7 @@ export default function Treasure({
           title={treasure?.name ?? "우리의 발견 지도"}
           onClose={() => setExpanded(false)}
         >
-          <section className="live-map-status" aria-label="실시간 위치와 방향">
+          <section className="live-map-status" aria-label="실시간 내 위치">
             <div className="live-map-readings">
               <div className="live-map-location">
                 <LocateFixed size={20} />
@@ -424,49 +425,27 @@ export default function Treasure({
                   </small>
                 </span>
               </div>
-              <div className="live-map-heading">
-                <ArrowUp
-                  size={22}
-                  style={{
-                    transform: `rotate(${compass.heading ?? 0}deg)`,
-                    opacity: compass.heading === null ? 0.35 : 1,
-                  }}
-                  aria-hidden="true"
-                />
-                <span>
-                  <small>바라보는 방향</small>
-                  <strong>
-                    {compass.heading === null
-                      ? "방향 확인 대기"
-                      : `${compassDirection(compass.heading)} ${Math.round(compass.heading) % 360}°`}
-                  </strong>
-                </span>
-              </div>
-            </div>
-            <div className="live-map-actions">
-              <span>지도 위쪽이 북쪽이에요</span>
-              {compass.heading === null && (
-                <button
-                  className="text-button"
-                  onClick={() => void compass.start()}
-                >
-                  <Compass size={15} />
-                  방향 켜기
-                </button>
-              )}
               <button className="text-button" onClick={() => void onLocate()}>
                 <LocateFixed size={15} />내 위치로
               </button>
             </div>
-            {(compass.error ||
-              (!positionCurrent && (explore.error || locationError))) && (
-              <p role="status">
-                {compass.error || explore.error || locationError}
-              </p>
+            {!positionCurrent && (explore.error || locationError) && (
+              <p role="status">{explore.error || locationError}</p>
             )}
           </section>
           <div className="focus-map-area">{map}</div>
-          <div className="focus-guide-area">{guide}</div>
+          <div className="focus-guide-area">
+            {(!treasure ||
+              treasure.foundBy ||
+              explore.target !== treasure.id) && (
+              <DirectionCompass
+                heading={compass.heading}
+                error={compass.error}
+                onEnable={() => void compass.start()}
+              />
+            )}
+            {guide}
+          </div>
         </ExplorationDialog>
       )}
       {camera && treasure && !treasure.foundBy && !disabled && (

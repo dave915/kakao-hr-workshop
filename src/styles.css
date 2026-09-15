@@ -4249,15 +4249,13 @@ td .text-button {
   justify-content: space-between;
   gap: 20px;
 }
-.live-map-location,
-.live-map-heading {
+.live-map-location {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
 }
-.live-map-location > svg,
-.live-map-heading > svg {
+.live-map-location > svg {
   color: #477357;
   flex-shrink: 0;
 }
@@ -4273,21 +4271,6 @@ td .text-button {
   font-size: 10px;
   color: #5f6b4d;
 }
-.live-map-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 4px;
-}
-.live-map-actions > span {
-  margin-right: auto;
-  font-size: 10px;
-  color: #5f6b4d;
-}
-.live-map-actions .text-button {
-  font-size: 11px;
-  min-height: 36px;
-}
 .live-map-status > p {
   font-size: 11px;
   line-height: 1.7;
@@ -4302,8 +4285,7 @@ td .text-button {
     gap: 12px;
     align-items: flex-start;
   }
-  .live-map-location,
-  .live-map-heading {
+  .live-map-location {
     gap: 6px;
   }
   .live-map-readings strong {
@@ -4314,10 +4296,155 @@ td .text-button {
     font-size: 10px;
     line-height: 1.6;
   }
-  .live-map-actions {
-    gap: 10px;
+}
+
+/* Compare the phone and treasure directions together beside the hint. */
+.compass-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.direction-comparison.is-live-comparison {
+  padding: 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+.direction-comparison.is-aligned {
+  background: #e2edd7;
+  border-color: #88a374;
+}
+.direction-comparison .direction-beacon.is-live {
+  width: 80px;
+  height: 80px;
+  color: #3d6747;
+  background: #f7f7eb;
+  border-color: #b5c3a5;
+}
+.direction-beacon.is-live::before {
+  top: 10px;
+  color: #687b58;
+}
+.direction-beacon.is-live > svg {
+  transition: none;
+}
+.compass-target {
+  position: absolute;
+  inset: -5px;
+  pointer-events: none;
+}
+.compass-target::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(50% - 6px);
+  width: 12px;
+  height: 12px;
+  background: #b48325;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.is-aligned .direction-beacon.is-live {
+  background: #c7dfae;
+  border: 2px solid #477357;
+  color: #254b32;
+}
+.is-aligned .compass-target::before {
+  background: #365d3e;
+}
+.compass-match-check {
+  display: grid;
+  place-items: center;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #365d3e;
+  color: #f9faed;
+}
+.compass-readings {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.compass-readings > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10px;
+}
+.compass-readings strong {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.compass-me-label {
+  color: #365d3e;
+}
+.compass-target-label {
+  color: #896019;
+}
+.compass-match-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #5f704d;
+  margin: 0;
+}
+.is-aligned .compass-match-status {
+  color: #254b32;
+  font-weight: 700;
+}
+.compass-reconnect {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.compass-reconnect .text-button {
+  min-height: 44px;
+  font-size: 12px;
+}
+.compass-reconnect > p {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #7b5434;
+  margin: 0;
+}
+.live-map-readings > .text-button {
+  min-height: 44px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.focus-guide-area > .direction-comparison {
+  margin: 12px 16px 0;
+}
+@media (max-width: 760px) {
+  .focus-guide-area .direction-comparison {
+    gap: 12px;
   }
-  .live-map-actions .text-button {
-    min-height: 44px;
+  .focus-guide-area .direction-comparison.is-live-comparison {
+    padding: 8px;
+  }
+  .focus-guide-area .direction-comparison .direction-beacon.is-live {
+    width: 76px;
+    height: 76px;
+  }
+  .focus-guide-area .direction-beacon.is-live > svg {
+    width: 38px;
+    height: 38px;
+  }
+  .compass-readings {
+    gap: 12px;
+  }
+  .compass-readings strong {
+    font-size: 11px;
+  }
+  .compass-match-status {
+    font-size: 11px;
   }
 }

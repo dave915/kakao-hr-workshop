@@ -6,6 +6,7 @@ import {
   angleDifference,
   mapHeading,
   compassDirection,
+  directionMatch,
 } from "../shared/ar";
 import { arGuidance, participantView } from "../shared/exploration";
 import { makeSeed } from "../shared/seed";
@@ -30,6 +31,21 @@ const point = (offset = 0) => ({
 });
 
 describe("location AR projection", () => {
+  it("compares live and treasure headings across north and highlights within 20 degrees", () => {
+    expect(directionMatch(0, 359)).toEqual({ difference: 1, aligned: true });
+    expect(directionMatch(359, 0)).toEqual({ difference: -1, aligned: true });
+    expect(directionMatch(0, 20)?.aligned).toBe(true);
+    expect(directionMatch(0, 21)?.aligned).toBe(false);
+    expect(directionMatch(0, 37)).toEqual({ difference: -37, aligned: false });
+    expect(directionMatch(90, 50)).toEqual({ difference: 40, aligned: false });
+  });
+  it("never highlights missing, stale, arrived or invalid direction readings", () => {
+    expect(directionMatch(null, 0)).toBeNull();
+    expect(directionMatch(0, null)).toBeNull();
+    expect(directionMatch(undefined, 0)).toBeNull();
+    expect(directionMatch(0, NaN)).toBeNull();
+    expect(directionMatch(Infinity, 0)).toBeNull();
+  });
   it("keeps map headings correct when the phone is flat or upright", () => {
     for (const beta of [0, 30, 60, 90]) {
       expect(mapHeading({ ...north, beta })).toBeCloseTo(0);

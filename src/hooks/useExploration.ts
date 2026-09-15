@@ -86,6 +86,7 @@ export function useExploration(
     const pump = async () => {
       const p = latest.current;
       if (
+        run !== generation.current ||
         !target ||
         document.hidden ||
         !navigator.onLine ||
@@ -93,7 +94,7 @@ export function useExploration(
         !p ||
         p.timestamp === lastTimestamp ||
         Date.now() - p.timestamp > 20000 ||
-        Date.now() - lastRequest < 5000
+        (mode === "ar" && Date.now() - lastRequest < 5000)
       )
         return;
       if (p.accuracy <= 0 || p.accuracy > 100) {
@@ -134,7 +135,12 @@ export function useExploration(
         }
       } finally {
         inFlight = false;
-        if (run === generation.current) setWaiting(false);
+        if (run === generation.current) {
+          setWaiting(false);
+          // Coalesce fixes received during a request and immediately process the latest.
+          if (latest.current && latest.current.timestamp !== p.timestamp)
+            void pump();
+        }
       }
     };
     if (!navigator.geolocation) {
