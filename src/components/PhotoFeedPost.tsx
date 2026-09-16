@@ -5,6 +5,8 @@ import {
   Ellipsis,
   Expand,
   Trash2,
+  Heart,
+  MessageCircle,
 } from "lucide-react";
 import type { PhotoPost } from "../../shared/photos";
 import { englishName, formatDate, formatTime } from "../lib/utils";
@@ -17,12 +19,20 @@ export default function PhotoFeedPost({
   canDelete,
   onOpen,
   onDelete,
+  onLike,
+  onComments,
+  likeBusy,
+  disabled,
 }: {
   post: PhotoPost;
   team?: string;
   canDelete: boolean;
   onOpen: (post: PhotoPost, index: number) => void;
   onDelete: (post: PhotoPost) => void;
+  onLike: (post: PhotoPost) => void;
+  onComments: (post: PhotoPost) => void;
+  likeBusy: boolean;
+  disabled: boolean;
 }) {
   const track = useRef<HTMLDivElement>(null),
     menu = useRef<HTMLDivElement>(null),
@@ -188,6 +198,26 @@ export default function PhotoFeedPost({
       </div>
       <div className="photo-post-body">
         <div className="photo-post-actions">
+          <div className="photo-reactions">
+            <button
+              className={`photo-like ${post.liked ? "is-liked" : ""}`}
+              aria-label={post.liked ? "좋아요 취소" : "좋아요"}
+              aria-pressed={Boolean(post.liked)}
+              aria-busy={likeBusy}
+              disabled={disabled || likeBusy}
+              onClick={() => onLike(post)}
+            >
+              <Heart size={24} fill={post.liked ? "currentColor" : "none"} />
+            </button>
+            <button
+              className="photo-comment-open"
+              aria-label={`댓글 ${post.commentCount ?? 0}개 보기`}
+              disabled={disabled}
+              onClick={() => onComments(post)}
+            >
+              <MessageCircle size={24} />
+            </button>
+          </div>
           <button
             className="photo-expand"
             onClick={() => onOpen(post, active)}
@@ -211,6 +241,7 @@ export default function PhotoFeedPost({
             </div>
           )}
         </div>
+        <p className="photo-like-count">좋아요 {post.likeCount ?? 0}개</p>
         {post.caption && (
           <div className="photo-post-caption">
             <p
@@ -231,6 +262,15 @@ export default function PhotoFeedPost({
             )}
           </div>
         )}
+        <button
+          className="photo-comments-link"
+          disabled={disabled}
+          onClick={() => onComments(post)}
+        >
+          {post.commentCount
+            ? `댓글 ${post.commentCount}개 보기`
+            : "첫 댓글 남기기"}
+        </button>
         <time className="photo-post-time" dateTime={timestamp}>
           {formatDate(timestamp)} · {formatTime(timestamp)}
         </time>

@@ -20,6 +20,8 @@ import {
   uploadPhotoPath,
   photoMonth,
   PHOTO_MONTHLY_LIMIT,
+  COMMENTS_PER_POST,
+  COMMENTS_PER_MEMBER_DAY,
   type PhotoPost,
 } from "../shared/photos";
 const require = createRequire(
@@ -99,6 +101,7 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
     await Promise.all([
       db.recursiveDelete(db.collection("photoPosts")),
       db.recursiveDelete(db.collection("photoLimits")),
+      db.recursiveDelete(db.collection("photoCommentLimits")),
       bucket.deleteFiles({ force: true }),
     ]);
     const state = makeSeed(true),
@@ -394,5 +397,223 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
       "draft",
     );
     expect((await db.doc("photoLimits/storage").get()).data().count).toBe(1);
+  });
+  async function published() {
+    const post = await begin();
+    await db.doc(`photoPosts/${post.id}`).update({ status: "published" });
+    return { ...post, status: "published" as const };
+  }
+  it("counts each member's like once under retries and concurrent requests and reports the viewer's state", async () => {
+    const post = await published();
+    const like = (uid: string, liked: boolean) =>
+      call({ action: "like", id: post.id, liked }, tokens[uid]);
+    const repeated = await Promise.all([
+      like("alex.k", true),
+      like("alex.k", true),
+      like("june.p", true),
+    ]);
+    expect(repeated.every((r) => r.status === 200)).toBe(true);
+    expect((await db.doc(`photoPosts/${post.id}`).get()).data().likeCount).toBe(
+      2,
+    );
+    expect((await like("alex.k", true)).result).toMatchObject({
+      liked: true,
+      likeCount: 2,
+    });
+    for (const [uid, liked] of [
+      ["alex.k", true],
+      ["june.p", true],
+      ["dave.h", false],
+    ] as const) {
+      const response = await call({ action: "list" }, tokens[uid]);
+      expect(
+        response.result.posts.find((p: PhotoPost) => p.id === post.id),
+      ).toMatchObject({ liked, likeCount: 2 });
+    }
+    await like("alex.k", false);
+    await like("alex.k", false);
+    expect((await db.doc(`photoPosts/${post.id}`).get()).data().likeCount).toBe(
+      1,
+    );
+    expect(
+      (await db.collection(`photoPosts/${post.id}/likes`).get()).size,
+    ).toBe(1);
+  });
+  it("creates comments exactly once and rejects reused IDs with a different author or content", async () => {
+    const post = await published(),
+      commentId = randomUUID();
+    const input = {
+      action: "addComment",
+      id: post.id,
+      commentId,
+      body: "  오늘 즐거웠어요 🌳  ",
+    };
+    const responses = await Promise.all([
+      call(input, tokens["alex.k"]),
+      call(input, tokens["alex.k"]),
+    ]);
+    expect(responses.every((r) => r.status === 200)).toBe(true);
+    expect(responses[0].result.comment).toMatchObject({
+      id: commentId,
+      authorId: "alex.k",
+      body: "오늘 즐거웠어요 🌳",
+      status: "active",
+    });
+    expect(
+      (await db.doc(`photoPosts/${post.id}`).get()).data().commentCount,
+    ).toBe(1);
+    expect(
+      (await call({ ...input, body: "다른 댓글" }, tokens["alex.k"])).status,
+    ).toBe(409);
+    expect((await call(input, tokens["june.p"])).status).toBe(409);
+    expect(
+      (
+        await call(
+          { ...input, commentId: randomUUID(), body: "  " },
+          tokens["alex.k"],
+        )
+      ).status,
+    ).toBe(400);
+    const list = await call(
+      { action: "comments", id: post.id },
+      tokens["june.p"],
+    );
+    expect(list.result.commentCount).toBe(1);
+    expect(list.result.comments).toHaveLength(1);
+  }, 30000);
+  it("allows only the comment's author or an administrator to delete, without double-decrement or resurrection", async () => {
+    const post = await published(),
+      commentId = randomUUID();
+    const input = {
+      action: "addComment",
+      id: post.id,
+      commentId,
+      body: "함께해서 좋았어요",
+    };
+    await call(input, tokens["june.p"]);
+    const remove = { action: "deleteComment", id: post.id, commentId };
+    expect((await call(remove, tokens["alex.k"])).status).toBe(403);
+    expect((await call(remove, tokens["june.p"])).status).toBe(200);
+    expect((await call(remove, tokens["june.p"])).result.commentCount).toBe(0);
+    expect((await call(input, tokens["june.p"])).status).toBe(409);
+    const ownId = randomUUID();
+    await call({ ...input, commentId: ownId }, tokens["alex.k"]);
+    expect(
+      (await call({ ...remove, commentId: ownId }, tokens["dave.h"])).status,
+    ).toBe(200);
+    const list = await call(
+      { action: "comments", id: post.id },
+      tokens["alex.k"],
+    );
+    expect(list.result.comments).toEqual([]);
+    expect(list.result.commentCount).toBe(0);
+    expect(
+      (await db.doc(`photoPosts/${post.id}/comments/${commentId}`).get()).data()
+        .body,
+    ).toBe("");
+  });
+  it("protects likes and comments against anonymous, revoked, unpublished, deleted and reset access", async () => {
+    const post = await published();
+    const requests = [
+      { action: "like", id: post.id, liked: true },
+      { action: "comments", id: post.id },
+      {
+        action: "addComment",
+        id: post.id,
+        commentId: randomUUID(),
+        body: "테스트",
+      },
+      { action: "deleteComment", id: post.id, commentId: randomUUID() },
+    ];
+    for (const input of requests) expect((await call(input)).status).toBe(401);
+    await db.doc("members/alex.k").update({ sessionVersion: 2 });
+    for (const input of requests)
+      expect((await call(input, tokens["alex.k"])).status).toBe(401);
+    await db.doc("members/alex.k").update({ sessionVersion: 1 });
+    for (const status of ["draft", "deleting", "deleted"]) {
+      await db.doc(`photoPosts/${post.id}`).update({ status });
+      for (const input of requests)
+        expect((await call(input, tokens["alex.k"])).status).toBe(404);
+    }
+    await db.doc(`photoPosts/${post.id}`).update({ status: "published" });
+    await db.doc("workshops/main").update({ resetGeneration: 1 });
+    for (const input of requests)
+      expect((await call(input, tokens["alex.k"])).status).toBe(404);
+  }, 30000);
+  it("paginates comments at equal timestamps without duplicates or exposing deleted text", async () => {
+    const post = await published(),
+      batch = db.batch(),
+      ids = Array.from({ length: 23 }, () => randomUUID())
+        .sort()
+        .reverse();
+    for (const id of ids)
+      batch.set(db.doc(`photoPosts/${post.id}/comments/${id}`), {
+        id,
+        authorId: "alex.k",
+        authorHandle: "alex.k",
+        body: "댓글",
+        createdAt: 100,
+        status: "active",
+      });
+    batch.set(db.doc(`photoPosts/${post.id}/comments/${randomUUID()}`), {
+      body: "삭제된 비공개 내용",
+      status: "deleted",
+      createdAt: 200,
+    });
+    batch.update(db.doc(`photoPosts/${post.id}`), { commentCount: 23 });
+    await batch.commit();
+    const first = (
+      await call({ action: "comments", id: post.id }, tokens["alex.k"])
+    ).result;
+    const second = (
+      await call(
+        { action: "comments", id: post.id, cursor: first.nextCommentCursor },
+        tokens["alex.k"],
+      )
+    ).result;
+    expect(first.comments).toHaveLength(20);
+    expect(second.comments).toHaveLength(3);
+    expect(
+      [...first.comments, ...second.comments].map((c: { id: string }) => c.id),
+    ).toEqual(ids);
+    expect(second.nextCommentCursor).toBeNull();
+    expect(JSON.stringify(first)).not.toContain("삭제된 비공개 내용");
+  });
+  it("enforces comment limits while allowing idempotent retries and removes interactions with a deleted post", async () => {
+    const post = await published(),
+      id = randomUUID(),
+      input = {
+        action: "addComment",
+        id: post.id,
+        commentId: id,
+        body: "마지막 댓글",
+      };
+    const day = new Date().toISOString().slice(0, 10),
+      limit = db.doc(`photoCommentLimits/${day}_alex.k`);
+    await limit.set({ count: COMMENTS_PER_MEMBER_DAY - 1, day });
+    expect((await call(input, tokens["alex.k"])).status).toBe(200);
+    expect((await call(input, tokens["alex.k"])).status).toBe(200);
+    expect(
+      (await call({ ...input, commentId: randomUUID() }, tokens["alex.k"]))
+        .status,
+    ).toBe(429);
+    await db
+      .doc(`photoPosts/${post.id}`)
+      .update({ commentCount: COMMENTS_PER_POST });
+    expect(
+      (await call({ ...input, commentId: randomUUID() }, tokens["june.p"]))
+        .status,
+    ).toBe(429);
+    await call({ action: "like", id: post.id, liked: true }, tokens["june.p"]);
+    expect(
+      (await call({ action: "delete", id: post.id }, tokens["dave.h"])).status,
+    ).toBe(200);
+    expect(
+      (await db.collection(`photoPosts/${post.id}/likes`).get()).empty,
+    ).toBe(true);
+    expect(
+      (await db.collection(`photoPosts/${post.id}/comments`).get()).empty,
+    ).toBe(true);
+    expect((await limit.get()).data().count).toBe(COMMENTS_PER_MEMBER_DAY);
   });
 });

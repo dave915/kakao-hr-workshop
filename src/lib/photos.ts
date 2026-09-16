@@ -11,6 +11,11 @@ import {
   photoMonth,
   PHOTO_PAGE_SIZE,
   PHOTO_MEMBER_MONTHLY_LIMIT,
+  COMMENT_PAGE_SIZE,
+  COMMENTS_PER_POST,
+  COMMENTS_PER_MEMBER_DAY,
+  commentBody,
+  type PhotoComment,
   checkPhotoQuota,
   type PhotoActionInput,
   type PhotoResponse,
@@ -47,6 +52,8 @@ export async function photoAction(
 interface DemoPost {
   post: PhotoPost;
   images: PreparedPhoto[];
+  likes?: string[];
+  comments?: PhotoComment[];
 }
 let database: Promise<IDBDatabase> | undefined;
 function demoDB() {
@@ -89,7 +96,13 @@ export async function listPhotos(
     .filter(
       (p) => p.post.generation === generation && p.post.status === "published",
     )
-    .map((p) => p.post)
+    .map((p) => ({
+      ...p.post,
+      likeCount: p.likes?.length ?? 0,
+      liked: p.likes?.includes(member.id) ?? false,
+      commentCount:
+        p.comments?.filter((c) => c.status === "active").length ?? 0,
+    }))
     .sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id));
   const page = posts
     .filter(
@@ -214,6 +227,8 @@ export async function removePhotoPost(post: PhotoPost, member: Member) {
       ...existing,
       post: { ...existing.post, status: "deleted", caption: "" },
       images: [],
+      likes: [],
+      comments: [],
     });
 }
 export async function readPhoto(
@@ -239,4 +254,174 @@ export async function readPhoto(
   const response = await fetch(url);
   if (!response.ok) throw new Error("사진을 불러오지 못했어요.");
   return response.blob();
+}
+
+async function updateDemoPost<T>(
+  id: string,
+  change: (record: DemoPost) => T,
+): Promise<T> {
+  const db = await demoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("posts", "readwrite"),
+      store = tx.objectStore("posts"),
+      request = store.get(id);
+    let result: T, problem: unknown;
+    request.onsuccess = () => {
+      try {
+        const record = request.result as DemoPost | undefined;
+        if (!record || record.post.status !== "published")
+          throw new Error(
+            "게시글을 더 이상 볼 수 없어요. 사진첩을 새로고침해주세요.",
+          );
+        result = change(record);
+        store.put(record);
+      } catch (error) {
+        problem = error;
+        tx.abort();
+      }
+    };
+    tx.oncomplete = () => resolve(result);
+    tx.onabort = () =>
+      reject(
+        problem ??
+          new Error("변경 내용을 저장하지 못했어요. 다시 시도해주세요."),
+      );
+    tx.onerror = () => reject(new Error("변경 내용을 저장하지 못했어요."));
+  });
+}
+export async function setPhotoLike(
+  post: PhotoPost,
+  member: Member,
+  liked: boolean,
+) {
+  if (!demoMode) {
+    const result = await photoAction({ action: "like", id: post.id, liked });
+    if (
+      typeof result.likeCount !== "number" ||
+      typeof result.liked !== "boolean"
+    )
+      throw new Error("좋아요를 확인하지 못했어요. 새로고침해주세요.");
+    return { likeCount: result.likeCount, liked: result.liked };
+  }
+  return updateDemoPost(post.id, (record) => {
+    const likes = new Set(record.likes ?? []);
+    if (liked) likes.add(member.id);
+    else likes.delete(member.id);
+    record.likes = [...likes];
+    return { likeCount: likes.size, liked };
+  });
+}
+export async function listPhotoComments(
+  post: PhotoPost,
+  cursor?: PhotoCursor,
+): Promise<PhotoResponse> {
+  if (!demoMode)
+    return photoAction({
+      action: "comments",
+      id: post.id,
+      ...(cursor ? { cursor } : {}),
+    });
+  const record = (await demoRead()).find(
+    (p) => p.post.id === post.id && p.post.status === "published",
+  );
+  if (!record) throw new Error("게시글을 더 이상 볼 수 없어요.");
+  const comments = (record.comments ?? [])
+    .filter((c) => c.status === "active")
+    .sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id));
+  const page = comments
+    .filter(
+      (c) =>
+        !cursor ||
+        c.createdAt < cursor.createdAt ||
+        (c.createdAt === cursor.createdAt && c.id < cursor.id),
+    )
+    .slice(0, COMMENT_PAGE_SIZE + 1);
+  const last = page[Math.min(page.length, COMMENT_PAGE_SIZE) - 1];
+  return {
+    comments: page.slice(0, COMMENT_PAGE_SIZE),
+    commentCount: comments.length,
+    nextCommentCursor:
+      page.length > COMMENT_PAGE_SIZE
+        ? { id: last.id, createdAt: last.createdAt }
+        : null,
+  };
+}
+export async function addPhotoComment(
+  post: PhotoPost,
+  member: Member,
+  commentId: string,
+  body: string,
+) {
+  const parsed = commentBody.safeParse(body);
+  if (!parsed.success) throw new Error("댓글은 1~500자로 입력해주세요.");
+  if (!demoMode)
+    return photoAction({
+      action: "addComment",
+      id: post.id,
+      commentId,
+      body: parsed.data,
+    });
+  const today = new Date().toISOString().slice(0, 10);
+  const used = (await demoRead())
+    .flatMap((p) => p.comments ?? [])
+    .filter(
+      (c) =>
+        c.authorId === member.id &&
+        new Date(c.createdAt).toISOString().slice(0, 10) === today,
+    ).length;
+  return updateDemoPost(post.id, (record) => {
+    record.comments ??= [];
+    const count = record.comments.filter((c) => c.status === "active").length;
+    const existing = record.comments.find((c) => c.id === commentId);
+    if (existing) {
+      if (
+        existing.authorId !== member.id ||
+        existing.body !== parsed.data ||
+        existing.status !== "active"
+      )
+        throw new Error(
+          "이미 처리된 댓글이에요. 내용을 확인한 뒤 다시 작성해주세요.",
+        );
+      return { comment: existing, commentCount: count };
+    }
+    if (count >= COMMENTS_PER_POST)
+      throw new Error("이 게시글의 댓글이 가득 찼어요.");
+    if (used >= COMMENTS_PER_MEMBER_DAY)
+      throw new Error("오늘 작성할 수 있는 댓글 수를 모두 사용했어요.");
+    const comment: PhotoComment = {
+      id: commentId,
+      authorId: member.id,
+      authorHandle: member.handle,
+      body: parsed.data,
+      createdAt: Date.now(),
+      status: "active",
+    };
+    record.comments.push(comment);
+    return { comment, commentCount: count + 1 };
+  });
+}
+export async function removePhotoComment(
+  post: PhotoPost,
+  member: Member,
+  comment: PhotoComment,
+) {
+  if (!demoMode)
+    return photoAction({
+      action: "deleteComment",
+      id: post.id,
+      commentId: comment.id,
+    });
+  return updateDemoPost(post.id, (record) => {
+    const current = record.comments?.find((c) => c.id === comment.id);
+    if (current) {
+      if (current.authorId !== member.id && member.role === "member")
+        throw new Error("본인이 작성한 댓글만 삭제할 수 있어요.");
+      current.status = "deleted";
+      current.body = "";
+    }
+    return {
+      commentCount:
+        record.comments?.filter((c) => c.status === "active").length ?? 0,
+    };
+  });
 }

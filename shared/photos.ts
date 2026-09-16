@@ -8,6 +8,15 @@ export const PHOTO_MONTHLY_LIMIT = 1000;
 export const PHOTO_MEMBER_MONTHLY_LIMIT = 30;
 export const PHOTO_STORAGE_LIMIT = 4000;
 export const PHOTO_DRAFT_LIFETIME = 30 * 60 * 1000;
+export const COMMENT_MAX_LENGTH = 500;
+export const COMMENT_PAGE_SIZE = 20;
+export const COMMENTS_PER_POST = 200;
+export const COMMENTS_PER_MEMBER_DAY = 100;
+export const commentBody = z
+  .string()
+  .trim()
+  .min(1, "댓글을 입력해주세요.")
+  .max(COMMENT_MAX_LENGTH, "댓글은 500자까지 입력할 수 있어요.");
 export const photoDimensions = z.object({
   width: z.number().int().min(1).max(1600),
   height: z.number().int().min(1).max(1600),
@@ -19,6 +28,27 @@ export const photoCursor = z.object({
 });
 export type PhotoCursor = z.infer<typeof photoCursor>;
 export const photoActionInput = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("like"),
+    id: z.string().uuid(),
+    liked: z.boolean(),
+  }),
+  z.object({
+    action: z.literal("comments"),
+    id: z.string().uuid(),
+    cursor: photoCursor.optional(),
+  }),
+  z.object({
+    action: z.literal("addComment"),
+    id: z.string().uuid(),
+    commentId: z.string().uuid(),
+    body: commentBody,
+  }),
+  z.object({
+    action: z.literal("deleteComment"),
+    id: z.string().uuid(),
+    commentId: z.string().uuid(),
+  }),
   z.object({
     action: z.literal("image"),
     id: z.string().uuid(),
@@ -47,8 +77,26 @@ export interface PhotoPost {
   status: "draft" | "publishing" | "published" | "deleting" | "deleted";
   expiresAt: number;
   updatedAt: number;
+  likeCount?: number;
+  commentCount?: number;
+  /** Personalized response only; never stored in the canonical post. */
+  liked?: boolean;
+}
+export interface PhotoComment {
+  id: string;
+  authorId: string;
+  authorHandle: string;
+  body: string;
+  createdAt: number;
+  status: "active" | "deleted";
 }
 export interface PhotoResponse {
+  liked?: boolean;
+  likeCount?: number;
+  commentCount?: number;
+  comments?: PhotoComment[];
+  comment?: PhotoComment;
+  nextCommentCursor?: PhotoCursor | null;
   url?: string;
   uploaded?: string[];
   post?: PhotoPost;

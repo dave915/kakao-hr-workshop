@@ -13,6 +13,10 @@ import {
   THUMB_MAX_BYTES,
   PHOTO_PAGE_SIZE,
   PHOTO_MEMBER_MONTHLY_LIMIT,
+  COMMENT_PAGE_SIZE,
+  COMMENTS_PER_POST,
+  COMMENTS_PER_MEMBER_DAY,
+  type PhotoComment,
   type PhotoPost,
   type PhotoResponse,
 } from "../../shared/photos";
@@ -71,6 +75,11 @@ async function erasePost(id: string) {
       prefix: `${prefix}/${post.generation}/${post.authorId}/${post.id}/`,
       force: true,
     });
+  // The deleting status blocks new interactions while their documents are removed.
+  await Promise.all([
+    db.recursiveDelete(ref.collection("likes")),
+    db.recursiveDelete(ref.collection("comments")),
+  ]);
   await db.runTransaction(async (tx) => {
     const [latest, stored] = await Promise.all([
       tx.get(ref),
@@ -86,6 +95,8 @@ async function erasePost(id: string) {
       status: "deleted",
       caption: "",
       photos: [],
+      likeCount: 0,
+      commentCount: 0,
       updatedAt: Date.now(),
     });
   });
@@ -95,7 +106,12 @@ export async function handlePhotoBoard(
 ): Promise<PhotoResponse> {
   const parsed = photoActionInput.safeParse(request.data);
   if (!parsed.success)
-    throw new HttpsError("invalid-argument", "사진과 글 내용을 확인해주세요.");
+    throw new HttpsError(
+      "invalid-argument",
+      request.data?.action === "addComment"
+        ? "댓글은 1~500자로 입력해주세요."
+        : "요청 내용을 확인해주세요.",
+    );
   const input = parsed.data,
     db = getFirestore(),
     now = Date.now();
@@ -116,15 +132,25 @@ export async function handlePhotoBoard(
         tx.get(query),
         tx.get(monthRef),
       ]);
-      // Storage rules need just two documents: this session profile and the post.
-      if (auth.profile.data()?.photoGeneration !== auth.generation)
-        tx.update(auth.profileRef, { photoGeneration: auth.generation });
       const page = posts.docs
         .slice(0, PHOTO_PAGE_SIZE)
         .map((doc) => doc.data() as PhotoPost);
+      const likes = await Promise.all(
+        page.map((post) =>
+          tx.get(db.doc(`photoPosts/${post.id}/likes/${auth.me.id}`)),
+        ),
+      );
+      // All reads must precede this profile update.
+      if (auth.profile.data()?.photoGeneration !== auth.generation)
+        tx.update(auth.profileRef, { photoGeneration: auth.generation });
       const last = page.at(-1);
       return {
-        posts: page,
+        posts: page.map((post, index) => ({
+          ...post,
+          likeCount: post.likeCount ?? 0,
+          commentCount: post.commentCount ?? 0,
+          liked: likes[index].exists,
+        })),
         nextCursor:
           posts.size > PHOTO_PAGE_SIZE && last
             ? { id: last.id, createdAt: last.createdAt }
@@ -137,6 +163,122 @@ export async function handlePhotoBoard(
     });
   }
   const ref = db.doc(`photoPosts/${input.id}`);
+  if (
+    ["like", "comments", "addComment", "deleteComment"].includes(input.action)
+  ) {
+    return db.runTransaction(async (tx) => {
+      const auth = await authorize(tx, request);
+      const post = (await tx.get(ref)).data() as PhotoPost | undefined;
+      if (
+        !post ||
+        post.status !== "published" ||
+        post.generation !== auth.generation
+      )
+        throw new HttpsError(
+          "not-found",
+          "게시글이 삭제되었거나 더 이상 볼 수 없어요. 사진첩을 새로고침해주세요.",
+        );
+      if (input.action === "like") {
+        const likeRef = ref.collection("likes").doc(auth.me.id);
+        const existing = await tx.get(likeRef);
+        const count = post.likeCount ?? 0;
+        if (existing.exists === input.liked)
+          return { liked: input.liked, likeCount: count };
+        const likeCount = Math.max(0, count + (input.liked ? 1 : -1));
+        if (input.liked) tx.create(likeRef, { createdAt: now });
+        else tx.delete(likeRef);
+        tx.update(ref, { likeCount });
+        return { liked: input.liked, likeCount };
+      }
+      if (input.action === "comments") {
+        let query = ref
+          .collection("comments")
+          .where("status", "==", "active")
+          .orderBy("createdAt", "desc")
+          .orderBy(FieldPath.documentId(), "desc")
+          .limit(COMMENT_PAGE_SIZE + 1);
+        if (input.cursor)
+          query = query.startAfter(input.cursor.createdAt, input.cursor.id);
+        const snapshot = await tx.get(query);
+        const comments = snapshot.docs
+          .slice(0, COMMENT_PAGE_SIZE)
+          .map((doc) => doc.data() as PhotoComment);
+        const last = comments.at(-1);
+        return {
+          comments,
+          commentCount: post.commentCount ?? 0,
+          nextCommentCursor:
+            snapshot.size > COMMENT_PAGE_SIZE && last
+              ? { id: last.id, createdAt: last.createdAt }
+              : null,
+        };
+      }
+      if (input.action === "addComment") {
+        const commentRef = ref.collection("comments").doc(input.commentId);
+        const day = new Date(now).toISOString().slice(0, 10);
+        const limitRef = db.doc(`photoCommentLimits/${day}_${auth.me.id}`);
+        const [existing, limit] = await Promise.all([
+          tx.get(commentRef),
+          tx.get(limitRef),
+        ]);
+        if (existing.exists) {
+          const comment = existing.data() as PhotoComment;
+          if (
+            comment.authorId !== auth.me.id ||
+            comment.body !== input.body ||
+            comment.status !== "active"
+          )
+            throw new HttpsError(
+              "already-exists",
+              "이미 처리된 댓글이에요. 내용을 확인한 뒤 다시 작성해주세요.",
+            );
+          return { comment, commentCount: post.commentCount ?? 0 };
+        }
+        if ((post.commentCount ?? 0) >= COMMENTS_PER_POST)
+          throw new HttpsError(
+            "resource-exhausted",
+            "이 게시글의 댓글이 가득 찼어요.",
+          );
+        if ((limit.data()?.count ?? 0) >= COMMENTS_PER_MEMBER_DAY)
+          throw new HttpsError(
+            "resource-exhausted",
+            "오늘 작성할 수 있는 댓글 수를 모두 사용했어요. 내일 다시 남겨주세요.",
+          );
+        const comment: PhotoComment = {
+          id: input.commentId,
+          authorId: auth.me.id,
+          authorHandle: auth.me.handle,
+          body: input.body,
+          createdAt: now,
+          status: "active",
+        };
+        const commentCount = (post.commentCount ?? 0) + 1;
+        tx.create(commentRef, comment);
+        tx.set(limitRef, { count: (limit.data()?.count ?? 0) + 1, day });
+        tx.update(ref, { commentCount });
+        return { comment, commentCount };
+      }
+      if (input.action === "deleteComment") {
+        const commentRef = ref.collection("comments").doc(input.commentId);
+        const existing = await tx.get(commentRef);
+        if (!existing.exists) return { commentCount: post.commentCount ?? 0 };
+        const comment = existing.data() as PhotoComment;
+        if (comment.authorId !== auth.me.id && auth.me.role === "member")
+          throw new HttpsError(
+            "permission-denied",
+            "본인이 작성한 댓글만 삭제할 수 있어요.",
+          );
+        if (comment.status === "deleted")
+          return { commentCount: post.commentCount ?? 0 };
+        const commentCount = Math.max(0, (post.commentCount ?? 0) - 1);
+        // A small tombstone makes retries safe and prevents a deleted comment from reappearing.
+        tx.update(commentRef, { body: "", status: "deleted" });
+        tx.update(ref, { commentCount });
+        return { commentCount };
+      }
+      throw new HttpsError("invalid-argument", "요청 내용을 확인해주세요.");
+    });
+  }
   if (input.action === "image") {
     const post = await db.runTransaction(async (tx) => {
       const auth = await authorize(tx, request);
@@ -350,6 +492,16 @@ export async function cleanupPhotos() {
     now = Date.now();
   const generation = ((await db.doc("workshops/main").get()).data()
     ?.resetGeneration ?? 0) as number;
+  const expiredLimits = await db
+    .collection("photoCommentLimits")
+    .where("day", "<", new Date(now - 30 * 86400000).toISOString().slice(0, 10))
+    .limit(500)
+    .get();
+  if (!expiredLimits.empty) {
+    const batch = db.batch();
+    for (const doc of expiredLimits.docs) batch.delete(doc.ref);
+    await batch.commit();
+  }
   const [incomplete, deleting, old] = await Promise.all([
     db
       .collection("photoPosts")

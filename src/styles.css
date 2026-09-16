@@ -5954,3 +5954,249 @@ td .text-button {
     transition: none;
   }
 }
+
+.photo-reactions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: -10px;
+}
+.photo-like,
+.photo-comment-open {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 8px;
+  color: var(--ink);
+}
+.photo-like {
+  transition:
+    color 160ms,
+    transform 160ms;
+}
+.photo-like.is-liked {
+  color: #b9493f;
+}
+.photo-like:active:not(:disabled) {
+  transform: scale(0.92);
+}
+.photo-like:disabled {
+  opacity: 1;
+}
+.photo-post-actions .photo-expand {
+  margin-left: auto;
+}
+.photo-like-count {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+.photo-comments-link {
+  display: block;
+  min-height: 36px;
+  padding: 4px 0;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.photo-post-time {
+  margin-top: 4px;
+}
+.photo-comments {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.photo-comment-context {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+.photo-comment-context > .avatar,
+.photo-comments-list .avatar,
+.photo-comment-form > .avatar {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  font-size: 13px;
+}
+.photo-comment-context p {
+  min-width: 0;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.photo-comment-context strong {
+  margin-right: 8px;
+}
+.photo-comments-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 8px 0;
+}
+.photo-comments-heading .icon-button {
+  width: 44px;
+  height: 44px;
+}
+.photo-comments-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(42dvh, 420px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+.photo-comments-list > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+}
+.photo-comment-content {
+  min-width: 0;
+  flex: 1;
+}
+.photo-comment-content > p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.photo-comment-content > p > strong {
+  margin-right: 4px;
+}
+.photo-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-top: 3px;
+}
+.photo-comment-delete {
+  font-size: 0.78rem;
+  color: var(--muted);
+  min-height: 32px;
+  padding: 4px;
+}
+.photo-comment-confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-size: 0.86rem;
+}
+.photo-comment-confirm .text-button {
+  min-height: 36px;
+}
+.danger-text {
+  color: #a54435;
+}
+.photo-comments-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  text-align: center;
+  padding: 28px 12px 36px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+.photo-comments-empty strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+.photo-comments-more {
+  align-self: center;
+  min-height: 44px;
+  margin: 8px 0;
+}
+.photo-comment-error {
+  font-size: 0.86rem;
+  line-height: 1.7;
+  color: #a54435;
+  margin: 12px 0;
+  word-break: keep-all;
+}
+.photo-comment-form {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+}
+.photo-comment-form > .avatar {
+  margin-top: 8px;
+}
+.photo-comment-form > div {
+  flex: 1;
+  min-width: 0;
+}
+.photo-comment-input-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.photo-comment-form textarea {
+  width: 100%;
+  min-height: 72px;
+  max-height: 160px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--surface);
+}
+.photo-comment-form small {
+  display: block;
+  text-align: right;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-top: 4px;
+}
+.photo-comment-submit {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  margin-top: 24px;
+  background: var(--green);
+  color: var(--paper);
+}
+@media (max-width: 480px) {
+  .photo-post-actions .photo-expand > span {
+    display: none;
+  }
+  .photo-post-actions .photo-expand {
+    justify-content: flex-end;
+    width: 44px;
+  }
+  .photo-comment-form > .avatar {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .photo-like {
+    transition: none;
+  }
+}

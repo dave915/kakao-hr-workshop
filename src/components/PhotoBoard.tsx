@@ -11,7 +11,12 @@ import {
 } from "lucide-react";
 import { useWorkshop } from "../lib/store";
 import { englishName, errorMessage } from "../lib/utils";
-import { listPhotos, publishPhotos, removePhotoPost } from "../lib/photos";
+import {
+  listPhotos,
+  publishPhotos,
+  removePhotoPost,
+  setPhotoLike,
+} from "../lib/photos";
 import { preparePhoto, type PreparedPhoto } from "../lib/photo-images";
 import {
   PHOTO_MEMBER_MONTHLY_LIMIT,
@@ -22,6 +27,7 @@ import {
 import { Drawer, Empty, type Notify } from "./common";
 import PhotoImage from "./PhotoImage";
 import PhotoFeedPost from "./PhotoFeedPost";
+import PhotoComments from "./PhotoComments";
 
 function PreparedPreview({ photo }: { photo: PreparedPhoto }) {
   const [url, setUrl] = useState("");
@@ -39,6 +45,9 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
   const [loading, setLoading] = useState(true),
     [error, setError] = useState("");
   const [remaining, setRemaining] = useState(PHOTO_MEMBER_MONTHLY_LIMIT);
+  const [liking, setLiking] = useState<Set<string>>(() => new Set());
+  const [commentsFor, setCommentsFor] = useState<string | null>(null);
+  const likeLocks = useRef(new Set<string>());
   const [compose, setCompose] = useState(false),
     [photos, setPhotos] = useState<PreparedPhoto[]>([]),
     [caption, setCaption] = useState("");
@@ -65,7 +74,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
     };
   }, []);
   async function load(more = false) {
-    if (!me) return;
+    if (!me || likeLocks.current.size) return;
     const version = ++loadVersion.current;
     setLoading(true);
     setError("");
@@ -109,6 +118,55 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
   }, [posting]);
   if (!state || !me) return null;
   const busy = posting || preparing;
+  const commentPost = posts.find((post) => post.id === commentsFor);
+  async function like(post: PhotoPost) {
+    if (!me || loading || likeLocks.current.has(post.id)) return;
+    if (!navigator.onLine) {
+      notify("인터넷에 연결한 뒤 좋아요를 눌러주세요.");
+      return;
+    }
+    const previous = {
+      liked: Boolean(post.liked),
+      likeCount: post.likeCount ?? 0,
+    };
+    likeLocks.current.add(post.id);
+    setLiking(new Set(likeLocks.current));
+    setPosts((current) =>
+      current.map((item) =>
+        item.id === post.id
+          ? {
+              ...item,
+              liked: !previous.liked,
+              likeCount: Math.max(
+                0,
+                previous.likeCount + (previous.liked ? -1 : 1),
+              ),
+            }
+          : item,
+      ),
+    );
+    try {
+      const result = await setPhotoLike(post, me, !previous.liked);
+      if (mounted.current)
+        setPosts((current) =>
+          current.map((item) =>
+            item.id === post.id ? { ...item, ...result } : item,
+          ),
+        );
+    } catch (error) {
+      if (mounted.current) {
+        setPosts((current) =>
+          current.map((item) =>
+            item.id === post.id ? { ...item, ...previous } : item,
+          ),
+        );
+        notify(errorMessage(error));
+      }
+    } finally {
+      likeLocks.current.delete(post.id);
+      if (mounted.current) setLiking(new Set(likeLocks.current));
+    }
+  }
   async function selectFiles(files: File[]) {
     if (busy || !files.length) return;
     setFormError("");
@@ -199,7 +257,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
         <button
           className="icon-button"
           onClick={() => void load()}
-          disabled={loading}
+          disabled={loading || liking.size > 0}
           aria-label="사진첩 새로고침"
           title="새로고침"
         >
@@ -248,6 +306,10 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
             team={state.members[post.authorId]?.team}
             canDelete={me.id === post.authorId || me.role !== "member"}
             onOpen={openPhoto}
+            likeBusy={liking.has(post.id)}
+            disabled={loading}
+            onLike={(post) => void like(post)}
+            onComments={(post) => setCommentsFor(post.id)}
             onDelete={(post) => {
               setDeleteError("");
               setDeleting(post);
@@ -259,7 +321,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
         <button
           className="button photo-load-more"
           onClick={() => void load(true)}
-          disabled={loading}
+          disabled={loading || liking.size > 0}
         >
           {loading ? "불러오는 중…" : "더 많은 순간 보기"}
         </button>
@@ -268,6 +330,21 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
         이번 달에 사진 {remaining}장을 더 올릴 수 있어요. 한 사람당 월{" "}
         {PHOTO_MEMBER_MONTHLY_LIMIT}장까지 함께 나눠요.
       </p>
+      {commentPost && (
+        <PhotoComments
+          key={commentPost.id}
+          post={commentPost}
+          member={me}
+          onCount={(commentCount) =>
+            setPosts((current) =>
+              current.map((post) =>
+                post.id === commentPost.id ? { ...post, commentCount } : post,
+              ),
+            )
+          }
+          onClose={() => setCommentsFor(null)}
+        />
+      )}
       {compose && (
         <Drawer
           title="오늘의 순간 남기기"

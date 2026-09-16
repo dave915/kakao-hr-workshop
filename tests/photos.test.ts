@@ -8,6 +8,39 @@ import {
   PHOTO_STORAGE_LIMIT,
 } from "../shared/photos";
 describe("photo board limits", () => {
+  it("validates comment boundaries and explicit like state without accepting arbitrary identifiers", () => {
+    const input = {
+      action: "addComment",
+      id: crypto.randomUUID(),
+      commentId: crypto.randomUUID(),
+      body: "  함께한 순간 🌿\n반가워요!  ",
+    };
+    expect(photoActionInput.parse(input)).toMatchObject({
+      body: "함께한 순간 🌿\n반가워요!",
+    });
+    expect(
+      photoActionInput.safeParse({ ...input, body: "x".repeat(500) }).success,
+    ).toBe(true);
+    for (const patch of [
+      { body: " \n " },
+      { body: "x".repeat(501) },
+      { commentId: "../another-post" },
+    ])
+      expect(photoActionInput.safeParse({ ...input, ...patch }).success).toBe(
+        false,
+      );
+    expect(
+      photoActionInput.safeParse({ action: "like", id: input.id, liked: true })
+        .success,
+    ).toBe(true);
+    expect(
+      photoActionInput.safeParse({
+        action: "like",
+        id: input.id,
+        liked: "true",
+      }).success,
+    ).toBe(false);
+  });
   it("validates uploads without trusting arbitrary storage paths or more than three photos", () => {
     const base = {
       action: "begin",
