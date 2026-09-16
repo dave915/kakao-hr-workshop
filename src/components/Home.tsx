@@ -62,9 +62,7 @@ export default function Home({
             <Flag size={14} /> KAKAOBANK HR WORKSHOP
           </span>
           <h2>
-            잠깐,
-            <br />
-            <span>{state.settings.title}!</span>
+            <span>{state.settings.title}</span>
           </h2>
           <p>
             {state.settings.subtitle}

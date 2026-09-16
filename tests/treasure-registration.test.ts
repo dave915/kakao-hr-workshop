@@ -157,6 +157,29 @@ describe("batch treasure registration", () => {
   });
 });
 describe("registration drafts", () => {
+  it("starts new treasures at 10m and migrates the old default without changing drafts", () => {
+    const workspace = emptyWorkspace();
+    expect(newDraft([], workspace.defaults, 37.1, 127.2).radius).toBe(10);
+    const old = {
+      ...workspace,
+      version: 1,
+      drafts: [treasure("draft")],
+      defaults: { ...workspace.defaults, radius: 50 },
+    };
+    const migrated = parseWorkspace(JSON.stringify(old));
+    expect(migrated.defaults.radius).toBe(10);
+    expect(migrated.drafts).toEqual(old.drafts);
+    expect(
+      parseWorkspace(
+        JSON.stringify({ ...old, defaults: { ...old.defaults, radius: 30 } }),
+      ).defaults.radius,
+    ).toBe(30);
+    const customized = {
+      ...workspace,
+      defaults: { ...workspace.defaults, radius: 50 },
+    };
+    expect(parseWorkspace(JSON.stringify(customized)).defaults.radius).toBe(50);
+  });
   it("numbers new treasures after existing and draft names, with unique IDs and carried settings", () => {
     const items = [
       { name: "커피 쿠폰" },

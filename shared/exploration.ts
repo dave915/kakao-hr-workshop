@@ -11,6 +11,7 @@ import type {
 export const AR_MAX_ACCURACY = 40;
 export const AR_POSITION_MAX_AGE = 20000;
 export const AR_TARGET_MAX_AGE = 30000;
+export const CAMERA_SEARCH_BUFFER = 20;
 export function hasCoordinates(t: VisibleTreasure): t is Treasure {
   return Number.isFinite(t.lat) && Number.isFinite(t.lng);
 }
@@ -88,6 +89,7 @@ export function treasureGuidance(
     );
   const distance = distanceMeters(position, target);
   const withinRange = distance <= target.radius;
+  const cameraOnly = distance <= target.radius + CAMERA_SEARCH_BUFFER;
   const proximity = withinRange
     ? "within"
     : distance <= target.radius + 30
@@ -97,7 +99,7 @@ export function treasureGuidance(
         : distance <= target.radius + 250
           ? "warm"
           : "far";
-  const bearing = withinRange
+  const bearing = cameraOnly
     ? null
     : (Math.round(bearingDegrees(position, target) / 45) * 45) % 360;
   const direction =
@@ -121,6 +123,7 @@ export function treasureGuidance(
     proximity,
     heat: { far: 15, warm: 35, close: 60, hot: 85, within: 100 }[proximity],
     withinRange,
+    cameraOnly,
     updatedAt: now,
   };
 }

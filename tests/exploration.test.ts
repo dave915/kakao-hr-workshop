@@ -7,7 +7,7 @@ import {
   approachTrend,
   hasCoordinates,
 } from "../shared/exploration";
-import { claimTreasure } from "../shared/game";
+import { claimTreasure, distanceMeters } from "../shared/game";
 const now = Date.parse("2026-10-16T13:10:00+09:00");
 const point = (lat = 37.5445, lng = 127.0374) => ({
   lat,
@@ -55,7 +55,7 @@ describe("hint-led exploration", () => {
   });
   it("gets warmer as the explorer approaches and confirms the actual claim radius", () => {
     const state = makeSeed(true);
-    const distances = [0.006, 0.002, 0.001, 0.0006, 0].map((offset) =>
+    const distances = [0.006, 0.002, 0.0008, 0.0002, 0].map((offset) =>
       treasureGuidance(state, "alex.k", "t1", point(37.5445 - offset), now),
     );
     expect(distances.map((g) => g.heat)).toEqual([15, 35, 60, 85, 100]);
@@ -65,6 +65,62 @@ describe("hint-led exploration", () => {
       direction: "주변",
     });
   });
+  it.each([10, 50, 200])(
+    "switches to camera-only at radius %sm + 20m without widening the claim radius",
+    (radius) => {
+      const state = makeSeed(true);
+      const target = state.treasures[0];
+      target.radius = radius;
+      const atDistance = (meters: number) =>
+        point(target.lat - (meters / 6371000) * (180 / Math.PI), target.lng);
+      const outside = treasureGuidance(
+        state,
+        "alex.k",
+        "t1",
+        atDistance(radius + 20.1),
+        now,
+      );
+      const inside = treasureGuidance(
+        state,
+        "alex.k",
+        "t1",
+        atDistance(radius + 19.9),
+        now,
+      );
+      // Both round to the same displayed distance; use the real distance for the cutoff.
+      expect(outside.distance).toBe(inside.distance);
+      expect(outside).toMatchObject({
+        cameraOnly: false,
+        bearing: 0,
+        withinRange: false,
+      });
+      expect(inside).toMatchObject({
+        cameraOnly: true,
+        bearing: null,
+        direction: "주변",
+        withinRange: false,
+      });
+      expect(() =>
+        claimTreasure(
+          state,
+          demoSecrets,
+          "alex.k",
+          "t1",
+          atDistance(radius + 1),
+          now,
+        ),
+      ).toThrow(`${radius}m`);
+      expect(
+        treasureGuidance(state, "alex.k", "t1", atDistance(radius - 0.1), now),
+      ).toMatchObject({ cameraOnly: true, bearing: null, withinRange: true });
+      // An exactly equal distance belongs to camera search, including custom radii.
+      const boundary = atDistance(radius + 20);
+      target.radius = distanceMeters(boundary, target) - 20;
+      expect(
+        treasureGuidance(state, "alex.k", "t1", boundary, now).cameraOnly,
+      ).toBe(true);
+    },
+  );
   it("does not guide users toward already found, paused or locked targets", () => {
     const state = makeSeed(true);
     state.treasures[0].foundBy = "june.p";

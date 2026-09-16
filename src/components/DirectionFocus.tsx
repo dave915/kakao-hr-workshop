@@ -6,7 +6,6 @@ import {
   Compass,
   LocateFixed,
   Map,
-  Sparkles,
 } from "lucide-react";
 import { continuousRotation, directionMatch } from "../../shared/ar";
 import type { TreasureGuidance, VisibleTreasure } from "../../shared/types";
@@ -39,7 +38,7 @@ export default function DirectionFocus({
 }) {
   const current = disabled ? null : guidance;
   const match =
-    current && !current.withinRange
+    current && !current.cameraOnly
       ? directionMatch(current.bearing, heading)
       : null;
   const [rotation, setRotation] = useState(match?.difference ?? 0);
@@ -51,12 +50,12 @@ export default function DirectionFocus({
     if (match)
       setRotation((previous) => continuousRotation(previous, match.difference));
   }, [match?.difference]);
-  const arrived = Boolean(current?.withinRange);
+  const arrived = Boolean(current?.cameraOnly);
   const aligned = Boolean(match?.aligned);
   const status = !current
     ? "위치를 확인하고 있어요"
     : arrived
-      ? "주변에 보물이 있어요"
+      ? "이제 카메라로 찾아보세요"
       : !match
         ? "휴대폰 방향을 켜주세요"
         : aligned
@@ -98,7 +97,7 @@ export default function DirectionFocus({
       <div className="direction-focus-instrument" aria-hidden="true">
         <div className="direction-focus-north" />
         {arrived ? (
-          <Sparkles className="direction-focus-arrived" />
+          <Camera className="direction-focus-arrived" />
         ) : match ? (
           <ArrowUp
             className="direction-focus-arrow"
@@ -110,10 +109,18 @@ export default function DirectionFocus({
         )}
       </div>
       <div className="direction-focus-distance">
-        <span>{current ? "보물까지 약" : "위치 확인 중"}</span>
+        <span>
+          {arrived
+            ? "주변을 비춰보세요"
+            : current
+              ? "보물까지 약"
+              : "위치 확인 중"}
+        </span>
         <strong>
-          {distance}
-          {current && <small>{current.distance >= 1000 ? "km" : "m"}</small>}
+          {arrived ? "카메라 탐색" : distance}
+          {current && !arrived && (
+            <small>{current.distance >= 1000 ? "km" : "m"}</small>
+          )}
         </strong>
         <div className="direction-focus-signal">
           {aligned ? (
@@ -121,7 +128,7 @@ export default function DirectionFocus({
               <Check size={18} />이 방향이에요
             </>
           ) : arrived ? (
-            "발견 가능 범위"
+            `보물에서 ${treasure.radius}m 안에서 획득할 수 있어요`
           ) : current ? (
             "GPS 기준의 대략적인 거리예요"
           ) : (

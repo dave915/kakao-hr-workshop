@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { treasureInput, type TreasureInput } from "../../shared/validation";
+import { DEFAULT_TREASURE_RADIUS } from "../../shared/game";
 
 const draftInput = treasureInput.extend({
   name: z.string().max(80),
@@ -14,7 +15,7 @@ const draftInput = treasureInput.extend({
 export type TreasureDraft = z.infer<typeof draftInput>;
 export type MapViewport = { lat: number; lng: number; level: number };
 const workspaceInput = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   mode: z.enum(["onsite", "map"]),
   drafts: z
     .array(draftInput)
@@ -33,11 +34,15 @@ const workspaceInput = z.object({
 export type DraftWorkspace = z.infer<typeof workspaceInput>;
 export function emptyWorkspace(): DraftWorkspace {
   return {
-    version: 1,
+    version: 2,
     mode: "onsite",
     drafts: [],
     selected: null,
-    defaults: { kind: "treasure", radius: 50, points: 100 },
+    defaults: {
+      kind: "treasure",
+      radius: DEFAULT_TREASURE_RADIUS,
+      points: 100,
+    },
     viewport: null,
   };
 }
@@ -50,7 +55,14 @@ export function draftStorageKey(
 }
 export function parseWorkspace(raw: string | null): DraftWorkspace {
   if (!raw) return emptyWorkspace();
-  return workspaceInput.parse(JSON.parse(raw));
+  const saved = JSON.parse(raw);
+  if (saved?.version === 1) {
+    saved.version = 2;
+    // Keep saved treasures and unfinished drafts; migrate the old creation default.
+    if (saved.defaults?.radius === 50)
+      saved.defaults.radius = DEFAULT_TREASURE_RADIUS;
+  }
+  return workspaceInput.parse(saved);
 }
 export function nextTreasureName(items: { name: string }[]): string {
   const highest = items.reduce(

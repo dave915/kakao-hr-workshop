@@ -1413,6 +1413,34 @@ main {
   font-size: 10px;
   color: #979b8b;
 }
+.notice-link {
+  color: #32634b;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.notice-link:hover {
+  color: #1e4431;
+}
+.guide-camera-search {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 0;
+}
+.guide-camera-search > svg {
+  flex-shrink: 0;
+  color: #32634b;
+}
+.guide-camera-search strong {
+  font-size: 18px;
+}
+.guide-camera-search p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
 .profile-card {
   display: flex;
   gap: 24px;

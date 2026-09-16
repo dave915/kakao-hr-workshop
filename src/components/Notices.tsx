@@ -2,6 +2,7 @@ import { Bell, Megaphone } from "lucide-react";
 import { useWorkshop } from "../lib/store";
 import { englishName, formatDate, formatTime } from "../lib/utils";
 import { Empty } from "./common";
+import NoticeBody from "./NoticeBody";
 export default function Notices() {
   const { state, me } = useWorkshop();
   if (!state || !me) return null;
@@ -33,7 +34,7 @@ export default function Notices() {
                 </time>
               </div>
               <h2>{n.title}</h2>
-              <p>{n.body}</p>
+              <NoticeBody body={n.body} />
               <footer>
                 워크샵 추진위원회
                 {n.author !== "워크샵 추진위원회" &&

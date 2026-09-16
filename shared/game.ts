@@ -7,6 +7,7 @@ import type {
   ClaimResult,
 } from "./types";
 export class GameError extends Error {}
+export const DEFAULT_TREASURE_RADIUS = 10;
 export const isAdmin = (member?: Member | null) =>
   member?.role === "admin" || member?.role === "superadmin";
 export function distanceMeters(

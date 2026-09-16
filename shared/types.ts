@@ -76,6 +76,7 @@ export interface TreasureGuidance {
   proximity: Proximity;
   heat: number;
   withinRange: boolean;
+  cameraOnly: boolean;
   updatedAt: number;
 }
 export type TreasureSecrets = Record<string, "treasure" | "bomb">;

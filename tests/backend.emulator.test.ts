@@ -597,6 +597,29 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     expect(r.result.guidance.direction).toBe("북쪽");
     expect(r.result.guidance).not.toHaveProperty("lat");
     expect(r.result.guidance).not.toHaveProperty("lng");
+    for (const meters of [t.radius + 20.1, t.radius + 19.9]) {
+      const nearby = await call(
+        "workshopAction",
+        {
+          action: "getGuidance",
+          treasureId: t.id,
+          position: {
+            lat: t.lat - (meters / 6371000) * (180 / Math.PI),
+            lng: t.lng,
+            accuracy: 5,
+            timestamp: Date.now(),
+          },
+        },
+        memberToken,
+      );
+      expect(nearby.status).toBe(200);
+      const cameraOnly = meters < t.radius + 20;
+      expect(nearby.result.guidance).toMatchObject({
+        cameraOnly,
+        bearing: cameraOnly ? null : 0,
+        withinRange: false,
+      });
+    }
     expect((await db.doc("workshops/main").get()).data()).toEqual(stateBefore);
     const publicState = (await db.doc("workshops/participants").get()).data();
     expect(
