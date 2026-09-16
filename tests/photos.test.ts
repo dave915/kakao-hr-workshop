@@ -6,8 +6,54 @@ import {
   PHOTO_MONTHLY_LIMIT,
   PHOTO_MEMBER_MONTHLY_LIMIT,
   PHOTO_STORAGE_LIMIT,
+  recentComments,
+  type PhotoComment,
 } from "../shared/photos";
 describe("photo board limits", () => {
+  it("requires a valid reply target and keeps only the latest three visible comments and replies", () => {
+    const id = crypto.randomUUID(),
+      parentId = crypto.randomUUID(),
+      commentId = crypto.randomUUID();
+    const input = {
+      action: "addComment",
+      id,
+      parentId,
+      commentId,
+      body: "답글",
+    };
+    expect(photoActionInput.safeParse(input).success).toBe(true);
+    expect(
+      photoActionInput.safeParse({ ...input, replyToId: crypto.randomUUID() })
+        .success,
+    ).toBe(true);
+    for (const value of [
+      { ...input, commentId: parentId },
+      { ...input, replyToId: commentId },
+      { ...input, parentId: undefined, replyToId: parentId },
+    ])
+      expect(photoActionInput.safeParse(value).success).toBe(false);
+    const comments = Array.from({ length: 5 }, (_, i) => ({
+      id: String(i),
+      authorId: "a",
+      authorHandle: "alex.k",
+      body: "text",
+      createdAt: i,
+      status: "active" as const,
+      ...(i === 3 ? { parentId } : {}),
+    }));
+    const hidden: PhotoComment = {
+      ...comments[0],
+      id: "hidden",
+      status: "thread",
+      createdAt: 10,
+    };
+    expect(recentComments([...comments, hidden]).map((c) => c.id)).toEqual([
+      "4",
+      "3",
+      "2",
+    ]);
+    expect(comments.map((c) => c.id)).toEqual(["0", "1", "2", "3", "4"]);
+  });
   it("validates comment boundaries and explicit like state without accepting arbitrary identifiers", () => {
     const input = {
       action: "addComment",

@@ -10,6 +10,7 @@ export const PHOTO_STORAGE_LIMIT = 4000;
 export const PHOTO_DRAFT_LIFETIME = 30 * 60 * 1000;
 export const COMMENT_MAX_LENGTH = 500;
 export const COMMENT_PAGE_SIZE = 20;
+export const COMMENT_PREVIEW_SIZE = 3;
 export const COMMENTS_PER_POST = 200;
 export const COMMENTS_PER_MEMBER_DAY = 100;
 export const commentBody = z
@@ -39,15 +40,39 @@ export const photoActionInput = z.discriminatedUnion("action", [
     cursor: photoCursor.optional(),
   }),
   z.object({
-    action: z.literal("addComment"),
+    action: z.literal("replies"),
+    id: z.string().uuid(),
+    parentId: z.string().uuid(),
+    cursor: photoCursor.optional(),
+  }),
+  z.object({
+    action: z.literal("likeComment"),
     id: z.string().uuid(),
     commentId: z.string().uuid(),
-    body: commentBody,
+    parentId: z.string().uuid().optional(),
+    liked: z.boolean(),
   }),
+  z
+    .object({
+      action: z.literal("addComment"),
+      id: z.string().uuid(),
+      commentId: z.string().uuid(),
+      body: commentBody,
+      parentId: z.string().uuid().optional(),
+      replyToId: z.string().uuid().optional(),
+    })
+    .refine(
+      (input) =>
+        (!input.replyToId || Boolean(input.parentId)) &&
+        input.commentId !== input.parentId &&
+        input.commentId !== input.replyToId,
+      "답글 대상을 확인해주세요.",
+    ),
   z.object({
     action: z.literal("deleteComment"),
     id: z.string().uuid(),
     commentId: z.string().uuid(),
+    parentId: z.string().uuid().optional(),
   }),
   z.object({
     action: z.literal("image"),
@@ -79,6 +104,7 @@ export interface PhotoPost {
   updatedAt: number;
   likeCount?: number;
   commentCount?: number;
+  commentPreview?: PhotoComment[];
   /** Personalized response only; never stored in the canonical post. */
   liked?: boolean;
 }
@@ -88,12 +114,23 @@ export interface PhotoComment {
   authorHandle: string;
   body: string;
   createdAt: number;
-  status: "active" | "deleted";
+  status: "active" | "deleted" | "thread";
+  parentId?: string;
+  replyToId?: string;
+  replyToHandle?: string;
+  replyCount?: number;
+  likeCount?: number;
+  /** Personalized response only. */
+  liked?: boolean;
 }
 export interface PhotoResponse {
   liked?: boolean;
   likeCount?: number;
   commentCount?: number;
+  commentPreview?: PhotoComment[];
+  parentComment?: PhotoComment;
+  replies?: PhotoComment[];
+  nextReplyCursor?: PhotoCursor | null;
   comments?: PhotoComment[];
   comment?: PhotoComment;
   nextCommentCursor?: PhotoCursor | null;
@@ -103,6 +140,12 @@ export interface PhotoResponse {
   posts?: PhotoPost[];
   nextCursor?: PhotoCursor | null;
   remaining?: number;
+}
+export function recentComments(comments: PhotoComment[]) {
+  return comments
+    .filter((comment) => comment.status === "active")
+    .sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id))
+    .slice(0, COMMENT_PREVIEW_SIZE);
 }
 export function photoPath(
   post: Pick<PhotoPost, "generation" | "authorId" | "id">,

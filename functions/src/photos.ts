@@ -14,6 +14,8 @@ import {
   PHOTO_PAGE_SIZE,
   PHOTO_MEMBER_MONTHLY_LIMIT,
   COMMENT_PAGE_SIZE,
+  COMMENT_PREVIEW_SIZE,
+  recentComments,
   COMMENTS_PER_POST,
   COMMENTS_PER_MEMBER_DAY,
   type PhotoComment,
@@ -79,6 +81,7 @@ async function erasePost(id: string) {
   await Promise.all([
     db.recursiveDelete(ref.collection("likes")),
     db.recursiveDelete(ref.collection("comments")),
+    db.recursiveDelete(ref.collection("replies")),
   ]);
   await db.runTransaction(async (tx) => {
     const [latest, stored] = await Promise.all([
@@ -97,9 +100,91 @@ async function erasePost(id: string) {
       photos: [],
       likeCount: 0,
       commentCount: 0,
+      commentPreview: [],
       updatedAt: Date.now(),
     });
   });
+}
+function commentRef(
+  post: FirebaseFirestore.DocumentReference,
+  id: string,
+  parentId?: string,
+) {
+  return post.collection(parentId ? "replies" : "comments").doc(id);
+}
+function storedComment(comment: PhotoComment): PhotoComment {
+  const { liked: _liked, ...data } = comment;
+  return data;
+}
+async function likedComments(
+  tx: FirebaseFirestore.Transaction,
+  post: FirebaseFirestore.DocumentReference,
+  comments: PhotoComment[],
+  uid: string,
+) {
+  return Promise.all(
+    comments.map(async (comment) => {
+      if (comment.status !== "active")
+        return {
+          ...comment,
+          body: "",
+          authorHandle: "",
+          likeCount: 0,
+          liked: false,
+        };
+      const like = await tx.get(
+        commentRef(post, comment.id, comment.parentId)
+          .collection("likes")
+          .doc(uid),
+      );
+      return {
+        ...comment,
+        likeCount: comment.likeCount ?? 0,
+        replyCount: comment.replyCount ?? 0,
+        liked: like.exists,
+      };
+    }),
+  );
+}
+async function readRecentComments(
+  tx: FirebaseFirestore.Transaction,
+  post: FirebaseFirestore.DocumentReference,
+  excluded?: string,
+) {
+  const snapshots = await Promise.all(
+    ["comments", "replies"].map((collection) =>
+      tx.get(
+        post
+          .collection(collection)
+          .where("status", "==", "active")
+          .orderBy("createdAt", "desc")
+          .orderBy(FieldPath.documentId(), "desc")
+          .limit(COMMENT_PREVIEW_SIZE + 1),
+      ),
+    ),
+  );
+  return recentComments(
+    snapshots
+      .flatMap((snapshot) =>
+        snapshot.docs.map((doc) => doc.data() as PhotoComment),
+      )
+      .filter((comment) => comment.id !== excluded),
+  );
+}
+async function currentPreview(
+  tx: FirebaseFirestore.Transaction,
+  ref: FirebaseFirestore.DocumentReference,
+  post: PhotoPost,
+) {
+  return post.commentPreview ?? readRecentComments(tx, ref);
+}
+async function socialView(
+  tx: FirebaseFirestore.Transaction,
+  ref: FirebaseFirestore.DocumentReference,
+  post: PhotoPost,
+  uid: string,
+) {
+  return likedComments(tx, ref, await currentPreview(tx, ref, post), uid);
 }
 export async function handlePhotoBoard(
   request: CallableRequest,
@@ -140,6 +225,11 @@ export async function handlePhotoBoard(
           tx.get(db.doc(`photoPosts/${post.id}/likes/${auth.me.id}`)),
         ),
       );
+      const previews = await Promise.all(
+        page.map((post) =>
+          socialView(tx, db.doc(`photoPosts/${post.id}`), post, auth.me.id),
+        ),
+      );
       // All reads must precede this profile update.
       if (auth.profile.data()?.photoGeneration !== auth.generation)
         tx.update(auth.profileRef, { photoGeneration: auth.generation });
@@ -150,6 +240,7 @@ export async function handlePhotoBoard(
           likeCount: post.likeCount ?? 0,
           commentCount: post.commentCount ?? 0,
           liked: likes[index].exists,
+          commentPreview: previews[index],
         })),
         nextCursor:
           posts.size > PHOTO_PAGE_SIZE && last
@@ -164,7 +255,14 @@ export async function handlePhotoBoard(
   }
   const ref = db.doc(`photoPosts/${input.id}`);
   if (
-    ["like", "comments", "addComment", "deleteComment"].includes(input.action)
+    [
+      "like",
+      "comments",
+      "replies",
+      "likeComment",
+      "addComment",
+      "deleteComment",
+    ].includes(input.action)
   ) {
     return db.runTransaction(async (tx) => {
       const auth = await authorize(tx, request);
@@ -193,19 +291,28 @@ export async function handlePhotoBoard(
       if (input.action === "comments") {
         let query = ref
           .collection("comments")
-          .where("status", "==", "active")
+          .where("status", "in", ["active", "thread"])
           .orderBy("createdAt", "desc")
           .orderBy(FieldPath.documentId(), "desc")
           .limit(COMMENT_PAGE_SIZE + 1);
         if (input.cursor)
           query = query.startAfter(input.cursor.createdAt, input.cursor.id);
         const snapshot = await tx.get(query);
-        const comments = snapshot.docs
-          .slice(0, COMMENT_PAGE_SIZE)
-          .map((doc) => doc.data() as PhotoComment);
+        const [comments, commentPreview] = await Promise.all([
+          likedComments(
+            tx,
+            ref,
+            snapshot.docs
+              .slice(0, COMMENT_PAGE_SIZE)
+              .map((doc) => doc.data() as PhotoComment),
+            auth.me.id,
+          ),
+          socialView(tx, ref, post, auth.me.id),
+        ]);
         const last = comments.at(-1);
         return {
           comments,
+          commentPreview,
           commentCount: post.commentCount ?? 0,
           nextCommentCursor:
             snapshot.size > COMMENT_PAGE_SIZE && last
@@ -213,26 +320,142 @@ export async function handlePhotoBoard(
               : null,
         };
       }
+      if (input.action === "replies") {
+        const parent = (
+          await tx.get(ref.collection("comments").doc(input.parentId))
+        ).data() as PhotoComment | undefined;
+        if (!parent || !["active", "thread"].includes(parent.status))
+          throw new HttpsError("not-found", "댓글을 더 이상 볼 수 없어요.");
+        let query = ref
+          .collection("replies")
+          .where("parentId", "==", input.parentId)
+          .where("status", "==", "active")
+          .orderBy("createdAt", "desc")
+          .orderBy(FieldPath.documentId(), "desc")
+          .limit(COMMENT_PAGE_SIZE + 1);
+        if (input.cursor)
+          query = query.startAfter(input.cursor.createdAt, input.cursor.id);
+        const snapshot = await tx.get(query);
+        const [replies, parents, commentPreview] = await Promise.all([
+          likedComments(
+            tx,
+            ref,
+            snapshot.docs
+              .slice(0, COMMENT_PAGE_SIZE)
+              .map((doc) => doc.data() as PhotoComment),
+            auth.me.id,
+          ),
+          likedComments(tx, ref, [parent], auth.me.id),
+          socialView(tx, ref, post, auth.me.id),
+        ]);
+        const last = replies.at(-1);
+        return {
+          replies,
+          parentComment: parents[0],
+          commentPreview,
+          commentCount: post.commentCount ?? 0,
+          nextReplyCursor:
+            snapshot.size > COMMENT_PAGE_SIZE && last
+              ? { id: last.id, createdAt: last.createdAt }
+              : null,
+        };
+      }
+      if (input.action === "likeComment") {
+        const target = commentRef(ref, input.commentId, input.parentId);
+        const likeRef = target.collection("likes").doc(auth.me.id);
+        const [snapshot, existing] = await Promise.all([
+          tx.get(target),
+          tx.get(likeRef),
+        ]);
+        const comment = snapshot.data() as PhotoComment | undefined;
+        if (
+          !comment ||
+          comment.status !== "active" ||
+          comment.parentId !== input.parentId
+        )
+          throw new HttpsError(
+            "not-found",
+            "댓글이 삭제되었거나 더 이상 볼 수 없어요.",
+          );
+        if (input.parentId) {
+          const parent = await tx.get(
+            ref.collection("comments").doc(input.parentId),
+          );
+          if (
+            !parent.exists ||
+            !["active", "thread"].includes(parent.data()!.status)
+          )
+            throw new HttpsError("not-found", "답글 대상을 확인해주세요.");
+        }
+        const likeCount = Math.max(
+          0,
+          (comment.likeCount ?? 0) +
+            (existing.exists === input.liked ? 0 : input.liked ? 1 : -1),
+        );
+        if (existing.exists !== input.liked) {
+          if (input.liked) tx.create(likeRef, { createdAt: now });
+          else tx.delete(likeRef);
+          tx.update(target, { likeCount });
+          if (post.commentPreview?.some((item) => item.id === comment.id))
+            tx.update(ref, {
+              commentPreview: post.commentPreview.map((item) =>
+                storedComment(
+                  item.id === comment.id ? { ...item, likeCount } : item,
+                ),
+              ),
+            });
+        }
+        return { comment: { ...comment, likeCount, liked: input.liked } };
+      }
       if (input.action === "addComment") {
-        const commentRef = ref.collection("comments").doc(input.commentId);
-        const day = new Date(now).toISOString().slice(0, 10);
-        const limitRef = db.doc(`photoCommentLimits/${day}_${auth.me.id}`);
-        const [existing, limit] = await Promise.all([
-          tx.get(commentRef),
+        const target = commentRef(ref, input.commentId, input.parentId);
+        const other = ref
+          .collection(input.parentId ? "comments" : "replies")
+          .doc(input.commentId);
+        const day = new Date(now).toISOString().slice(0, 10),
+          limitRef = db.doc(`photoCommentLimits/${day}_${auth.me.id}`);
+        const [existing, collision, limit] = await Promise.all([
+          tx.get(target),
+          tx.get(other),
           tx.get(limitRef),
         ]);
+        if (collision.exists)
+          throw new HttpsError(
+            "already-exists",
+            "이미 처리된 댓글이에요. 다시 작성해주세요.",
+          );
+        const replyToId = input.parentId
+          ? (input.replyToId ?? input.parentId)
+          : undefined;
         if (existing.exists) {
           const comment = existing.data() as PhotoComment;
           if (
             comment.authorId !== auth.me.id ||
             comment.body !== input.body ||
-            comment.status !== "active"
+            comment.status !== "active" ||
+            comment.parentId !== input.parentId ||
+            comment.replyToId !== replyToId
           )
             throw new HttpsError(
               "already-exists",
               "이미 처리된 댓글이에요. 내용을 확인한 뒤 다시 작성해주세요.",
             );
-          return { comment, commentCount: post.commentCount ?? 0 };
+          const parent = input.parentId
+            ? ((
+                await tx.get(ref.collection("comments").doc(input.parentId))
+              ).data() as PhotoComment | undefined)
+            : undefined;
+          const [comments, parents, commentPreview] = await Promise.all([
+            likedComments(tx, ref, [comment], auth.me.id),
+            likedComments(tx, ref, parent ? [parent] : [], auth.me.id),
+            socialView(tx, ref, post, auth.me.id),
+          ]);
+          return {
+            comment: comments[0],
+            ...(parents[0] ? { parentComment: parents[0] } : {}),
+            commentPreview,
+            commentCount: post.commentCount ?? 0,
+          };
         }
         if ((post.commentCount ?? 0) >= COMMENTS_PER_POST)
           throw new HttpsError(
@@ -244,6 +467,26 @@ export async function handlePhotoBoard(
             "resource-exhausted",
             "오늘 작성할 수 있는 댓글 수를 모두 사용했어요. 내일 다시 남겨주세요.",
           );
+        let parent: PhotoComment | undefined, replyTo: PhotoComment | undefined;
+        if (input.parentId) {
+          parent = (
+            await tx.get(ref.collection("comments").doc(input.parentId))
+          ).data() as PhotoComment | undefined;
+          if (!parent || !["active", "thread"].includes(parent.status))
+            throw new HttpsError("not-found", "답글을 남길 댓글이 없어요.");
+          replyTo =
+            replyToId === input.parentId
+              ? parent
+              : ((
+                  await tx.get(ref.collection("replies").doc(replyToId!))
+                ).data() as PhotoComment | undefined);
+          if (
+            !replyTo ||
+            replyTo.status !== "active" ||
+            (replyTo.id !== parent.id && replyTo.parentId !== parent.id)
+          )
+            throw new HttpsError("not-found", "답글을 남길 댓글이 없어요.");
+        }
         const comment: PhotoComment = {
           id: input.commentId,
           authorId: auth.me.id,
@@ -251,30 +494,133 @@ export async function handlePhotoBoard(
           body: input.body,
           createdAt: now,
           status: "active",
+          likeCount: 0,
+          ...(parent
+            ? {
+                parentId: parent.id,
+                replyToId: replyTo!.id,
+                replyToHandle: replyTo!.authorHandle,
+              }
+            : { replyCount: 0 }),
         };
+        const updatedParent = parent
+          ? { ...parent, replyCount: (parent.replyCount ?? 0) + 1 }
+          : undefined;
+        const previous = (await currentPreview(tx, ref, post)).map((item) =>
+          updatedParent && item.id === updatedParent.id ? updatedParent : item,
+        );
+        const preview = recentComments([comment, ...previous]);
+        const [commentPreview, parents] = await Promise.all([
+          likedComments(tx, ref, preview, auth.me.id),
+          likedComments(
+            tx,
+            ref,
+            updatedParent ? [updatedParent] : [],
+            auth.me.id,
+          ),
+        ]);
         const commentCount = (post.commentCount ?? 0) + 1;
-        tx.create(commentRef, comment);
+        tx.create(target, comment);
         tx.set(limitRef, { count: (limit.data()?.count ?? 0) + 1, day });
-        tx.update(ref, { commentCount });
-        return { comment, commentCount };
+        if (updatedParent)
+          tx.update(ref.collection("comments").doc(updatedParent.id), {
+            replyCount: updatedParent.replyCount,
+          });
+        tx.update(ref, {
+          commentCount,
+          commentPreview: preview.map(storedComment),
+        });
+        return {
+          comment: { ...comment, liked: false },
+          ...(parents[0] ? { parentComment: parents[0] } : {}),
+          commentPreview,
+          commentCount,
+        };
       }
       if (input.action === "deleteComment") {
-        const commentRef = ref.collection("comments").doc(input.commentId);
-        const existing = await tx.get(commentRef);
-        if (!existing.exists) return { commentCount: post.commentCount ?? 0 };
-        const comment = existing.data() as PhotoComment;
+        const target = commentRef(ref, input.commentId, input.parentId),
+          existing = await tx.get(target);
+        const comment = existing.data() as PhotoComment | undefined;
+        if (!comment)
+          return {
+            commentCount: post.commentCount ?? 0,
+            commentPreview: await socialView(tx, ref, post, auth.me.id),
+          };
+        if (comment.parentId !== input.parentId)
+          throw new HttpsError("not-found", "댓글을 찾을 수 없어요.");
         if (comment.authorId !== auth.me.id && auth.me.role === "member")
           throw new HttpsError(
             "permission-denied",
             "본인이 작성한 댓글만 삭제할 수 있어요.",
           );
-        if (comment.status === "deleted")
-          return { commentCount: post.commentCount ?? 0 };
+        const parent = input.parentId
+          ? ((
+              await tx.get(ref.collection("comments").doc(input.parentId))
+            ).data() as PhotoComment | undefined)
+          : undefined;
+        if (comment.status !== "active") {
+          const [commentPreview, parents] = await Promise.all([
+            socialView(tx, ref, post, auth.me.id),
+            likedComments(tx, ref, parent ? [parent] : [], auth.me.id),
+          ]);
+          return {
+            comment: { ...comment, body: "", liked: false, likeCount: 0 },
+            ...(parents[0] ? { parentComment: parents[0] } : {}),
+            commentPreview,
+            commentCount: post.commentCount ?? 0,
+          };
+        }
+        const deleted: PhotoComment = {
+          ...comment,
+          body: "",
+          likeCount: 0,
+          status:
+            !input.parentId && (comment.replyCount ?? 0) > 0
+              ? "thread"
+              : "deleted",
+        };
+        const updatedParent = parent
+          ? { ...parent, replyCount: Math.max(0, (parent.replyCount ?? 0) - 1) }
+          : undefined;
+        if (
+          updatedParent?.status === "thread" &&
+          updatedParent.replyCount === 0
+        )
+          updatedParent.status = "deleted";
+        let preview = await readRecentComments(tx, ref, comment.id);
+        preview = recentComments(
+          preview.map((item) =>
+            updatedParent && item.id === updatedParent.id
+              ? updatedParent
+              : item,
+          ),
+        );
+        const [commentPreview, parents] = await Promise.all([
+          likedComments(tx, ref, preview, auth.me.id),
+          likedComments(
+            tx,
+            ref,
+            updatedParent ? [updatedParent] : [],
+            auth.me.id,
+          ),
+        ]);
         const commentCount = Math.max(0, (post.commentCount ?? 0) - 1);
-        // A small tombstone makes retries safe and prevents a deleted comment from reappearing.
-        tx.update(commentRef, { body: "", status: "deleted" });
-        tx.update(ref, { commentCount });
-        return { commentCount };
+        tx.update(target, { body: "", status: deleted.status, likeCount: 0 });
+        if (updatedParent)
+          tx.update(ref.collection("comments").doc(updatedParent.id), {
+            replyCount: updatedParent.replyCount,
+            status: updatedParent.status,
+          });
+        tx.update(ref, {
+          commentCount,
+          commentPreview: preview.map(storedComment),
+        });
+        return {
+          comment: { ...deleted, liked: false },
+          ...(parents[0] ? { parentComment: parents[0] } : {}),
+          commentPreview,
+          commentCount,
+        };
       }
       throw new HttpsError("invalid-argument", "요청 내용을 확인해주세요.");
     });

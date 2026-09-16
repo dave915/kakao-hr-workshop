@@ -6200,3 +6200,154 @@ td .text-button {
     transition: none;
   }
 }
+
+.photo-comment-preview {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.photo-comment-preview > li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.photo-preview-body {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 0;
+  min-height: 44px;
+  text-align: left;
+  font-size: 0.93rem;
+  line-height: 1.65;
+}
+.photo-preview-body > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.photo-preview-body strong {
+  font-weight: 700;
+  margin-right: 4px;
+}
+.photo-comment-heart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 2px;
+  width: 36px;
+  min-height: 44px;
+  padding: 5px;
+  color: var(--muted);
+}
+.photo-comment-heart.is-liked {
+  color: #b9493f;
+}
+.photo-comment-heart > span {
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.photo-comments-list > li {
+  display: block;
+}
+.photo-comment-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.photo-comment-row > .photo-comment-heart {
+  margin-top: -5px;
+}
+.photo-comment-meta {
+  flex-wrap: wrap;
+  gap: 3px 12px;
+}
+.photo-comment-reply {
+  min-height: 32px;
+  padding: 4px 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.photo-reply-mention {
+  color: var(--green);
+  font-weight: 500;
+}
+.photo-thread {
+  margin-left: 28px;
+}
+.photo-thread-toggle,
+.photo-replies-more {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 4px 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.photo-replies-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.photo-replies-list > li {
+  padding: 10px 0;
+}
+.photo-replies-list .avatar {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  font-size: 12px;
+}
+.photo-thread-status {
+  padding: 8px 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.photo-reply-target {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 12px;
+  margin-top: 12px;
+  border-radius: 8px;
+  background: var(--soft-green);
+  color: var(--green);
+  font-size: 0.85rem;
+}
+.photo-reply-target .icon-button {
+  flex-shrink: 0;
+  width: 36px;
+  height: 40px;
+}
+.photo-reply-target > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.photo-reply-target + .photo-comment-form {
+  margin-top: 8px;
+  border-top: 0;
+  padding-top: 8px;
+}
+.photo-deleted-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--muted);
+  background: var(--soft-green);
+}
+.photo-comment-content .photo-deleted-copy {
+  color: var(--muted);
+  font-size: 0.9rem;
+}

@@ -8,10 +8,11 @@ import {
   Heart,
   MessageCircle,
 } from "lucide-react";
-import type { PhotoPost } from "../../shared/photos";
+import type { PhotoPost, PhotoComment } from "../../shared/photos";
 import { englishName, formatDate, formatTime } from "../lib/utils";
 import { Avatar } from "./common";
 import PhotoImage from "./PhotoImage";
+import CommentHeart from "./CommentHeart";
 
 export default function PhotoFeedPost({
   post,
@@ -21,6 +22,8 @@ export default function PhotoFeedPost({
   onDelete,
   onLike,
   onComments,
+  onCommentLike,
+  commentLikeBusy,
   likeBusy,
   disabled,
 }: {
@@ -30,7 +33,9 @@ export default function PhotoFeedPost({
   onOpen: (post: PhotoPost, index: number) => void;
   onDelete: (post: PhotoPost) => void;
   onLike: (post: PhotoPost) => void;
-  onComments: (post: PhotoPost) => void;
+  onComments: (post: PhotoPost, comment?: PhotoComment) => void;
+  onCommentLike: (post: PhotoPost, comment: PhotoComment) => void;
+  commentLikeBusy: (comment: PhotoComment) => boolean;
   likeBusy: boolean;
   disabled: boolean;
 }) {
@@ -261,6 +266,36 @@ export default function PhotoFeedPost({
               </button>
             )}
           </div>
+        )}
+        {Boolean(post.commentPreview?.length) && (
+          <ol className="photo-comment-preview" aria-label="최근 댓글 미리보기">
+            {post.commentPreview!.map((comment) => (
+              <li key={comment.id} data-preview-comment-id={comment.id}>
+                <button
+                  className="photo-preview-body"
+                  disabled={disabled}
+                  onClick={() => onComments(post, comment)}
+                  aria-label={`${englishName(comment.authorHandle)}의 ${comment.parentId ? "답글" : "댓글"} 보기`}
+                >
+                  <span>
+                    <strong>{englishName(comment.authorHandle)}</strong>{" "}
+                    {comment.parentId && comment.replyToHandle && (
+                      <span className="photo-reply-mention">
+                        ↳ @{englishName(comment.replyToHandle)}{" "}
+                      </span>
+                    )}
+                    {comment.body}
+                  </span>
+                </button>
+                <CommentHeart
+                  comment={comment}
+                  busy={commentLikeBusy(comment)}
+                  disabled={disabled}
+                  onClick={() => onCommentLike(post, comment)}
+                />
+              </li>
+            ))}
+          </ol>
         )}
         <button
           className="photo-comments-link"

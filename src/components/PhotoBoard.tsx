@@ -16,6 +16,7 @@ import {
   publishPhotos,
   removePhotoPost,
   setPhotoLike,
+  setPhotoCommentLike,
 } from "../lib/photos";
 import { preparePhoto, type PreparedPhoto } from "../lib/photo-images";
 import {
@@ -23,6 +24,8 @@ import {
   PHOTOS_PER_POST,
   type PhotoCursor,
   type PhotoPost,
+  type PhotoComment,
+  type PhotoResponse,
 } from "../../shared/photos";
 import { Drawer, Empty, type Notify } from "./common";
 import PhotoImage from "./PhotoImage";
@@ -46,8 +49,15 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
     [error, setError] = useState("");
   const [remaining, setRemaining] = useState(PHOTO_MEMBER_MONTHLY_LIMIT);
   const [liking, setLiking] = useState<Set<string>>(() => new Set());
-  const [commentsFor, setCommentsFor] = useState<string | null>(null);
+  const [commentsFor, setCommentsFor] = useState<{
+    postId: string;
+    initialComment?: PhotoComment;
+  } | null>(null);
   const likeLocks = useRef(new Set<string>());
+  const commentLikeLocks = useRef(new Set<string>());
+  const [commentLiking, setCommentLiking] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [compose, setCompose] = useState(false),
     [photos, setPhotos] = useState<PreparedPhoto[]>([]),
     [caption, setCaption] = useState("");
@@ -74,7 +84,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
     };
   }, []);
   async function load(more = false) {
-    if (!me || likeLocks.current.size) return;
+    if (!me || likeLocks.current.size || commentLikeLocks.current.size) return;
     const version = ++loadVersion.current;
     setLoading(true);
     setError("");
@@ -118,7 +128,73 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
   }, [posting]);
   if (!state || !me) return null;
   const busy = posting || preparing;
-  const commentPost = posts.find((post) => post.id === commentsFor);
+  const commentPost = posts.find((post) => post.id === commentsFor?.postId);
+  function updateComments(postId: string, result: PhotoResponse) {
+    setPosts((current) =>
+      current.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              ...(result.commentCount !== undefined
+                ? { commentCount: result.commentCount }
+                : {}),
+              ...(result.commentPreview
+                ? { commentPreview: result.commentPreview }
+                : {}),
+            }
+          : post,
+      ),
+    );
+  }
+  function updatePreviewComment(postId: string, comment: PhotoComment) {
+    setPosts((current) =>
+      current.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              commentPreview: post.commentPreview
+                ?.map((item) => (item.id === comment.id ? comment : item))
+                .filter((item) => item.status === "active"),
+            }
+          : post,
+      ),
+    );
+  }
+  async function likePreviewComment(post: PhotoPost, comment: PhotoComment) {
+    const key = `${post.id}/${comment.id}`;
+    if (!me || loading || commentLikeLocks.current.has(key)) return;
+    if (!navigator.onLine) {
+      notify("인터넷에 연결한 뒤 하트를 눌러주세요.");
+      return;
+    }
+    commentLikeLocks.current.add(key);
+    setCommentLiking(new Set(commentLikeLocks.current));
+    updatePreviewComment(post.id, {
+      ...comment,
+      liked: !comment.liked,
+      likeCount: Math.max(
+        0,
+        (comment.likeCount ?? 0) + (comment.liked ? -1 : 1),
+      ),
+    });
+    try {
+      const result = await setPhotoCommentLike(
+        post,
+        me,
+        comment,
+        !comment.liked,
+      );
+      if (mounted.current) updatePreviewComment(post.id, result);
+    } catch (error) {
+      if (mounted.current) {
+        updatePreviewComment(post.id, comment);
+        notify(errorMessage(error));
+      }
+    } finally {
+      commentLikeLocks.current.delete(key);
+      if (mounted.current) setCommentLiking(new Set(commentLikeLocks.current));
+    }
+  }
   async function like(post: PhotoPost) {
     if (!me || loading || likeLocks.current.has(post.id)) return;
     if (!navigator.onLine) {
@@ -257,7 +333,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
         <button
           className="icon-button"
           onClick={() => void load()}
-          disabled={loading || liking.size > 0}
+          disabled={loading || liking.size > 0 || commentLiking.size > 0}
           aria-label="사진첩 새로고침"
           title="새로고침"
         >
@@ -307,9 +383,20 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
             canDelete={me.id === post.authorId || me.role !== "member"}
             onOpen={openPhoto}
             likeBusy={liking.has(post.id)}
-            disabled={loading}
+            disabled={
+              loading ||
+              [...commentLiking].some((key) => key.startsWith(`${post.id}/`))
+            }
             onLike={(post) => void like(post)}
-            onComments={(post) => setCommentsFor(post.id)}
+            onComments={(post, initialComment) =>
+              setCommentsFor({ postId: post.id, initialComment })
+            }
+            onCommentLike={(post, comment) =>
+              void likePreviewComment(post, comment)
+            }
+            commentLikeBusy={(comment) =>
+              commentLiking.has(`${post.id}/${comment.id}`)
+            }
             onDelete={(post) => {
               setDeleteError("");
               setDeleting(post);
@@ -321,7 +408,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
         <button
           className="button photo-load-more"
           onClick={() => void load(true)}
-          disabled={loading || liking.size > 0}
+          disabled={loading || liking.size > 0 || commentLiking.size > 0}
         >
           {loading ? "불러오는 중…" : "더 많은 순간 보기"}
         </button>
@@ -335,12 +422,10 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
           key={commentPost.id}
           post={commentPost}
           member={me}
-          onCount={(commentCount) =>
-            setPosts((current) =>
-              current.map((post) =>
-                post.id === commentPost.id ? { ...post, commentCount } : post,
-              ),
-            )
+          initialComment={commentsFor?.initialComment}
+          onUpdate={(result) => updateComments(commentPost.id, result)}
+          onCommentChange={(comment) =>
+            updatePreviewComment(commentPost.id, comment)
           }
           onClose={() => setCommentsFor(null)}
         />
