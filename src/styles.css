@@ -551,6 +551,7 @@ main {
   z-index: 2;
   padding: 33px 0 29px 34px;
   width: 56%;
+  min-width: 0;
   pointer-events: none;
 }
 .hero-copy > button {
@@ -573,6 +574,9 @@ main {
   letter-spacing: -2px;
   line-height: 1.19;
   color: #354c34;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 .hero h2 span {
   color: #354c34;
@@ -602,13 +606,19 @@ main {
   padding: 10px 15px;
   border-radius: 6px;
 }
-.hero .expedition-art {
+.hero-art {
   position: absolute;
   height: 100%;
   width: 64%;
-  right: -5px;
+  right: 0;
   bottom: -1px;
-  object-fit: cover;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hero-art > .expedition-art {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .hero-stamp {
   border: 1px solid #acaa71;
@@ -2365,9 +2375,8 @@ td .text-button {
     grid-template-columns: minmax(0, 1fr) 300px;
     gap: 38px;
   }
-  .hero .expedition-art {
+  .hero-art {
     width: 65%;
-    right: 8px;
   }
   .schedule-row {
     min-height: 90px;
@@ -2413,9 +2422,8 @@ td .text-button {
   .hero-copy > p {
     font-size: 11px;
   }
-  .hero .expedition-art {
+  .hero-art {
     width: 66%;
-    right: -50px;
   }
   .hero h2 {
     font-size: 44px;
@@ -2529,8 +2537,7 @@ td .text-button {
   .home-footer {
     margin-top: 26px;
   }
-  .hero .expedition-art {
-    right: -73px;
+  .hero-art {
     width: 70%;
   }
   .page-intro {
@@ -2709,7 +2716,7 @@ td .text-button {
     isolation: isolate;
   }
   .hero-copy {
-    padding: 24px 21px;
+    padding: 24px 21px 168px;
     width: 100%;
     position: relative;
     z-index: 2;
@@ -2722,6 +2729,7 @@ td .text-button {
   .hero h2 {
     font-size: 43px;
     letter-spacing: -1.5px;
+    max-width: calc(100% - 56px);
   }
   .hero-copy > p {
     font-size: 10px;
@@ -2741,13 +2749,21 @@ td .text-button {
     min-height: 39px;
     padding: 9px 12px;
   }
-  .hero .expedition-art {
-    height: 265px;
-    width: 410px;
-    max-width: none;
-    right: -104px;
+  .hero-art {
+    height: 240px;
+    width: 100%;
     bottom: -1px;
     z-index: 1;
+  }
+  .hero-art > .expedition-art {
+    position: absolute;
+    width: 100%;
+    min-width: 410px;
+    max-width: none;
+    height: auto;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
   }
   .hero-stamp {
     right: 20px;

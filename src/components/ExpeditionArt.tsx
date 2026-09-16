@@ -1,8 +1,13 @@
-export function ExpeditionArt() {
+export function ExpeditionArt({
+  preserveAspectRatio = "xMidYMid meet",
+}: {
+  preserveAspectRatio?: string;
+}) {
   return (
     <svg
       className="expedition-art"
       viewBox="0 0 650 380"
+      preserveAspectRatio={preserveAspectRatio}
       role="img"
       aria-label="초록 언덕과 보물 상자, 함께 떠나는 탐험 지도"
     >

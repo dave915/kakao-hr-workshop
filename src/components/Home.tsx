@@ -84,7 +84,9 @@ export default function Home({
             <ArrowUpRight size={17} />
           </button>
         </div>
-        <ExpeditionArt />
+        <div className="hero-art">
+          <ExpeditionArt preserveAspectRatio="xMidYMax meet" />
+        </div>
         <div className="hero-stamp">
           LET’S
           <br />
