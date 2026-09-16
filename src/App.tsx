@@ -50,6 +50,7 @@ const navigation = [
   { id: "photos", name: "우리의 사진첩", short: "사진첩", icon: Images },
   { id: "notices", name: "베이스캠프 소식", short: "소식", icon: Bell },
 ] as const;
+const mobileNavigation = navigation.filter((item) => item.id !== "notices");
 const pageNames: Record<Page, string> = {
   home: "탐험 홈",
   timeline: "오늘의 여정",
@@ -471,7 +472,7 @@ export default function App() {
         </main>
       </div>
       <nav className="bottom-nav" aria-label="모바일 메뉴">
-        {navigation.map((n) => (
+        {mobileNavigation.map((n) => (
           <button
             key={n.id}
             className={page === n.id ? "active" : ""}
