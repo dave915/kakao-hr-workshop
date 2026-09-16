@@ -31,6 +31,15 @@
     "logging": {
       "port": 4587
     },
-    "singleProjectMode": true
-  }
+    "singleProjectMode": true,
+    "storage": {
+      "port": 9487
+    }
+  },
+  "storage": [
+    {
+      "target": "photos",
+      "rules": "storage.rules"
+    }
+  ]
 }

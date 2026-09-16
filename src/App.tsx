@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Footprints,
   Menu,
+  Images,
 } from "lucide-react";
 import Home from "./components/Home";
 import Timeline from "./components/Timeline";
@@ -40,11 +41,13 @@ import { useUnreadNotices } from "./lib/notice-read";
 import type { Page } from "../shared/types";
 const Treasure = lazy(() => import("./components/Treasure"));
 const Admin = lazy(() => import("./components/Admin"));
+const PhotoBoard = lazy(() => import("./components/PhotoBoard"));
 const navigation = [
   { id: "home", name: "탐험 홈", short: "홈", icon: HomeIcon },
   { id: "timeline", name: "오늘의 여정", short: "일정", icon: CalendarDays },
   { id: "treasure", name: "보물찾기", short: "보물찾기", icon: Compass },
   { id: "team", name: "우리 탐험대", short: "우리 팀", icon: Flag },
+  { id: "photos", name: "우리의 사진첩", short: "사진첩", icon: Images },
   { id: "notices", name: "베이스캠프 소식", short: "소식", icon: Bell },
 ] as const;
 const pageNames: Record<Page, string> = {
@@ -53,6 +56,7 @@ const pageNames: Record<Page, string> = {
   treasure: "보물찾기",
   team: "우리 탐험대",
   notices: "베이스캠프 소식",
+  photos: "우리의 사진첩",
   profile: "나의 탐험 여권",
   admin: "추진위원회",
 };
@@ -449,6 +453,11 @@ export default function App() {
               <Team />
             ) : page === "notices" ? (
               <Notices />
+            ) : page === "photos" ? (
+              <PhotoBoard
+                key={`${me.id}:${state.resetGeneration ?? 0}`}
+                notify={notify}
+              />
             ) : page === "profile" ? (
               <Profile
                 notify={notify}

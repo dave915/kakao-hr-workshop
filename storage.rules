@@ -1,0 +1,26 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function profile() { return firestore.get(/databases/(default)/documents/members/$(request.auth.uid)).data; }
+    function post(id) { return firestore.get(/databases/(default)/documents/photoPosts/$(id)).data; }
+    function session(p) {
+      return request.auth != null && request.auth.token.sessionVersion == profile().sessionVersion
+        && profile().get('photoGeneration', 0) == p.generation;
+    }
+    function matchesPost(p, generation, author, id, file) {
+      return p.id == id && p.authorId == author && p.generation == int(generation)
+        && file.matches('[0-2]-(full|thumb)\\.jpg')
+        && (file.matches('0-.*') || (file.matches('1-.*') && p.photos.size() >= 2) || (file.matches('2-.*') && p.photos.size() >= 3));
+    }
+    match /photo-uploads/{generation}/{author}/{id}/{file} {
+      allow get: if false;
+      allow create: if resource == null && request.auth != null && session(post(id)) && request.auth.uid == author
+        && matchesPost(post(id), generation, author, id, file)
+        && post(id).status == 'draft' && request.time.toMillis() < post(id).expiresAt
+        && request.resource.contentType == 'image/jpeg'
+        && request.resource.size > 0
+        && request.resource.size <= (file.matches('.*-thumb\\.jpg') ? 51200 : 512000);
+      allow list, update, delete: if false;
+    }
+  }
+}

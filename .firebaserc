@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "kakao-hr-workshop-915"
+  },
+  "targets": {
+    "kakao-hr-workshop-915": {
+      "storage": {
+        "photos": ["kakao-hr-workshop-915-photos"]
+      }
+    },
+    "demo-workshop": {
+      "storage": {
+        "photos": ["demo-workshop-photos"]
+      }
+    }
   }
 }

@@ -1093,7 +1093,10 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         (d: { id: string }) => d.id,
       ),
     ).toEqual(["dave.h"]);
-    expect((await db.doc("members/dave.h").get()).data()).toEqual(adminProfile);
+    expect((await db.doc("members/dave.h").get()).data()).toEqual({
+      ...adminProfile,
+      photoGeneration: 1,
+    });
     expect(
       (await db.collection("pushTokens").get()).docs.map(
         (d: { id: string }) => d.id,

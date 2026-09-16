@@ -10,6 +10,8 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { handlePhotoBoard, cleanupPhotos } from "./photos";
 import { actionInput } from "../../shared/validation";
 import { mutate } from "../../shared/mutate";
 import { GameError, isAdmin } from "../../shared/game";
@@ -28,6 +30,14 @@ setGlobalOptions({
   serviceAccount: process.env.WORKSHOP_RUNTIME_SERVICE_ACCOUNT,
 });
 const db = getFirestore();
+export const photoBoardAction = onCall(
+  { cors: true, timeoutSeconds: 120 },
+  handlePhotoBoard,
+);
+export const cleanupPhotoBoard = onSchedule(
+  { schedule: "every 24 hours", timeoutSeconds: 540 },
+  cleanupPhotos,
+);
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 const stateRef = db.doc("workshops/main");
@@ -397,6 +407,10 @@ export const workshopAction = onCall(
             ]);
           for (const member of members.docs)
             if (!state.members[member.id]) tx.delete(member.ref);
+            else
+              tx.update(member.ref, {
+                photoGeneration: state.resetGeneration ?? 0,
+              });
           for (const invite of invites.docs)
             if (!state.members[invite.data().uid]) tx.delete(invite.ref);
           for (const token of pushTokens.docs)
@@ -432,6 +446,7 @@ export const workshopAction = onCall(
             tx.create(db.doc(`members/${invitation.memberId}`), {
               role: "member",
               sessionVersion: 1,
+              photoGeneration: state.resetGeneration ?? 0,
             });
             tx.create(db.doc(`invites/${hash(invitation.code)}`), {
               uid: invitation.memberId,
@@ -464,6 +479,7 @@ export const workshopAction = onCall(
           tx.set(db.doc(`members/${targetId}`), {
             role: member.role,
             sessionVersion: version,
+            photoGeneration: state.resetGeneration ?? 0,
           });
           tx.create(db.doc(`invites/${hash(code)}`), {
             uid: targetId,

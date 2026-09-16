@@ -1,6 +1,13 @@
 export type Role = "member" | "admin" | "superadmin";
 export type Page =
-  "home" | "timeline" | "treasure" | "team" | "notices" | "profile" | "admin";
+  | "home"
+  | "timeline"
+  | "treasure"
+  | "team"
+  | "notices"
+  | "photos"
+  | "profile"
+  | "admin";
 export interface Member {
   id: string;
   name: string;

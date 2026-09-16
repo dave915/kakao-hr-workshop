@@ -657,9 +657,9 @@ export default function Admin({ notify }: { notify: Notify }) {
             >
               <h2 id="reset-workshop-title">전체 초기화</h2>
               <p>
-                공지, 보물·꽝, 일정, 팀, 점수와 발견·휴식 기록을 모두 지워요.
-                슈퍼 어드민을 제외한 추진위원회와 참가자도 삭제하며, 기존 입장
-                링크와 로그인은 사용할 수 없게 돼요.
+                공지, 사진 게시글, 보물·꽝, 일정, 팀, 점수와 발견·휴식 기록을
+                모두 지워요. 슈퍼 어드민을 제외한 추진위원회와 참가자도
+                삭제하며, 기존 입장 링크와 로그인은 사용할 수 없게 돼요.
               </p>
               <p>
                 워크샵 설정은 기본값으로 돌아가고 보물찾기는 중지돼요. 슈퍼
@@ -672,7 +672,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                   setResetConfirmation("");
                   setConfirm({
                     title: "워크샵 전체 초기화",
-                    body: `공지 ${state.notices.length}개, 보물·꽝 ${state.treasures.length}개, 일정 ${state.schedule.length}개와 슈퍼 어드민을 제외한 인원 ${Object.values(state.members).filter((m) => m.role !== "superadmin").length}명을 삭제해요. 팀·점수·발견·휴식 기록을 지우고 워크샵 설정을 기본값으로 되돌려요. 삭제된 인원의 입장 링크와 기기 알림 등록도 지워져요. 슈퍼 어드민 계정과 입장 링크는 유지돼요. 이 작업은 되돌릴 수 없어요.`,
+                    body: `공지 ${state.notices.length}개, 보물·꽝 ${state.treasures.length}개, 일정 ${state.schedule.length}개와 슈퍼 어드민을 제외한 인원 ${Object.values(state.members).filter((m) => m.role !== "superadmin").length}명을 삭제해요. 사진 게시글과 팀·점수·발견·휴식 기록을 지우고 워크샵 설정을 기본값으로 되돌려요. 사진 파일은 순차적으로 정리돼요. 삭제된 인원의 입장 링크와 기기 알림 등록도 지워져요. 슈퍼 어드민 계정과 입장 링크는 유지돼요. 이 작업은 되돌릴 수 없어요.`,
                     input: {
                       action: "resetWorkshop",
                       confirmation: "전체 초기화",
