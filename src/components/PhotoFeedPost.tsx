@@ -8,7 +8,11 @@ import {
   Heart,
   MessageCircle,
 } from "lucide-react";
-import type { PhotoPost, PhotoComment } from "../../shared/photos";
+import {
+  threadedCommentPreview,
+  type PhotoPost,
+  type PhotoComment,
+} from "../../shared/photos";
 import { englishName, formatDate, formatTime } from "../lib/utils";
 import { Avatar } from "./common";
 import PhotoImage from "./PhotoImage";
@@ -52,6 +56,7 @@ export default function PhotoFeedPost({
   const first = post.photos[0];
   const ratio = Math.max(0.8, Math.min(4 / 3, first.width / first.height));
   const timestamp = new Date(post.createdAt).toISOString();
+  const preview = threadedCommentPreview(post.commentPreview ?? []);
   useEffect(() => {
     if (!menuOpen) return;
     const outside = (event: PointerEvent) => {
@@ -267,32 +272,50 @@ export default function PhotoFeedPost({
             )}
           </div>
         )}
-        {Boolean(post.commentPreview?.length) && (
+        {Boolean(preview.length) && (
           <ol className="photo-comment-preview" aria-label="최근 댓글 미리보기">
-            {post.commentPreview!.map((comment) => (
-              <li key={comment.id} data-preview-comment-id={comment.id}>
+            {preview.map((comment) => (
+              <li
+                key={comment.id}
+                className={comment.parentId ? "is-reply" : undefined}
+                data-preview-comment-id={comment.id}
+              >
                 <button
                   className="photo-preview-body"
                   disabled={disabled}
                   onClick={() => onComments(post, comment)}
-                  aria-label={`${englishName(comment.authorHandle)}의 ${comment.parentId ? "답글" : "댓글"} 보기`}
+                  aria-label={
+                    comment.status === "thread"
+                      ? "삭제된 댓글의 답글 보기"
+                      : `${englishName(comment.authorHandle)}의 ${comment.parentId ? "답글" : "댓글"} 보기`
+                  }
                 >
                   <span>
-                    <strong>{englishName(comment.authorHandle)}</strong>{" "}
-                    {comment.parentId && comment.replyToHandle && (
-                      <span className="photo-reply-mention">
-                        ↳ @{englishName(comment.replyToHandle)}{" "}
+                    {comment.status === "thread" ? (
+                      <span className="photo-deleted-copy">
+                        삭제된 댓글입니다.
                       </span>
+                    ) : (
+                      <>
+                        <strong>{englishName(comment.authorHandle)}</strong>{" "}
+                        {comment.parentId && comment.replyToHandle && (
+                          <span className="photo-reply-mention">
+                            ↳ @{englishName(comment.replyToHandle)}{" "}
+                          </span>
+                        )}
+                        {comment.body}
+                      </>
                     )}
-                    {comment.body}
                   </span>
                 </button>
-                <CommentHeart
-                  comment={comment}
-                  busy={commentLikeBusy(comment)}
-                  disabled={disabled}
-                  onClick={() => onCommentLike(post, comment)}
-                />
+                {comment.status === "active" && (
+                  <CommentHeart
+                    comment={comment}
+                    busy={commentLikeBusy(comment)}
+                    disabled={disabled}
+                    onClick={() => onCommentLike(post, comment)}
+                  />
+                )}
               </li>
             ))}
           </ol>

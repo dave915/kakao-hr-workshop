@@ -13,6 +13,7 @@ import {
   PHOTO_MEMBER_MONTHLY_LIMIT,
   COMMENT_PAGE_SIZE,
   recentComments,
+  threadedCommentPreview,
   COMMENTS_PER_POST,
   COMMENTS_PER_MEMBER_DAY,
   commentBody,
@@ -343,9 +344,10 @@ function demoCommentSummary(record: DemoPost, member: Member) {
   return {
     commentCount:
       record.comments?.filter((c) => c.status === "active").length ?? 0,
-    commentPreview: recentComments(record.comments ?? []).map((c) =>
-      demoComment(record, c, member),
-    ),
+    commentPreview: threadedCommentPreview(
+      recentComments(record.comments ?? []),
+      record.comments ?? [],
+    ).map((c) => demoComment(record, c, member)),
   };
 }
 function commentPage(comments: PhotoComment[], cursor?: PhotoCursor) {

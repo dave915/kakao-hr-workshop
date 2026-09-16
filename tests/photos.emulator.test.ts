@@ -956,14 +956,74 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
     preview = (await call({ action: "list" }, tokens["alex.k"])).result.posts[0]
       .commentPreview;
     expect(preview.map((c: { id: string }) => c.id)).toEqual([
+      ids[0],
       reply.id,
       ids[3],
-      ids[2],
     ]);
-    expect(preview[0].parentId).toBe(ids[0]);
+    expect(preview[1].parentId).toBe(ids[0]);
     expect(
       (await db.doc(`photoPosts/${post.id}`).get()).data().commentPreview,
     ).toHaveLength(3);
+  }, 30000);
+  it("hydrates a parent omitted from the cached recent replies and places it first without exposing deleted text", async () => {
+    const post = await published(),
+      root = await addThreadComment(post, "alex.k", "original parent text");
+    const first = await addThreadComment(
+      post,
+      "june.p",
+      "first reply",
+      root.id,
+    );
+    const second = await addThreadComment(
+      post,
+      "dave.h",
+      "second reply",
+      root.id,
+      first.id,
+    );
+    const third = await addThreadComment(
+      post,
+      "june.p",
+      "third reply",
+      root.id,
+      second.id,
+    );
+    const raw = (await db.doc(`photoPosts/${post.id}`).get()).data();
+    expect(raw.commentPreview.map((c: { id: string }) => c.id)).not.toContain(
+      root.id,
+    );
+    await call(
+      { action: "likeComment", id: post.id, commentId: root.id, liked: true },
+      tokens["june.p"],
+    );
+    const preview = (
+      await call({ action: "list" }, tokens["june.p"])
+    ).result.posts.find((p: PhotoPost) => p.id === post.id).commentPreview;
+    expect(preview.map((c: { id: string }) => c.id)).toEqual([
+      root.id,
+      second.id,
+      third.id,
+    ]);
+    expect(preview[0]).toMatchObject({ liked: true, likeCount: 1 });
+    const deleted = await call(
+      { action: "deleteComment", id: post.id, commentId: root.id },
+      tokens["alex.k"],
+    );
+    expect(
+      deleted.result.commentPreview.map((c: { id: string }) => c.id),
+    ).toEqual([root.id, second.id, third.id]);
+    expect(deleted.result.commentPreview[0]).toMatchObject({
+      status: "thread",
+      body: "",
+      liked: false,
+    });
+    expect(JSON.stringify(deleted.result.commentPreview)).not.toContain(
+      "original parent text",
+    );
+    const after = (
+      await call({ action: "list" }, tokens["june.p"])
+    ).result.posts.find((p: PhotoPost) => p.id === post.id).commentPreview;
+    expect(after[0]).toMatchObject({ id: root.id, status: "thread", body: "" });
   }, 30000);
   it("paginates replies without duplicates and removes reply hearts when a post is deleted", async () => {
     const post = await published(),

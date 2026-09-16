@@ -154,7 +154,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
               ...post,
               commentPreview: post.commentPreview
                 ?.map((item) => (item.id === comment.id ? comment : item))
-                .filter((item) => item.status === "active"),
+                .filter((item) => item.status !== "deleted"),
             }
           : post,
       ),

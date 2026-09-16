@@ -6211,6 +6211,12 @@ td .text-button {
   align-items: center;
   gap: 8px;
 }
+.photo-comment-preview > li.is-reply {
+  margin-left: 24px;
+}
+.photo-preview-body .photo-deleted-copy {
+  color: var(--muted);
+}
 .photo-preview-body {
   flex: 1;
   min-width: 0;

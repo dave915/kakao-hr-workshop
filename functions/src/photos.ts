@@ -16,6 +16,7 @@ import {
   COMMENT_PAGE_SIZE,
   COMMENT_PREVIEW_SIZE,
   recentComments,
+  threadedCommentPreview,
   COMMENTS_PER_POST,
   COMMENTS_PER_MEMBER_DAY,
   type PhotoComment,
@@ -184,7 +185,39 @@ async function socialView(
   post: PhotoPost,
   uid: string,
 ) {
-  return likedComments(tx, ref, await currentPreview(tx, ref, post), uid);
+  return previewView(tx, ref, await currentPreview(tx, ref, post), uid);
+}
+async function previewView(
+  tx: FirebaseFirestore.Transaction,
+  ref: FirebaseFirestore.DocumentReference,
+  candidates: PhotoComment[],
+  uid: string,
+  changedParents: PhotoComment[] = [],
+) {
+  const known = new Set(
+    [...candidates, ...changedParents]
+      .filter((c) => !c.parentId)
+      .map((c) => c.id),
+  );
+  const missing = [
+    ...new Set(
+      candidates.flatMap((c) =>
+        c.parentId && !known.has(c.parentId) ? [c.parentId] : [],
+      ),
+    ),
+  ];
+  const snapshots = await Promise.all(
+    missing.map((id) => tx.get(ref.collection("comments").doc(id))),
+  );
+  const parents = snapshots
+    .filter((snapshot) => snapshot.exists)
+    .map((snapshot) => snapshot.data() as PhotoComment);
+  return likedComments(
+    tx,
+    ref,
+    threadedCommentPreview(candidates, [...parents, ...changedParents]),
+    uid,
+  );
 }
 export async function handlePhotoBoard(
   request: CallableRequest,
@@ -511,7 +544,13 @@ export async function handlePhotoBoard(
         );
         const preview = recentComments([comment, ...previous]);
         const [commentPreview, parents] = await Promise.all([
-          likedComments(tx, ref, preview, auth.me.id),
+          previewView(
+            tx,
+            ref,
+            preview,
+            auth.me.id,
+            updatedParent ? [updatedParent] : [],
+          ),
           likedComments(
             tx,
             ref,
@@ -596,7 +635,15 @@ export async function handlePhotoBoard(
           ),
         );
         const [commentPreview, parents] = await Promise.all([
-          likedComments(tx, ref, preview, auth.me.id),
+          previewView(
+            tx,
+            ref,
+            preview,
+            auth.me.id,
+            [deleted, ...(updatedParent ? [updatedParent] : [])].filter(
+              (c) => !c.parentId,
+            ),
+          ),
           likedComments(
             tx,
             ref,

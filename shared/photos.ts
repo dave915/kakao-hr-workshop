@@ -147,6 +147,43 @@ export function recentComments(comments: PhotoComment[]) {
     .sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id))
     .slice(0, COMMENT_PREVIEW_SIZE);
 }
+/** Select recent conversations, then display each parent before its replies. */
+export function threadedCommentPreview(
+  candidates: PhotoComment[],
+  parents: PhotoComment[] = [],
+) {
+  const roots = new Map(
+    [...candidates, ...parents]
+      .filter((comment) => !comment.parentId)
+      .map((comment) => [comment.id, comment]),
+  );
+  const groups = new Map<string, PhotoComment[]>();
+  for (const comment of recentComments(candidates)) {
+    const rootId = comment.parentId ?? comment.id;
+    const replies = groups.get(rootId) ?? [];
+    if (comment.parentId && !replies.some((reply) => reply.id === comment.id))
+      replies.push(comment);
+    groups.set(rootId, replies);
+  }
+  const preview: PhotoComment[] = [];
+  for (const [rootId, group] of groups) {
+    const root = roots.get(rootId);
+    if (!root || !["active", "thread"].includes(root.status)) continue;
+    if (preview.length >= COMMENT_PREVIEW_SIZE) break;
+    preview.push(root);
+    const replies = group
+      .slice(0, COMMENT_PREVIEW_SIZE - preview.length)
+      .sort((a, b) =>
+        a.replyToId === b.id
+          ? 1
+          : b.replyToId === a.id
+            ? -1
+            : a.createdAt - b.createdAt || a.id.localeCompare(b.id),
+      );
+    preview.push(...replies);
+  }
+  return preview;
+}
 export function photoPath(
   post: Pick<PhotoPost, "generation" | "authorId" | "id">,
   index: number,

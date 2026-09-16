@@ -7,9 +7,69 @@ import {
   PHOTO_MEMBER_MONTHLY_LIMIT,
   PHOTO_STORAGE_LIMIT,
   recentComments,
+  threadedCommentPreview,
   type PhotoComment,
 } from "../shared/photos";
 describe("photo board limits", () => {
+  const comment = (
+    id: string,
+    createdAt: number,
+    extra: Partial<PhotoComment> = {},
+  ): PhotoComment => ({
+    id,
+    createdAt,
+    authorId: "a",
+    authorHandle: "alex.k",
+    body: id,
+    status: "active",
+    ...extra,
+  });
+  it("shows the parent above its replies even when recent candidates arrive in reverse order", () => {
+    const root = comment("root", 1),
+      first = comment("reply-1", 2, { parentId: "root", replyToId: "root" }),
+      second = comment("reply-2", 3, {
+        parentId: "root",
+        replyToId: "reply-1",
+      });
+    const input = [second, first, root];
+    expect(threadedCommentPreview(input).map((c) => c.id)).toEqual([
+      "root",
+      "reply-1",
+      "reply-2",
+    ]);
+    expect(input.map((c) => c.id)).toEqual(["reply-2", "reply-1", "root"]);
+  });
+  it("includes a missing parent within the three-row limit, and never shows an orphaned reply", () => {
+    const root = comment("root", 1),
+      replies = [2, 3, 4].map((n) => comment(`r${n}`, n, { parentId: "root" }));
+    expect(threadedCommentPreview(replies, [root]).map((c) => c.id)).toEqual([
+      "root",
+      "r3",
+      "r4",
+    ]);
+    expect(threadedCommentPreview(replies)).toEqual([]);
+    const deleted = { ...root, status: "thread" as const, body: "" };
+    expect(threadedCommentPreview(replies, [deleted])[0]).toMatchObject({
+      id: "root",
+      body: "",
+      status: "thread",
+    });
+  });
+  it("keeps conversations together and respects a reply target when timestamps are equal", () => {
+    const a = comment("a", 1),
+      b = comment("b", 3),
+      reply = comment("r", 4, { parentId: "a" });
+    expect(threadedCommentPreview([reply, b, a]).map((c) => c.id)).toEqual([
+      "a",
+      "r",
+      "b",
+    ]);
+    const parent = comment("z-parent", 2, { parentId: "a" }),
+      child = comment("a-child", 2, { parentId: "a", replyToId: "z-parent" });
+    expect(threadedCommentPreview([child, parent, a]).map((c) => c.id)).toEqual(
+      ["a", "z-parent", "a-child"],
+    );
+  });
   it("requires a valid reply target and keeps only the latest three visible comments and replies", () => {
     const id = crypto.randomUUID(),
       parentId = crypto.randomUUID(),
