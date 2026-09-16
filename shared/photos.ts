@@ -5,7 +5,6 @@ export const THUMB_MAX_BYTES = 50 * 1024;
 export const PHOTOS_PER_POST = 3;
 export const PHOTO_PAGE_SIZE = 18;
 export const PHOTO_MONTHLY_LIMIT = 1000;
-export const PHOTO_MEMBER_MONTHLY_LIMIT = 30;
 export const PHOTO_STORAGE_LIMIT = 4000;
 export const PHOTO_DRAFT_LIFETIME = 30 * 60 * 1000;
 export const COMMENT_MAX_LENGTH = 500;
@@ -139,6 +138,7 @@ export interface PhotoResponse {
   post?: PhotoPost;
   posts?: PhotoPost[];
   nextCursor?: PhotoCursor | null;
+  /** Remaining monthly uploads shared by all participants. */
   remaining?: number;
 }
 export function recentComments(comments: PhotoComment[]) {
@@ -204,13 +204,10 @@ export function uploadPhotoPath(
 export function checkPhotoQuota(
   count: number,
   monthly: number,
-  personal: number,
   stored: number,
 ) {
   if (monthly + count > PHOTO_MONTHLY_LIMIT)
     return "이번 달 사진 업로드 한도에 도달했어요. 추진위원회에 문의해주세요.";
-  if (personal + count > PHOTO_MEMBER_MONTHLY_LIMIT)
-    return `사진은 한 사람당 한 달에 ${PHOTO_MEMBER_MONTHLY_LIMIT}장까지 올릴 수 있어요.`;
   if (stored + count > PHOTO_STORAGE_LIMIT)
     return "사진 보관 공간이 가득 찼어요. 추진위원회에 문의해주세요.";
   return null;

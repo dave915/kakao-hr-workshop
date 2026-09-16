@@ -275,6 +275,32 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
       (await call({ action: "list" }, tokens["alex.k"])).result.posts,
     ).toEqual([]);
   });
+  it("allows publishing beyond the former member limit and shares remaining uploads across members", async () => {
+    const month = photoMonth(Date.now()),
+      legacyPersonal = db.doc(`photoLimits/${month}_alex.k`);
+    await Promise.all([
+      legacyPersonal.set({ count: 30 }),
+      db.doc(`photoLimits/${month}`).set({ count: 30 }),
+      db.doc("photoLimits/storage").set({ count: 30 }),
+    ]);
+    const post = await begin("alex.k", 3);
+    await upload(post);
+    expect(
+      (await call({ action: "publish", id: post.id }, tokens["alex.k"])).status,
+    ).toBe(200);
+    for (const uid of ["alex.k", "june.p"]) {
+      const response = await call({ action: "list" }, tokens[uid]);
+      expect(response.status).toBe(200);
+      expect(response.result.remaining).toBe(PHOTO_MONTHLY_LIMIT - 33);
+      expect(response.result.posts.map((p: PhotoPost) => p.id)).toContain(
+        post.id,
+      );
+    }
+    expect((await legacyPersonal.get()).data().count).toBe(30);
+    expect((await db.doc(`photoLimits/${month}_june.p`).get()).exists).toBe(
+      false,
+    );
+  }, 30000);
   it("makes reservations idempotent and serializes the last monthly upload slot", async () => {
     const post = await begin();
     await begin("alex.k", 1, post.id);
@@ -296,6 +322,9 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
     );
     expect(results.map((r) => r.status).sort()).toEqual([200, 429]);
     expect((await month.get()).data().count).toBe(PHOTO_MONTHLY_LIMIT);
+    expect(
+      (await call({ action: "list" }, tokens["alex.k"])).result.remaining,
+    ).toBe(0);
   });
   it("deletes files and releases storage only once, while preserving monthly usage limits", async () => {
     const post = await begin();

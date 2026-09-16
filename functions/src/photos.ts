@@ -12,7 +12,7 @@ import {
   PHOTO_MAX_BYTES,
   THUMB_MAX_BYTES,
   PHOTO_PAGE_SIZE,
-  PHOTO_MEMBER_MONTHLY_LIMIT,
+  PHOTO_MONTHLY_LIMIT,
   COMMENT_PAGE_SIZE,
   COMMENT_PREVIEW_SIZE,
   recentComments,
@@ -236,7 +236,7 @@ export async function handlePhotoBoard(
   if (input.action === "list") {
     return db.runTransaction(async (tx) => {
       const auth = await authorize(tx, request);
-      const monthRef = db.doc(`photoLimits/${photoMonth(now)}_${auth.me.id}`);
+      const monthRef = db.doc(`photoLimits/${photoMonth(now)}`);
       let query = db
         .collection("photoPosts")
         .where("generation", "==", auth.generation)
@@ -246,7 +246,7 @@ export async function handlePhotoBoard(
         .limit(PHOTO_PAGE_SIZE + 1);
       if (input.cursor)
         query = query.startAfter(input.cursor.createdAt, input.cursor.id);
-      const [posts, personal] = await Promise.all([
+      const [posts, monthly] = await Promise.all([
         tx.get(query),
         tx.get(monthRef),
       ]);
@@ -281,7 +281,7 @@ export async function handlePhotoBoard(
             : null,
         remaining: Math.max(
           0,
-          PHOTO_MEMBER_MONTHLY_LIMIT - (personal.data()?.count ?? 0),
+          PHOTO_MONTHLY_LIMIT - (monthly.data()?.count ?? 0),
         ),
       };
     });
@@ -707,10 +707,9 @@ export async function handlePhotoBoard(
     let resume = false;
     const post = await db.runTransaction(async (tx) => {
       const auth = await authorize(tx, request);
-      const [existing, monthly, personal, stored] = await Promise.all([
+      const [existing, monthly, stored] = await Promise.all([
         tx.get(ref),
         tx.get(db.doc(`photoLimits/${photoMonth(now)}`)),
-        tx.get(db.doc(`photoLimits/${photoMonth(now)}_${auth.me.id}`)),
         tx.get(storedRef()),
       ]);
       if (existing.exists) {
@@ -736,7 +735,6 @@ export async function handlePhotoBoard(
       const message = checkPhotoQuota(
         input.photos.length,
         monthly.data()?.count ?? 0,
-        personal.data()?.count ?? 0,
         stored.data()?.count ?? 0,
       );
       if (message) throw new HttpsError("resource-exhausted", message);
@@ -753,7 +751,7 @@ export async function handlePhotoBoard(
         status: "draft",
       };
       tx.create(ref, data);
-      for (const counter of [monthly, personal, stored])
+      for (const counter of [monthly, stored])
         tx.set(counter.ref, {
           count: (counter.data()?.count ?? 0) + input.photos.length,
         });

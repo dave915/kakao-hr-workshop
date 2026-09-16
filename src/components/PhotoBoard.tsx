@@ -20,7 +20,7 @@ import {
 } from "../lib/photos";
 import { preparePhoto, type PreparedPhoto } from "../lib/photo-images";
 import {
-  PHOTO_MEMBER_MONTHLY_LIMIT,
+  PHOTO_MONTHLY_LIMIT,
   PHOTOS_PER_POST,
   type PhotoCursor,
   type PhotoPost,
@@ -47,7 +47,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
     [cursor, setCursor] = useState<PhotoCursor | null>(null);
   const [loading, setLoading] = useState(true),
     [error, setError] = useState("");
-  const [remaining, setRemaining] = useState(PHOTO_MEMBER_MONTHLY_LIMIT);
+  const [remaining, setRemaining] = useState(PHOTO_MONTHLY_LIMIT);
   const [liking, setLiking] = useState<Set<string>>(() => new Set());
   const [commentsFor, setCommentsFor] = useState<{
     postId: string;
@@ -106,7 +106,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
           : (result.posts ?? []),
       );
       setCursor(result.nextCursor ?? null);
-      setRemaining(result.remaining ?? PHOTO_MEMBER_MONTHLY_LIMIT);
+      setRemaining(result.remaining ?? PHOTO_MONTHLY_LIMIT);
     } catch (e) {
       if (mounted.current && version === loadVersion.current)
         setError(errorMessage(e));
@@ -414,8 +414,8 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
         </button>
       )}
       <p className="photo-board-footnote">
-        이번 달에 사진 {remaining}장을 더 올릴 수 있어요. 한 사람당 월{" "}
-        {PHOTO_MEMBER_MONTHLY_LIMIT}장까지 함께 나눠요.
+        개인별 업로드 제한은 없어요. 이번 달 사진첩 전체에서 {remaining}장을 더
+        올릴 수 있어요.
       </p>
       {commentPost && (
         <PhotoComments
@@ -542,7 +542,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
             </button>
             {photos.length > remaining && (
               <p className="form-error">
-                이번 달에는 {remaining}장만 더 올릴 수 있어요.
+                이번 달 사진첩 전체에서 {remaining}장만 더 올릴 수 있어요.
               </p>
             )}
           </form>

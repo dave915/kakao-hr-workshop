@@ -4,7 +4,6 @@ import {
   photoActionInput,
   photoPath,
   PHOTO_MONTHLY_LIMIT,
-  PHOTO_MEMBER_MONTHLY_LIMIT,
   PHOTO_STORAGE_LIMIT,
   recentComments,
   threadedCommentPreview,
@@ -166,22 +165,12 @@ describe("photo board limits", () => {
         false,
       );
   });
-  it("enforces monthly, per-member and stored photo limits at the exact boundary", () => {
+  it("enforces shared monthly and stored photo limits at the exact boundary", () => {
     expect(
-      checkPhotoQuota(
-        3,
-        PHOTO_MONTHLY_LIMIT - 3,
-        PHOTO_MEMBER_MONTHLY_LIMIT - 3,
-        PHOTO_STORAGE_LIMIT - 3,
-      ),
+      checkPhotoQuota(3, PHOTO_MONTHLY_LIMIT - 3, PHOTO_STORAGE_LIMIT - 3),
     ).toBeNull();
-    expect(checkPhotoQuota(3, PHOTO_MONTHLY_LIMIT - 2, 0, 0)).toContain(
-      "이번 달",
-    );
-    expect(checkPhotoQuota(3, 0, PHOTO_MEMBER_MONTHLY_LIMIT - 2, 0)).toContain(
-      "한 사람당",
-    );
-    expect(checkPhotoQuota(3, 0, 0, PHOTO_STORAGE_LIMIT - 2)).toContain(
+    expect(checkPhotoQuota(3, PHOTO_MONTHLY_LIMIT - 2, 0)).toContain("이번 달");
+    expect(checkPhotoQuota(3, 0, PHOTO_STORAGE_LIMIT - 2)).toContain(
       "보관 공간",
     );
   });

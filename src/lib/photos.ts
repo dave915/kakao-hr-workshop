@@ -10,7 +10,7 @@ import {
   uploadPhotoPath,
   photoMonth,
   PHOTO_PAGE_SIZE,
-  PHOTO_MEMBER_MONTHLY_LIMIT,
+  PHOTO_MONTHLY_LIMIT,
   COMMENT_PAGE_SIZE,
   recentComments,
   threadedCommentPreview,
@@ -116,11 +116,7 @@ export async function listPhotos(
     .slice(0, PHOTO_PAGE_SIZE + 1);
   const last = page[Math.min(page.length, PHOTO_PAGE_SIZE) - 1];
   const used = all
-    .filter(
-      (p) =>
-        p.post.authorId === member.id &&
-        photoMonth(p.post.createdAt) === photoMonth(Date.now()),
-    )
+    .filter((p) => photoMonth(p.post.createdAt) === photoMonth(Date.now()))
     .reduce((n, p) => n + p.post.photos.length, 0);
   return {
     posts: page.slice(0, PHOTO_PAGE_SIZE),
@@ -128,7 +124,7 @@ export async function listPhotos(
       page.length > PHOTO_PAGE_SIZE
         ? { id: last.id, createdAt: last.createdAt }
         : null,
-    remaining: Math.max(0, PHOTO_MEMBER_MONTHLY_LIMIT - used),
+    remaining: Math.max(0, PHOTO_MONTHLY_LIMIT - used),
   };
 }
 export async function publishPhotos(
@@ -151,7 +147,6 @@ export async function publishPhotos(
     const issue = checkPhotoQuota(
       photos.length,
       count(current),
-      count(current.filter((p) => p.post.authorId === member.id)),
       count(all.filter((p) => p.post.status !== "deleted")),
     );
     if (issue) throw new Error(issue);
