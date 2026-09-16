@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
-  Camera,
-  Images,
+  LockKeyhole,
   Plus,
   RefreshCw,
-  Trash2,
   X,
   ChevronLeft,
   ChevronRight,
@@ -12,18 +10,8 @@ import {
   LoaderCircle,
 } from "lucide-react";
 import { useWorkshop } from "../lib/store";
-import {
-  englishName,
-  errorMessage,
-  formatDate,
-  formatTime,
-} from "../lib/utils";
-import {
-  listPhotos,
-  publishPhotos,
-  readPhoto,
-  removePhotoPost,
-} from "../lib/photos";
+import { englishName, errorMessage } from "../lib/utils";
+import { listPhotos, publishPhotos, removePhotoPost } from "../lib/photos";
 import { preparePhoto, type PreparedPhoto } from "../lib/photo-images";
 import {
   PHOTO_MEMBER_MONTHLY_LIMIT,
@@ -31,90 +19,10 @@ import {
   type PhotoCursor,
   type PhotoPost,
 } from "../../shared/photos";
-import { Avatar, Drawer, Empty, type Notify } from "./common";
+import { Drawer, Empty, type Notify } from "./common";
+import PhotoImage from "./PhotoImage";
+import PhotoFeedPost from "./PhotoFeedPost";
 
-function PhotoImage({
-  post,
-  index = 0,
-  full = false,
-}: {
-  post: PhotoPost;
-  index?: number;
-  full?: boolean;
-}) {
-  const element = useRef<HTMLSpanElement>(null);
-  const [url, setUrl] = useState(""),
-    [error, setError] = useState(false),
-    [retry, setRetry] = useState(0);
-  useEffect(() => {
-    let live = true,
-      objectURL = "",
-      started = false;
-    setUrl("");
-    setError(false);
-    const load = async () => {
-      if (started) return;
-      started = true;
-      try {
-        const blob = await readPhoto(post, index, full ? "full" : "thumb");
-        if (!live) return;
-        objectURL = URL.createObjectURL(blob);
-        setUrl(objectURL);
-      } catch {
-        if (live) setError(true);
-      }
-    };
-    const observer =
-      !full && typeof IntersectionObserver !== "undefined"
-        ? new IntersectionObserver(
-            (entries) => {
-              if (entries.some((e) => e.isIntersecting)) {
-                observer?.disconnect();
-                void load();
-              }
-            },
-            { rootMargin: "160px" },
-          )
-        : null;
-    if (observer && element.current) observer.observe(element.current);
-    else void load();
-    return () => {
-      live = false;
-      observer?.disconnect();
-      if (objectURL) URL.revokeObjectURL(objectURL);
-    };
-  }, [post.id, index, full, retry]);
-  return (
-    <span ref={element} className={`photo-image ${full ? "is-full" : ""}`}>
-      {url ? (
-        <img
-          src={url}
-          alt={`${englishName(post.authorHandle)}의 사진 ${index + 1}`}
-          width={post.photos[index].width}
-          height={post.photos[index].height}
-        />
-      ) : error ? (
-        <span className="photo-image-error">
-          <Images size={25} />
-          <span>사진을 불러오지 못했어요</span>
-          {full && (
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => setRetry((n) => n + 1)}
-            >
-              다시 불러오기
-            </button>
-          )}
-        </span>
-      ) : (
-        <span className="photo-placeholder" aria-label="사진 불러오는 중">
-          <Images size={32} />
-        </span>
-      )}
-    </span>
-  );
-}
 function PreparedPreview({ photo }: { photo: PreparedPhoto }) {
   const [url, setUrl] = useState("");
   useEffect(() => {
@@ -259,20 +167,20 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
       if (mounted.current) setPosting(false);
     }
   }
-  const openPhoto = (post: PhotoPost) => {
-    setImageIndex(0);
+  const openPhoto = (post: PhotoPost, index = 0) => {
+    setImageIndex(index);
     setViewing(post);
   };
   return (
     <div className="photo-board page-enter">
-      <div className="page-intro">
+      <header className="photo-feed-header">
         <div>
-          <span className="eyebrow">OUR MOMENTS</span>
-          <h1>함께 남긴 오늘</h1>
-          <p>같이 웃었던 순간, 사진 한 장으로 오래 기억해요.</p>
+          <span className="eyebrow">MOMENTS TOGETHER</span>
+          <h1>우리의 순간</h1>
+          <p>함께한 오늘을 사진으로 나눠요.</p>
         </div>
         <button
-          className="button dark"
+          className="button dark photo-new-post"
           onClick={() => {
             setFormError("");
             setCompose(true);
@@ -280,29 +188,22 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
           disabled={!navigator.onLine || remaining === 0}
         >
           <Plus size={18} />
-          사진 올리기
+          올리기
         </button>
-      </div>
-      <div className="photo-board-note">
-        <Camera size={22} />
-        <div>
-          <strong>우리끼리 모으는 작은 사진첩</strong>
-          <p>참가자에게만 보여요. 사진을 누르면 크게 볼 수 있어요.</p>
-        </div>
-      </div>
+      </header>
       <div className="photo-board-toolbar">
         <span>
-          {posts.length
-            ? `${posts.length}개의 순간을 보고 있어요`
-            : "오늘의 순간을 기다리는 중"}
+          <LockKeyhole size={13} />
+          우리끼리 보는 워크샵 피드
         </span>
         <button
-          className="text-button"
+          className="icon-button"
           onClick={() => void load()}
           disabled={loading}
+          aria-label="사진첩 새로고침"
+          title="새로고침"
         >
-          <RefreshCw size={15} className={loading ? "photo-spinning" : ""} />
-          새로고침
+          <RefreshCw size={18} className={loading ? "photo-spinning" : ""} />
         </button>
       </div>
       {demo && (
@@ -335,50 +236,25 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
           </button>
         </Empty>
       ) : null}
-      <div className="photo-grid">
+      <section
+        className="photo-feed"
+        aria-label="사진 피드"
+        aria-busy={loading}
+      >
         {posts.map((post) => (
-          <article className="photo-card" key={post.id}>
-            <button
-              className="photo-cover"
-              onClick={() => openPhoto(post)}
-              aria-label={`${englishName(post.authorHandle)}의 사진 ${post.photos.length}장 크게 보기`}
-            >
-              <PhotoImage post={post} />
-              {post.photos.length > 1 && (
-                <span className="photo-count">
-                  <Images size={14} />
-                  {post.photos.length}
-                </span>
-              )}
-            </button>
-            <div className="photo-card-body">
-              <div className="photo-author">
-                <Avatar name={englishName(post.authorHandle)} />
-                <div>
-                  <strong>{englishName(post.authorHandle)}</strong>
-                  <time dateTime={new Date(post.createdAt).toISOString()}>
-                    {formatDate(new Date(post.createdAt).toISOString())} ·{" "}
-                    {formatTime(new Date(post.createdAt).toISOString())}
-                  </time>
-                </div>
-                {(me.id === post.authorId || me.role !== "member") && (
-                  <button
-                    className="icon-button photo-delete"
-                    aria-label={`${englishName(post.authorHandle)}의 게시글 삭제`}
-                    onClick={() => {
-                      setDeleteError("");
-                      setDeleting(post);
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-              {post.caption && <p className="photo-caption">{post.caption}</p>}
-            </div>
-          </article>
+          <PhotoFeedPost
+            key={post.id}
+            post={post}
+            team={state.members[post.authorId]?.team}
+            canDelete={me.id === post.authorId || me.role !== "member"}
+            onOpen={openPhoto}
+            onDelete={(post) => {
+              setDeleteError("");
+              setDeleting(post);
+            }}
+          />
         ))}
-      </div>
+      </section>
       {cursor && (
         <button
           className="button photo-load-more"
@@ -516,7 +392,13 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
           onClose={() => setViewing(null)}
         >
           <div className="photo-viewer">
-            <PhotoImage post={viewing} index={imageIndex} full />
+            <PhotoImage
+              post={viewing}
+              index={imageIndex}
+              full
+              eager
+              retryable
+            />
             {viewing.photos.length > 1 && (
               <div className="photo-viewer-controls">
                 <button
