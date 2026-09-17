@@ -13,6 +13,34 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 describe("participant bulk import", () => {
+  it("registers a two-column roster without Korean names", () => {
+    const rows = parseMemberImport(
+      "영문명\t팀명\r\n" +
+        Array.from({ length: 40 }, (_, i) => `Person.${i}\t초록 탐험대`).join(
+          "\r\n",
+        ),
+      {},
+    );
+    expect(rows).toHaveLength(40);
+    expect(rows.every((row) => !row.error)).toBe(true);
+    const input = memberBatchInput.parse({
+      action: "createMembers",
+      requestId: crypto.randomUUID(),
+      members: rows.map((row, i) => ({
+        ...row,
+        inviteCode: String(i).padStart(32, "a"),
+      })),
+    });
+    const state = makeSeed(true);
+    const result = mutate(state, { ...demoSecrets }, "dave.h", input, "new");
+    expect(result.invitations).toHaveLength(40);
+    expect(state.members["new-0"]).toMatchObject({
+      name: "person.0",
+      handle: "person.0",
+      team: "초록 탐험대",
+      role: "member",
+    });
+  });
   it("accepts 40 spreadsheet rows, headers and blank lines, normalizing English names", () => {
     const text =
       "이름\t영문명\t팀명\r\n" +
@@ -33,10 +61,32 @@ describe("participant bulk import", () => {
   it("supports comma quoting and simple space-separated lists", () => {
     expect(
       parseMemberImport('"홍, 길동",hong.gil,"노랑, 초록팀"', {})[0],
-    ).toMatchObject({ name: "홍, 길동", team: "노랑, 초록팀", error: "" });
+    ).toMatchObject({ name: "hong.gil", team: "노랑, 초록팀", error: "" });
     expect(
       parseMemberImport("홍길동 Hong.gil 노랑 탐험대", {})[0],
     ).toMatchObject({ handle: "hong.gil", team: "노랑 탐험대", error: "" });
+    for (const text of [
+      'Hong.gil,"노랑, 초록팀"',
+      "\thong.gil\t노랑, 초록팀",
+      "Hong.gil 노랑 초록팀",
+      "handle team\nHong.gil 노랑 초록팀",
+      "name handle team\nHong Hong.gil 노랑 초록팀",
+    ])
+      expect(parseMemberImport(text, {})[0]).toMatchObject({
+        handle: "hong.gil",
+        error: "",
+      });
+  });
+  it("validates missing values, duplicates and malformed two-column rows", () => {
+    const rows = parseMemberImport(
+      'hong.gil\t노랑팀\nHong.Gil\t초록팀\nmissing\t\n\t노랑팀\nhong@email\t팀\n"broken,team\nextra\tcolumn\tteam\tunexpected',
+      {},
+    );
+    expect(rows[0].error).toBe("");
+    expect(rows.slice(1).every((row) => row.error)).toBe(true);
+    expect(
+      parseMemberImport("영문명\t팀명\nhong.gil\tyellow\textra", {})[0].error,
+    ).toContain("2열");
   });
   it("identifies missing columns, invalid handles, duplicates and existing accounts", () => {
     const rows = parseMemberImport(

@@ -108,9 +108,10 @@ export default function Admin({ notify }: { notify: Notify }) {
   const addMember = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const handle = String(fd.get("handle"));
     const member = {
-      name: String(fd.get("name")),
-      handle: String(fd.get("handle")),
+      name: handle,
+      handle,
       team: String(fd.get("team")),
     };
     const r = await run(
@@ -262,7 +263,7 @@ export default function Admin({ notify }: { notify: Notify }) {
           <input
             className="search-input"
             aria-label="참가자 검색"
-            placeholder="이름, 아이디, 팀으로 찾기"
+            placeholder="영문명, 아이디, 팀으로 찾기"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -281,7 +282,7 @@ export default function Admin({ notify }: { notify: Notify }) {
               <tbody>
                 {memberRanking(state)
                   .filter((m) =>
-                    `${m.name} ${m.handle} ${m.team}`
+                    `${m.handle} ${m.team}`
                       .toLowerCase()
                       .includes(query.toLowerCase()),
                   )
@@ -291,9 +292,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                         <div className="table-person">
                           <Avatar name={englishName(m.handle)} />
                           <span>
-                            <strong>
-                              {m.name} · {englishName(m.handle)}
-                            </strong>
+                            <strong>{englishName(m.handle)}</strong>
                             <small>
                               {m.handle} ·{" "}
                               {m.joined ? "입장 완료" : "입장 대기"}
@@ -696,16 +695,6 @@ export default function Admin({ notify }: { notify: Notify }) {
         >
           <form className="form-stack" onSubmit={addMember}>
             <label>
-              이름
-              <input
-                name="name"
-                required
-                maxLength={40}
-                placeholder="예: 데이브"
-                autoFocus
-              />
-            </label>
-            <label>
               아이디
               <input
                 name="handle"
@@ -714,6 +703,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                 pattern="[a-z0-9._\-]+"
                 placeholder="예: dave.h"
                 autoCapitalize="off"
+                autoFocus
               />
             </label>
             <label>

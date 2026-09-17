@@ -27,7 +27,6 @@ export default function MemberImport({
   const request = useRef<Batch | null>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Array<{
-    name: string;
     handle: string;
     team: string;
     url: string;
@@ -77,9 +76,9 @@ export default function MemberImport({
     /^[=+@\-]/.test(value) ? `'${value}` : value;
   const exportText = result
     ? [
-        "이름\t영문명\t팀명\t개인 입장 링크",
+        "영문명\t팀명\t개인 입장 링크",
         ...result.map((r) =>
-          [r.name, r.handle, r.team, r.url].map(safeCell).join("\t"),
+          [r.handle, r.team, r.url].map(safeCell).join("\t"),
         ),
       ].join("\n")
     : "";
@@ -158,7 +157,7 @@ export default function MemberImport({
       ) : (
         <>
           <p>
-            엑셀·구글 시트의 <strong>이름 → 영문명 → 팀명</strong> 3열을 그대로
+            엑셀·구글 시트의 <strong>영문명 → 팀명</strong> 2열을 그대로
             복사해주세요. 한 줄에 한 명, 최대 100명까지 등록해요.
           </p>
           <label className="import-label">
@@ -167,9 +166,7 @@ export default function MemberImport({
               rows={7}
               maxLength={30000}
               disabled={busy}
-              placeholder={
-                "이름\t영문명\t팀명\n김하나\thana.kim\t노랑팀\n이준\tjun.lee\t초록팀"
-              }
+              placeholder={"영문명\t팀명\nhana.kim\t노랑팀\njun.lee\t초록팀"}
               value={text}
               onChange={(e) => {
                 setText(e.target.value);
@@ -196,7 +193,6 @@ export default function MemberImport({
                   <thead>
                     <tr>
                       <th>행</th>
-                      <th>이름</th>
                       <th>영문명</th>
                       <th>팀명</th>
                       <th>확인</th>
@@ -209,7 +205,6 @@ export default function MemberImport({
                         className={row.error ? "import-error" : ""}
                       >
                         <td>{row.line}</td>
-                        <td>{row.name || "—"}</td>
                         <td>{row.handle || "—"}</td>
                         <td>{row.team || "—"}</td>
                         <td>{row.error || "등록 가능"}</td>
