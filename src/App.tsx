@@ -39,6 +39,7 @@ import { registerWorker } from "./lib/pwa";
 import { startDeviceReporting } from "./lib/device-status";
 import { useUnreadNotices } from "./lib/notice-read";
 import type { Page } from "../shared/types";
+import { useMobileMenu } from "./hooks/useMobileMenu";
 const Treasure = lazy(() => import("./components/Treasure"));
 const Admin = lazy(() => import("./components/Admin"));
 const PhotoBoard = lazy(() => import("./components/PhotoBoard"));
@@ -97,7 +98,11 @@ export default function App() {
     null,
   );
   const [update, setUpdate] = useState<ServiceWorkerRegistration | null>(null);
-  const [mobileMenu, setMobileMenu] = useState(false);
+  const {
+    open: mobileMenu,
+    close: closeMobileMenu,
+    toggle: toggleMobileMenu,
+  } = useMobileMenu(Boolean(me && state && !loading && !joining && !joinError));
   const joiningCode = useRef("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notify = (message: string) => {
@@ -107,7 +112,7 @@ export default function App() {
   };
   const navigate = (target: Page) => {
     location.hash = `/${target}`;
-    setMobileMenu(false);
+    closeMobileMenu();
     window.scrollTo({ top: 0, behavior: "instant" });
   };
   useEffect(() => {
@@ -125,6 +130,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     const handle = () => {
+      closeMobileMenu();
       if (location.hash.startsWith("#/join/")) {
         const raw = location.hash.slice(7);
         if (joiningCode.current === raw) return;
@@ -151,7 +157,7 @@ export default function App() {
     handle();
     window.addEventListener("hashchange", handle);
     return () => window.removeEventListener("hashchange", handle);
-  }, [login]);
+  }, [login, closeMobileMenu]);
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
@@ -312,11 +318,22 @@ export default function App() {
       </div>
     );
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${mobileMenu ? "mobile-menu-open" : ""}`}>
       <a className="skip-link" href="#main-content">
         본문으로 건너뛰기
       </a>
-      <aside className={`sidebar ${mobileMenu ? "mobile-open" : ""}`}>
+      {mobileMenu && (
+        <button
+          className="sidebar-backdrop"
+          aria-label="메뉴 닫기"
+          onClick={closeMobileMenu}
+          tabIndex={-1}
+        />
+      )}
+      <aside
+        id="main-sidebar"
+        className={`sidebar ${mobileMenu ? "mobile-open" : ""}`}
+      >
         <a className="wordmark" href="#/home">
           kakao<span>bank</span>
           <small>HR WORKSHOP</small>
@@ -376,7 +393,9 @@ export default function App() {
           <button
             className="mobile-menu-button icon-button"
             aria-label="전체 메뉴"
-            onClick={() => setMobileMenu(!mobileMenu)}
+            aria-expanded={mobileMenu}
+            aria-controls="main-sidebar"
+            onClick={toggleMobileMenu}
           >
             <Menu size={22} />
           </button>

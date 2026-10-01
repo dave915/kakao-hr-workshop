@@ -205,6 +205,15 @@ input[type="number"] {
   display: flex;
   flex-direction: column;
   z-index: 50;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.sidebar > * {
+  flex-shrink: 0;
+}
+.sidebar-backdrop {
+  display: none;
 }
 .wordmark {
   text-decoration: none;
@@ -2653,9 +2662,27 @@ td .text-button {
   .sidebar.mobile-open {
     display: flex;
     width: 240px;
-    inset: 65px auto 68px 0;
+    inset: 65px auto calc(68px + env(safe-area-inset-bottom)) 0;
     padding: 25px 18px;
     box-shadow: 15px 0 25px #26382420;
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 65px 0 calc(68px + env(safe-area-inset-bottom));
+    z-index: 45;
+    background: oklch(28% 0.025 127 / 0.16);
+    touch-action: none;
+  }
+  .sidebar-backdrop:active:not(:disabled) {
+    transform: none;
+  }
+  .mobile-menu-open .main-shell {
+    padding-top: 65px;
+  }
+  .mobile-menu-open .topbar {
+    position: fixed;
+    inset: 0 0 auto;
   }
   .sidebar.mobile-open .sidebar-note {
     display: none;
