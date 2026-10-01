@@ -60,25 +60,29 @@ export default function MentionSuggestions({
       return;
     }
     const update = () => {
+      const host = list.current;
+      if (!host) return;
       const rect = node.getBoundingClientRect();
+      const hostRect = host.getBoundingClientRect();
       const caret = textareaCaretRect(node, selection.start);
       if (caret.top + caret.height <= rect.top || caret.top >= rect.bottom) {
         setPlacement(null);
         return;
       }
       const viewport = window.visualViewport;
-      const viewportLeft = viewport?.offsetLeft ?? 0;
       const viewportTop = viewport?.offsetTop ?? 0;
-      const right = viewportLeft + (viewport?.width ?? window.innerWidth);
       const bottom = viewportTop + (viewport?.height ?? window.innerHeight);
-      const dialog = node.closest("dialog")?.getBoundingClientRect();
-      const minLeft = Math.max(viewportLeft, dialog?.left ?? viewportLeft) + 8;
-      const maxRight = Math.min(right, dialog?.right ?? right) - 8;
-      const width = Math.min(320, maxRight - minLeft);
+      const width = Math.min(320, host.clientWidth);
       const top = caret.top + caret.height + 4;
+      // The input and host share the same scrolling content. Their rectangle
+      // difference stays stable when iOS pans the visual viewport for its keyboard.
+      // Do not feed viewport coordinates into a fixed-position element here.
       setPlacement({
-        left: Math.max(minLeft, Math.min(caret.left, maxRight - width)),
-        top,
+        left: Math.max(
+          0,
+          Math.min(caret.left - hostRect.left, host.clientWidth - width),
+        ),
+        top: top - hostRect.top,
         width,
         maxHeight: Math.max(44, Math.min(220, bottom - top - 8)),
       });
@@ -100,6 +104,7 @@ export default function MentionSuggestions({
     window.visualViewport?.addEventListener("scroll", schedule);
     const observer = new ResizeObserver(() => schedule());
     observer.observe(node);
+    if (list.current) observer.observe(list.current);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();

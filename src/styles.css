@@ -6887,10 +6887,11 @@ button.prize-stock-item:not(:disabled):focus-visible {
   max-width: 65ch;
 }
 .photo-mentions {
+  position: relative;
   margin-top: 8px;
 }
 .photo-mention-panel {
-  position: fixed;
+  position: absolute;
   z-index: 10;
   border: 1px solid var(--line);
   border-radius: 8px;
