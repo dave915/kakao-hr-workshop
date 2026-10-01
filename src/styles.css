@@ -6889,24 +6889,57 @@ button.prize-stock-item:not(:disabled):focus-visible {
 .photo-mentions {
   margin-top: 8px;
 }
-.photo-mention-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 8px;
+.photo-mention-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   margin-top: 8px;
+  background: var(--surface);
+}
+.photo-mention-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.photo-mention-heading > span {
+  color: var(--muted);
+}
+.photo-mention-suggestions {
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 4px;
 }
 .photo-mention-suggestions button {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   min-height: 44px;
   text-align: left;
-  padding: 8px;
+  padding: 10px 8px;
   border-radius: 6px;
-  background: var(--soft-green);
   overflow-wrap: anywhere;
+}
+.photo-mention-suggestions button[aria-selected="true"] {
+  background: var(--soft-green);
 }
 .photo-mention-suggestions small {
   display: inline;
-  margin-left: 4px;
+  color: var(--muted);
+  margin: 0;
+}
+.photo-mention-empty,
+.photo-mention-help {
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.photo-mention-help {
+  border-top: 1px solid var(--line);
 }

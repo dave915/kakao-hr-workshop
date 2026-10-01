@@ -31,6 +31,7 @@ import { Drawer, Empty, type Notify } from "./common";
 import PhotoImage from "./PhotoImage";
 import PhotoFeedPost from "./PhotoFeedPost";
 import PhotoComments from "./PhotoComments";
+import MentionSuggestions from "./MentionSuggestions";
 
 function PreparedPreview({ photo }: { photo: PreparedPhoto }) {
   const [url, setUrl] = useState("");
@@ -42,6 +43,7 @@ function PreparedPreview({ photo }: { photo: PreparedPhoto }) {
   return <img src={url || undefined} alt={photo.name} />;
 }
 export default function PhotoBoard({ notify }: { notify: Notify }) {
+  const captionInput = useRef<HTMLTextAreaElement>(null);
   const { state, me, demo } = useWorkshop();
   const [posts, setPosts] = useState<PhotoPost[]>([]),
     [cursor, setCursor] = useState<PhotoCursor | null>(null);
@@ -498,6 +500,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
             <label className="photo-caption-input">
               이 순간의 이야기
               <textarea
+                ref={captionInput}
                 maxLength={1000}
                 rows={4}
                 placeholder="어떤 순간이었나요? 짧은 이야기를 남겨주세요."
@@ -510,6 +513,16 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
               />
               <small>{caption.length}/1,000</small>
             </label>
+            <MentionSuggestions
+              value={caption}
+              input={captionInput}
+              maxLength={1000}
+              disabled={posting}
+              onChange={(value) => {
+                setCaption(value);
+                requestId.current = crypto.randomUUID();
+              }}
+            />
             {formError && (
               <p className="form-error" role="alert">
                 {formError}

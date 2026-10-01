@@ -31,6 +31,7 @@ import {
 } from "../lib/utils";
 import { Avatar, Drawer } from "./common";
 import CommentHeart from "./CommentHeart";
+import MentionSuggestions from "./MentionSuggestions";
 
 type Thread = {
   items: PhotoComment[];
@@ -658,6 +659,16 @@ export default function PhotoComments({
             <small>
               {body.length}/{COMMENT_MAX_LENGTH}
             </small>
+            <MentionSuggestions
+              value={body}
+              input={input}
+              maxLength={COMMENT_MAX_LENGTH}
+              disabled={sending}
+              onChange={(value) => {
+                setBody(value);
+                requestId.current = crypto.randomUUID();
+              }}
+            />
           </div>
           <button
             className="photo-comment-submit"
