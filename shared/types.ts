@@ -62,6 +62,18 @@ export interface Settings {
   center: [number, number];
   gameOpen: boolean;
 }
+export interface ActivityGroup {
+  id: string;
+  title: string;
+  description: string;
+  published: boolean;
+  groups: Array<{
+    id: string;
+    name: string;
+    memberIds: string[];
+    pendingNames?: string[];
+  }>;
+}
 export type VisibleTreasure = Omit<Treasure, "lat" | "lng"> & {
   lat?: number;
   lng?: number;
@@ -74,6 +86,7 @@ export interface WorkshopState<T extends VisibleTreasure = Treasure> {
   schedule: Schedule[];
   treasures: T[];
   notices: Notice[];
+  activityGroups?: ActivityGroup[];
 }
 export type WorkshopView = WorkshopState<VisibleTreasure>;
 export type Proximity = "far" | "warm" | "close" | "hot" | "within";

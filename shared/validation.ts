@@ -108,6 +108,51 @@ export const guidanceInput = z.object({
 });
 export const actionInput = z.discriminatedUnion("action", [
   z.object({
+    action: z.literal("saveActivityGroup"),
+    activityGroup: z
+      .object({
+        id: z.string().uuid(),
+        title: text(40),
+        description: z.string().trim().max(300),
+        published: z.boolean(),
+        groups: z
+          .array(
+            z.object({
+              id: z.string().uuid(),
+              name: text(40),
+              memberIds: z.array(text(100)).max(500),
+              pendingNames: z.array(text(60)).max(50).optional(),
+            }),
+          )
+          .min(1)
+          .max(50),
+      })
+      .superRefine((value, ctx) => {
+        const ids = value.groups.flatMap((group) => group.memberIds);
+        if (new Set(ids).size !== ids.length)
+          ctx.addIssue({
+            code: "custom",
+            message: "같은 활동에서 한 사람은 하나의 조에만 배정할 수 있어요.",
+          });
+        if (
+          new Set(value.groups.map((group) => group.id)).size !==
+            value.groups.length ||
+          new Set(value.groups.map((group) => group.name)).size !==
+            value.groups.length
+        )
+          ctx.addIssue({
+            code: "custom",
+            message: "조 이름과 식별자는 중복될 수 없어요.",
+          });
+      }),
+  }),
+  z.object({ action: z.literal("deleteActivityGroup"), id: z.string().uuid() }),
+  z.object({
+    action: z.literal("setActivityGroupPublished"),
+    id: z.string().uuid(),
+    published: z.boolean(),
+  }),
+  z.object({
     action: z.literal("claimCamera"),
     treasureId: text(100),
     position: z.object({

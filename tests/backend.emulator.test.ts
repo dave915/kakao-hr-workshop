@@ -81,6 +81,62 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         200,
       );
   }, 30000);
+  it("keeps private activity rosters out of the participant document and restricts publication to admins", async () => {
+    const group = {
+      id: randomUUID(),
+      title: "볼링조",
+      description: "로비",
+      published: false,
+      groups: [{ id: randomUUID(), name: "1조", memberIds: ["alex.k"] }],
+    };
+    const denied = await call(
+      "workshopAction",
+      { action: "saveActivityGroup", activityGroup: group },
+      memberToken,
+    );
+    expect(denied.status).toBe(400);
+    expect(denied.error.message).toContain("추진위원회");
+    expect(
+      (
+        await call(
+          "workshopAction",
+          { action: "saveActivityGroup", activityGroup: group },
+          adminToken,
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (await db.doc("workshops/participants").get()).data().activityGroups,
+    ).toEqual([]);
+    expect(
+      (
+        await call(
+          "workshopAction",
+          {
+            action: "setActivityGroupPublished",
+            id: group.id,
+            published: true,
+          },
+          adminToken,
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (await db.doc("workshops/participants").get()).data().activityGroups,
+    ).toEqual([{ ...group, published: true }]);
+    expect(
+      (
+        await call(
+          "workshopAction",
+          { action: "deleteActivityGroup", id: group.id },
+          adminToken,
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (await db.doc("workshops/participants").get()).data().activityGroups,
+    ).toEqual([]);
+  });
   it("rejects unsigned calls and participant admin mutations", async () => {
     expect(
       (

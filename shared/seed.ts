@@ -34,6 +34,7 @@ export function makeSeed(demo = false): WorkshopState {
     });
   return {
     version: 1,
+    activityGroups: [],
     settings: {
       title: "일상 밖으로",
       subtitle: "함께라서 더 즐거운, 우리의 작은 모험",

@@ -4,6 +4,7 @@ import { useWorkshop } from "../lib/store";
 import { englishName } from "../lib/utils";
 import { memberRanking, teamRanking } from "../../shared/game";
 import { Avatar, Empty, SectionTitle } from "./common";
+import { ActivityGroups } from "./ActivityGroups";
 export default function Team() {
   const { state, me } = useWorkshop();
   const [mode, setMode] = useState<"team" | "individual">("team");
@@ -22,6 +23,7 @@ export default function Team() {
         </div>
         <Flag size={38} className="page-symbol" />
       </div>
+      <ActivityGroups />
       <section className="team-hero">
         <span className="mini-tag green">MY TEAM</span>
         <h2>{me.team}</h2>

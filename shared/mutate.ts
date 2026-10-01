@@ -46,6 +46,46 @@ export function mutate(
   if (!isAdmin(actor))
     throw new GameError("추진위원회만 사용할 수 있는 기능이에요.");
   switch (input.action) {
+    case "saveActivityGroup": {
+      const group = input.activityGroup;
+      if (
+        group.groups.some((item) =>
+          item.memberIds.some((uid) => !Object.hasOwn(state.members, uid)),
+        )
+      )
+        throw new GameError(
+          "삭제되었거나 존재하지 않는 참가자가 있어요. 조 편성을 다시 확인해주세요.",
+        );
+      const existing = state.activityGroups ?? [];
+      if (
+        existing.some(
+          (item) => item.id !== group.id && item.title === group.title,
+        )
+      )
+        throw new GameError(
+          "같은 이름의 활동이 있어요. 다른 이름을 입력해주세요.",
+        );
+      if (
+        !existing.some((item) => item.id === group.id) &&
+        existing.length >= 20
+      )
+        throw new GameError("활동은 최대 20개까지 만들 수 있어요.");
+      state.activityGroups = existing.some((item) => item.id === group.id)
+        ? existing.map((item) => (item.id === group.id ? group : item))
+        : [...existing, group];
+      break;
+    }
+    case "setActivityGroupPublished": {
+      const group = state.activityGroups?.find((item) => item.id === input.id);
+      if (!group) throw new GameError("활동을 찾을 수 없어요.");
+      group.published = input.published;
+      break;
+    }
+    case "deleteActivityGroup":
+      state.activityGroups = (state.activityGroups ?? []).filter(
+        (item) => item.id !== input.id,
+      );
+      break;
     case "getMemberInvites":
       if (actor.role !== "superadmin")
         throw new GameError("전체 참가링크는 슈퍼 어드민만 복사할 수 있어요.");
@@ -117,6 +157,11 @@ export function mutate(
         );
       // Keep claimed treasures claimed so an already awarded prize cannot be won twice.
       delete state.members[input.memberId];
+      for (const activity of state.activityGroups ?? [])
+        for (const group of activity.groups)
+          group.memberIds = group.memberIds.filter(
+            (uid) => uid !== input.memberId,
+          );
       break;
     }
     case "rotateInvite": {

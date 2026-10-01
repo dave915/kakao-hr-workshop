@@ -19,6 +19,9 @@ export function hasCoordinates(t: VisibleTreasure): t is Treasure {
 export function participantView(state: WorkshopState): WorkshopView {
   return {
     ...state,
+    activityGroups: (state.activityGroups ?? []).filter(
+      (group) => group.published,
+    ),
     treasures: state.treasures.map((t) => {
       if (t.foundBy) return { ...t };
       return {

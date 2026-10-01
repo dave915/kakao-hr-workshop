@@ -23,6 +23,7 @@
   line-height: 1.6;
   font-weight: 400;
 }
+
 * {
   box-sizing: border-box;
 }
@@ -6674,4 +6675,211 @@ button.prize-stock-item:not(:disabled):focus-visible {
   .quick-registration .placement-map {
     height: 220px;
   }
+}
+
+.activity-section {
+  margin-bottom: var(--space-xl);
+}
+.activity-tabs,
+.activity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.activity-tabs {
+  margin: 16px 0;
+}
+.activity-description {
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.activity-roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 0 24px;
+  margin-top: 16px;
+}
+.activity-roster article {
+  padding: 20px 12px;
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+.activity-roster .my-activity-group {
+  background: var(--soft-green);
+  border-radius: 12px;
+}
+.activity-group-heading,
+.activity-manager-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.activity-group-heading h3 {
+  overflow-wrap: anywhere;
+}
+.activity-group-heading > span:last-child {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+.activity-roster ul {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.activity-roster li {
+  overflow-wrap: anywhere;
+}
+.activity-pending-label {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.activity-pending-editor {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+.activity-pending-editor summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding: 8px 0;
+}
+.activity-pending-editor > label {
+  margin-top: 16px;
+}
+.activity-manager-heading {
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.activity-manager-heading h3 {
+  overflow-wrap: anywhere;
+}
+.activity-manager .mini-tag,
+.activity-group-heading .mini-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.activity-admin-list > article {
+  padding: 24px 0;
+  border-top: 1px solid var(--line);
+}
+.activity-editor {
+  max-width: 760px;
+}
+.activity-editor fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.activity-editor legend {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+.activity-group-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.activity-group-fields > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.activity-group-fields input {
+  flex: 1;
+  min-width: 0;
+}
+.activity-group-fields span {
+  white-space: nowrap;
+  color: var(--muted);
+}
+.activity-assignments h3 {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.activity-assignments h3 small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.activity-member-list {
+  max-height: 420px;
+  overflow-y: auto;
+  margin-top: 16px;
+}
+.activity-member-assignment {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding: 12px 4px;
+}
+.activity-member-assignment > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.activity-member-assignment small {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+}
+.activity-member-assignment select {
+  width: 48%;
+  max-width: 220px;
+  min-width: 0;
+}
+.activity-delete-confirm {
+  padding: 16px;
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.activity-delete-confirm p {
+  margin-bottom: 8px;
+}
+.photo-notification-policy {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 12px 0 20px;
+  max-width: 65ch;
+}
+.photo-mentions {
+  margin-top: 8px;
+}
+.photo-mention-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+.photo-mention-suggestions button {
+  min-height: 44px;
+  text-align: left;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--soft-green);
+  overflow-wrap: anywhere;
+}
+.photo-mention-suggestions small {
+  display: inline;
+  margin-left: 4px;
 }

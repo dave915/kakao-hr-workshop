@@ -32,15 +32,18 @@ import type { ActionInput } from "../../shared/validation";
 import { Avatar, Drawer, Empty, type Notify } from "./common";
 import MemberImport from "./MemberImport";
 import InviteExport from "./InviteExport";
+import ActivityGroupManager from "./ActivityGroupManager";
 import {
   DeviceCell,
   DeviceRefresh,
   useMemberDevices,
 } from "./MemberDeviceStatus";
 const TreasureManager = lazy(() => import("./TreasureManager"));
-type Tab = "members" | "schedule" | "treasures" | "notices" | "settings";
+type Tab =
+  "members" | "groups" | "schedule" | "treasures" | "notices" | "settings";
 const tabs = [
   { id: "members", label: "참가자·권한", icon: Users },
+  { id: "groups", label: "활동별 조", icon: Users },
   { id: "schedule", label: "일정 관리", icon: CalendarDays },
   { id: "treasures", label: "보물 놓기", icon: Map },
   { id: "notices", label: "공지·푸시", icon: Megaphone },
@@ -216,6 +219,12 @@ export default function Admin({ notify }: { notify: Notify }) {
           </button>
         ))}
       </nav>
+      {tab === "groups" && (
+        <ActivityGroupManager
+          key={state.resetGeneration ?? 0}
+          notify={notify}
+        />
+      )}
       {tab === "members" && (
         <section>
           <div className="admin-section-heading">
