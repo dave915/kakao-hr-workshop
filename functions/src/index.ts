@@ -11,6 +11,9 @@ import { getMessaging } from "firebase-admin/messaging";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { discoveryPush } from "../../shared/discovery-push";
+import { discoveryPushId, dispatchDiscoveryPush } from "./discovery-push";
 import { handlePhotoBoard, cleanupPhotos } from "./photos";
 import { actionInput } from "../../shared/validation";
 import { mutate } from "../../shared/mutate";
@@ -37,6 +40,12 @@ export const photoBoardAction = onCall(
 export const cleanupPhotoBoard = onSchedule(
   { schedule: "every 24 hours", timeoutSeconds: 540 },
   cleanupPhotos,
+);
+export const sendTreasureDiscovery = onDocumentCreated(
+  { document: "treasurePushes/{pushId}", retry: true, timeoutSeconds: 120 },
+  async (event) => {
+    if (event.data) await dispatchDiscoveryPush(event.data.ref);
+  },
 );
 const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
@@ -503,6 +512,13 @@ export const workshopAction = onCall(
         if (input.action === "setRole")
           tx.update(db.doc(`members/${input.memberId}`), { role: input.role });
         writeState(tx, state);
+        if (input.action === "claimCamera" && response.result) {
+          const treasure = state.treasures.find(
+            (t) => t.id === input.treasureId,
+          )!;
+          const job = discoveryPush(state, treasure);
+          tx.create(db.doc(`treasurePushes/${discoveryPushId(job)}`), job);
+        }
         if (
           input.action === "saveTreasure" ||
           input.action === "saveTreasures" ||

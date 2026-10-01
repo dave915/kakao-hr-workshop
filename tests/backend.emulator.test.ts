@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { makeSeed, demoSecrets } from "../shared/seed";
 import type { Treasure, WorkshopState } from "../shared/types";
 import { registrationValues } from "../shared/treasure-registration";
+import { discoveryPush } from "../shared/discovery-push";
 const require = createRequire(
   new URL("../functions/package.json", import.meta.url),
 );
@@ -785,6 +786,25 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     expect(state.members["dave.h"].score + state.members["alex.k"].score).toBe(
       treasure.points,
     );
+    const pushes = await db
+      .collection("treasurePushes")
+      .where("treasureId", "==", treasure.id)
+      .get();
+    expect(pushes.size).toBe(1);
+    expect(pushes.docs[0].data().finderId).toBe(
+      state.treasures.find((t: Treasure) => t.id === treasure.id).foundBy,
+    );
+    expect((await call("workshopAction", data, adminToken)).status).not.toBe(
+      200,
+    );
+    expect(
+      (
+        await db
+          .collection("treasurePushes")
+          .where("treasureId", "==", treasure.id)
+          .get()
+      ).size,
+    ).toBe(1);
   }, 30000);
   it("reveals exactly the discovered location after an atomic claim", async () => {
     const publicState = (await db.doc("workshops/participants").get()).data();
@@ -794,6 +814,217 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         .map((t: { id: string }) => t.id),
     ).toEqual(["t1"]);
   });
+  it("dispatches a cash discovery to every registered member through the emulator trigger", async () => {
+    const original = (
+      await db.doc("workshops/main").get()
+    ).data() as WorkshopState;
+    const originalSecrets = (await db.doc("private/treasures").get()).data();
+    const originalVisible = (
+      await db.doc("workshops/participants").get()
+    ).data();
+    const id = "cash-push-test";
+    const treasure = {
+      id,
+      name: "보물",
+      hint: "",
+      lat: 37.3,
+      lng: 127.1,
+      radius: 10,
+      points: 100,
+      prizeAmount: 5000,
+      kind: "treasure",
+    };
+    const records = [
+      { id: "push-test-admin", uid: "dave.h", token: "fixture-admin" },
+      { id: "push-test-member", uid: "alex.k", token: "fixture-member" },
+      { id: "push-test-other", uid: "ryan.j", token: "fixture-other-team" },
+      { id: "push-test-removed", uid: "gone", token: "fixture-removed" },
+    ];
+    try {
+      for (const r of records) await db.doc(`pushTokens/${r.id}`).set(r);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            {
+              action: "saveTreasures",
+              resetGeneration: original.resetGeneration ?? 0,
+              treasures: [treasure],
+            },
+            adminToken,
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            {
+              action: "claimCamera",
+              treasureId: id,
+              position: {
+                lat: 37.3,
+                lng: 127.1,
+                accuracy: 5,
+                timestamp: Date.now(),
+              },
+            },
+            adminToken,
+          )
+        ).status,
+      ).toBe(200);
+      let delivered: any;
+      const deadline = Date.now() + 15000;
+      while (Date.now() < deadline) {
+        const snapshot = await db
+          .collection("treasurePushes")
+          .where("treasureId", "==", id)
+          .get();
+        delivered = snapshot.docs[0]?.data();
+        if (delivered?.status === "sent") break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      expect(delivered).toMatchObject({
+        status: "sent",
+        delivered: 3,
+        failed: 0,
+        body: "Dave가 5,000원 보물을 발견했어요!",
+      });
+    } finally {
+      const batch = db.batch();
+      batch.set(db.doc("workshops/main"), original);
+      batch.set(db.doc("workshops/participants"), originalVisible);
+      batch.set(db.doc("private/treasures"), originalSecrets);
+      for (const r of records) batch.delete(db.doc(`pushTokens/${r.id}`));
+      await batch.commit();
+    }
+  }, 30000);
+  it("retries only failed recipients, protects a delivery lease and skips completed or invalidated jobs", async () => {
+    const {
+      dispatchDiscoveryPush,
+    } = require("./lib/functions/src/discovery-push.js");
+    const state = (
+      await db.doc("workshops/main").get()
+    ).data() as WorkshopState;
+    const claimed = state.treasures.find((t) => t.foundBy)!;
+    const job = discoveryPush(state, claimed);
+    const ref = db.doc("discoveryDispatchTests/retry"); // Not watched by the trigger.
+    const tokenRefs = [
+      db.doc("pushTokens/dispatch-a"),
+      db.doc("pushTokens/dispatch-b"),
+    ];
+    try {
+      await tokenRefs[0].set({ uid: "dave.h", token: "dispatch-good" });
+      await tokenRefs[1].set({ uid: "ryan.j", token: "dispatch-retry" });
+      await ref.set(job);
+      const sent: string[][] = [];
+      await expect(
+        dispatchDiscoveryPush(ref, async (message: any) => {
+          sent.push(message.tokens);
+          expect(message.data).toMatchObject({
+            type: "treasure-found",
+            eventId: `discovery-${ref.id}`,
+          });
+          const responses = message.tokens.map((token: string) =>
+            token === "dispatch-good"
+              ? { success: true }
+              : {
+                  success: false,
+                  error: { code: "messaging/server-unavailable" },
+                },
+          );
+          return { responses, successCount: 1, failureCount: 1 };
+        }),
+      ).rejects.toThrow("retry");
+      expect((await ref.get()).data()).toMatchObject({
+        status: "pending",
+        delivered: 1,
+        failed: 1,
+      });
+      expect((await db.doc("workshops/main").get()).data()).toEqual(state);
+      let release!: () => void, started!: () => void;
+      const entered = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const retry = dispatchDiscoveryPush(ref, async (message: any) => {
+        sent.push(message.tokens);
+        started();
+        await gate;
+        return {
+          responses: message.tokens.map(() => ({ success: true })),
+          successCount: message.tokens.length,
+          failureCount: 0,
+        };
+      });
+      await entered;
+      await expect(
+        dispatchDiscoveryPush(ref, async () => {
+          throw new Error("must not send");
+        }),
+      ).rejects.toThrow("already being delivered");
+      release();
+      await retry;
+      expect(sent[1]).toEqual(["dispatch-retry"]);
+      expect((await ref.get()).data()).toMatchObject({
+        status: "sent",
+        delivered: 2,
+        failed: 0,
+      });
+      await dispatchDiscoveryPush(ref, async () => {
+        throw new Error("must not send completed job");
+      });
+      await ref.set(job);
+      await expect(
+        dispatchDiscoveryPush(ref, async () => {
+          throw new Error("provider unavailable");
+        }),
+      ).rejects.toThrow("retry");
+      expect((await ref.get()).data()).toMatchObject({
+        status: "pending",
+        delivered: 0,
+        failed: 2,
+      });
+      await ref.set({ ...job, attempts: 4 });
+      await dispatchDiscoveryPush(ref, async () => {
+        throw new Error("provider unavailable");
+      });
+      expect((await ref.get()).data()).toMatchObject({
+        status: "failed",
+        attempts: 5,
+        failed: 2,
+      });
+      await ref.set(job);
+      await dispatchDiscoveryPush(ref, async (message: any) => ({
+        responses: message.tokens.map((token: string) =>
+          token === "dispatch-good"
+            ? { success: true }
+            : {
+                success: false,
+                error: { code: "messaging/registration-token-not-registered" },
+              },
+        ),
+        successCount: 1,
+        failureCount: 1,
+      }));
+      expect((await ref.get()).data()).toMatchObject({
+        status: "partial",
+        delivered: 1,
+        failed: 1,
+      });
+      expect((await tokenRefs[1].get()).exists).toBe(false);
+      await ref.set({ ...job, resetGeneration: job.resetGeneration + 1 });
+      await dispatchDiscoveryPush(ref, async () => {
+        throw new Error("must not send reset job");
+      });
+      expect((await ref.get()).data().status).toBe("cancelled");
+    } finally {
+      await Promise.all(tokenRefs.map((ref) => ref.delete()));
+      await ref.delete();
+    }
+  }, 30000);
   it("persists a bomb lock and rejects discovery attempts during the lock", async () => {
     const bomb = makeSeed(true).treasures[2];
     const result = await call(

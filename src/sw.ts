@@ -23,8 +23,15 @@ registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")));
 // subscriptions for such silent pushes. Keep display inside the push lifetime and
 // use one renderer so multiple tabs cannot produce duplicate notifications.
 self.addEventListener("push", (event) => {
-  let payload: { data?: { title?: string; body?: string; noticeId?: string } } =
-    {};
+  let payload: {
+    data?: {
+      title?: string;
+      body?: string;
+      noticeId?: string;
+      eventId?: string;
+      type?: string;
+    };
+  } = {};
   try {
     payload = event.data?.json() ?? {};
   } catch {
@@ -35,13 +42,18 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(title, {
       body: payload.data?.body || "새로운 안내가 도착했어요.",
       icon: new URL("./icon-192.png", self.registration.scope).href,
-      tag: payload.data?.noticeId || "workshop",
+      tag: payload.data?.eventId || payload.data?.noticeId || "workshop",
+      data: {
+        page: payload.data?.type === "treasure-found" ? "treasure" : "notices",
+      },
     }),
   );
 });
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = new URL("./#/notices", self.registration.scope).href;
+  const page =
+    event.notification.data?.page === "treasure" ? "treasure" : "notices";
+  const url = new URL(`./#/${page}`, self.registration.scope).href;
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })

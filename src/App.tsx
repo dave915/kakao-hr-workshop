@@ -195,7 +195,11 @@ export default function App() {
     void import("firebase/messaging").then(async (m) => {
       if ((await m.isSupported()) && !cancelled)
         stop = m.onMessage(m.getMessaging(app!), (payload) =>
-          notify(payload.data?.title || "새로운 워크샵 소식이 도착했어요."),
+          notify(
+            (payload.data?.type === "treasure-found"
+              ? payload.data.body
+              : payload.data?.title) || "새로운 워크샵 소식이 도착했어요.",
+          ),
         );
     });
     return () => {

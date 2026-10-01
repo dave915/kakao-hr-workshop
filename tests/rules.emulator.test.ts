@@ -74,6 +74,10 @@ describe.skipIf(!enabled)("Firestore security rules", () => {
     await assertFails(getDoc(doc(db, "devices", "private-device")));
     await assertFails(getDoc(doc(db, "memberImports", "private-import")));
     await assertFails(getDoc(doc(db, "inviteLinks", "member")));
+    await assertFails(getDoc(doc(db, "treasurePushes", "private-push")));
+    await assertFails(
+      setDoc(doc(db, "treasurePushes", "forged-push"), { status: "pending" }),
+    );
   });
   it("allows admins to inspect bomb types but never read invitation tokens", async () => {
     const db = env

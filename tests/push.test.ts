@@ -86,6 +86,7 @@ describe("Web Push system notifications", () => {
         body: "12시에 로비에서 만나요",
         icon: `${scope}icon-192.png`,
         tag: "notice-1",
+        data: { page: "notices" },
       });
     },
   );
@@ -139,6 +140,55 @@ describe("Web Push system notifications", () => {
     listeners.notificationclick({ notification: { close }, waitUntil });
     await waitUntil.mock.calls[0][0];
     expect(close).toHaveBeenCalledOnce();
+    expect(openWindow).toHaveBeenCalledWith(`${scope}#/notices`);
+  });
+  it("shows the finder and amount with a stable discovery tag", async () => {
+    await receive({
+      data: {
+        type: "treasure-found",
+        title: "보물 발견!",
+        body: "Dave가 5,000원 보물을 발견했어요!",
+        eventId: "discovery-123",
+      },
+    });
+    expect(showNotification).toHaveBeenCalledWith(
+      "보물 발견!",
+      expect.objectContaining({
+        body: "Dave가 5,000원 보물을 발견했어요!",
+        tag: "discovery-123",
+        data: { page: "treasure" },
+      }),
+    );
+  });
+  it("opens treasure discovery notifications in the existing app window", async () => {
+    const navigate = vi.fn().mockResolvedValue(undefined),
+      focus = vi.fn().mockResolvedValue(undefined);
+    clients = [
+      {
+        url: `${scope}#/home`,
+        visibilityState: "hidden",
+        postMessage: vi.fn(),
+        navigate,
+        focus,
+      },
+    ];
+    const waitUntil = vi.fn();
+    listeners.notificationclick({
+      notification: { close: vi.fn(), data: { page: "treasure" } },
+      waitUntil,
+    });
+    await waitUntil.mock.calls[0][0];
+    expect(navigate).toHaveBeenCalledWith(`${scope}#/treasure`);
+    expect(focus).toHaveBeenCalledOnce();
+    expect(openWindow).not.toHaveBeenCalled();
+  });
+  it("never follows an arbitrary notification URL", async () => {
+    const waitUntil = vi.fn();
+    listeners.notificationclick({
+      notification: { close: vi.fn(), data: { page: "https://example.org" } },
+      waitUntil,
+    });
+    await waitUntil.mock.calls[0][0];
     expect(openWindow).toHaveBeenCalledWith(`${scope}#/notices`);
   });
 });
