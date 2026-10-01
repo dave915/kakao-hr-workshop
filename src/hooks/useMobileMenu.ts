@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { lockDocumentScroll } from "../lib/scroll-lock";
 
 /** Keep the document still while the mobile sidebar owns scrolling, including iOS. */
 export function useMobileMenu(enabled: boolean) {
@@ -18,42 +19,7 @@ export function useMobileMenu(enabled: boolean) {
       close();
       return;
     }
-    const { scrollX, scrollY } = window;
-    const body = document.body;
-    const root = document.documentElement;
-    const properties = [
-      "position",
-      "top",
-      "left",
-      "width",
-      "overflow",
-    ] as const;
-    const previous = properties.map(
-      (name) =>
-        [
-          name,
-          body.style.getPropertyValue(name),
-          body.style.getPropertyPriority(name),
-        ] as const,
-    );
-    const rootOverflow = root.style.overflow;
-    root.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `${-scrollY}px`;
-    body.style.left = `${-scrollX}px`;
-    body.style.width = "100%";
-    body.style.overflow = "hidden";
-    let restored = false;
-    const restore = () => {
-      if (restored) return;
-      restored = true;
-      for (const [name, value, priority] of previous) {
-        if (value) body.style.setProperty(name, value, priority);
-        else body.style.removeProperty(name);
-      }
-      root.style.overflow = rootOverflow;
-      window.scrollTo({ left: scrollX, top: scrollY, behavior: "instant" });
-    };
+    const restore = lockDocumentScroll();
     unlock.current = restore;
     const resize = () => {
       if (!mobile.matches) close();

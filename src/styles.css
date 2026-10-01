@@ -1889,6 +1889,9 @@ main {
   padding: 0;
   color: var(--ink);
   box-shadow: -20px 0 60px #273c2422;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .drawer::backdrop {
   background: #25372070;
@@ -3247,6 +3250,17 @@ td .text-button {
   .drawer {
     width: 100vw;
     border: 0;
+  }
+  .drawer::backdrop {
+    background: var(--paper);
+    backdrop-filter: none;
+  }
+  /* iOS can pan the viewport beyond the sheet while its keyboard animates. */
+  body:has(.drawer[open]) .app-shell {
+    visibility: hidden;
+  }
+  dialog[open] {
+    visibility: visible;
   }
   .drawer-content {
     padding: 23px 23px 35px;

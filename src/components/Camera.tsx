@@ -28,6 +28,7 @@ import type {
   VisibleTreasure,
 } from "../../shared/types";
 import { errorMessage } from "../lib/utils";
+import { lockDocumentScroll } from "../lib/scroll-lock";
 import { isCameraLive } from "../lib/camera";
 
 interface Props {
@@ -73,13 +74,12 @@ export default function Camera({
     if (video.current) video.current.srcObject = null;
   };
   useEffect(() => {
+    const unlock = lockDocumentScroll();
     dialog.current?.showModal();
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     return () => {
       generation.current++;
       stopStream();
-      document.body.style.overflow = overflow;
+      unlock();
     };
   }, []);
   useEffect(() => {

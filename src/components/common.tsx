@@ -1,5 +1,6 @@
 import { ArrowUpRight, Sparkles, X } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { lockDocumentScroll } from "../lib/scroll-lock";
 export function SectionTitle({
   eyebrow,
   title,
@@ -54,14 +55,13 @@ export function Drawer({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const d = ref.current;
+    const unlock = lockDocumentScroll();
     d?.showModal();
-    const old = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     return () => {
       d?.close();
-      document.body.style.overflow = old;
+      unlock();
     };
   }, []);
   return (

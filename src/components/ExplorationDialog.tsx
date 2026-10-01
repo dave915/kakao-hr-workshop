@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { lockDocumentScroll } from "../lib/scroll-lock";
 import { ArrowLeft, NotebookPen } from "lucide-react";
 export default function ExplorationDialog({
   children,
@@ -14,14 +15,13 @@ export default function ExplorationDialog({
   onMap?: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const d = ref.current;
+    const unlock = lockDocumentScroll();
     d?.showModal();
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     return () => {
       d?.close();
-      document.body.style.overflow = overflow;
+      unlock();
     };
   }, []);
   return (
