@@ -11,7 +11,7 @@ import {
   parseWorkspace,
   validateDraft,
 } from "../src/lib/treasure-drafts";
-import { participantView } from "../shared/exploration";
+import { participantView, treasureGuidance } from "../shared/exploration";
 const treasure = (id: string): TreasureInput => ({
   id,
   name: `보물 ${id}`,
@@ -27,6 +27,77 @@ const batch = (
   resetGeneration = 0,
 ) => actionInput.parse({ action: "saveTreasures", treasures, resetGeneration });
 describe("batch treasure registration", () => {
+  it.each(["", "  \n ", undefined])(
+    "registers and guides to treasures without a hint (%j)",
+    (hint) => {
+      const state = makeSeed(true),
+        secrets = { ...demoSecrets };
+      const draft = newDraft([], emptyWorkspace().defaults, 37.3, 127.1);
+      const valid = validateDraft(draft);
+      expect(valid.error).toBeUndefined();
+      for (const action of ["saveTreasure", "saveTreasures"] as const) {
+        const next = { ...valid.value!, id: action, hint };
+        mutate(
+          state,
+          secrets,
+          "dave.h",
+          actionInput.parse(
+            action === "saveTreasure"
+              ? { action, treasure: next }
+              : { action, treasures: [next], resetGeneration: 0 },
+          ),
+          "id",
+        );
+        expect(state.treasures.find((t) => t.id === action)?.hint).toBe("");
+        const visible = participantView(state).treasures.find(
+          (t) => t.id === action,
+        );
+        expect(visible).toMatchObject({ name: draft.name, hint: "" });
+        expect(visible).not.toHaveProperty("lat");
+        expect(
+          treasureGuidance(state, "alex.k", action, {
+            lat: 37.301,
+            lng: 127.1,
+            accuracy: 5,
+            timestamp: Date.now(),
+          }),
+        ).toMatchObject({ treasureId: action, bearing: 180 });
+      }
+    },
+  );
+  it("clears an existing hint and can restore and edit that saved draft", () => {
+    const state = makeSeed(true),
+      secrets = { ...demoSecrets };
+    const original = registrationValues(
+      state.treasures[0],
+      secrets[state.treasures[0].id],
+    );
+    mutate(
+      state,
+      secrets,
+      "dave.h",
+      batch([{ ...original, hint: "", original }]),
+      "id",
+    );
+    const saved = registrationValues(state.treasures[0], original.kind);
+    const restored = parseWorkspace(
+      JSON.stringify({
+        ...emptyWorkspace(),
+        drafts: [{ ...saved, original: saved }],
+        selected: saved.id,
+      }),
+    );
+    const next = validateDraft({
+      ...restored.drafts[0],
+      name: "위치 확인 완료",
+    });
+    expect(next.error).toBeUndefined();
+    mutate(state, secrets, "dave.h", batch([next.value!]), "id");
+    expect(state.treasures[0]).toMatchObject({
+      name: "위치 확인 완료",
+      hint: "",
+    });
+  });
   it("writes a mixed batch while keeping unclaimed positions and kinds private", () => {
     const state = makeSeed(true),
       secrets = { ...demoSecrets };
@@ -230,6 +301,9 @@ describe("registration drafts", () => {
     expect(() => parseWorkspace("bad json")).toThrow();
   });
   it("validates coordinates and numeric fields before returning a save payload", () => {
+    expect(
+      validateDraft({ ...treasure("draft"), hint: "가".repeat(301) }).error,
+    ).toContain("300자");
     expect(validateDraft({ ...treasure("draft"), lat: null }).error).toContain(
       "위도",
     );

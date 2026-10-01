@@ -137,7 +137,9 @@ export default function DirectionFocus({
         </div>
       </div>
       <div className="direction-focus-bottom">
-        <p className="direction-focus-clue">{treasure.hint}</p>
+        {treasure.hint ? (
+          <p className="direction-focus-clue">{treasure.hint}</p>
+        ) : null}
         <div className="direction-focus-actions">
           {current && heading === null && !arrived && (
             <button className="button dark" onClick={onEnable}>

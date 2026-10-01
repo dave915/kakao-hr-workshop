@@ -96,7 +96,7 @@ export function validateDraft(
     const field = parsed.error.issues[0].path[0];
     const messages: Record<string, string> = {
       name: "보물 이름을 입력해주세요.",
-      hint: "보물을 찾을 힌트를 입력해주세요.",
+      hint: "힌트는 300자 이내로 입력해주세요.",
       lat: "위도를 −90~90 사이로 입력해주세요.",
       lng: "경도를 −180~180 사이로 입력해주세요.",
       points: "포인트를 10~1,000 사이의 정수로 입력해주세요.",

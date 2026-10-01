@@ -496,7 +496,7 @@ export default function Admin({ notify }: { notify: Notify }) {
             onDelete={(t) =>
               setConfirm({
                 title: "보물 삭제",
-                body: `‘${t.name}’ 보물을 삭제할까요?${t.foundBy ? (t.outcome === "bomb" ? " 발견 기록과 이 꽝으로 생긴 휴식 제한도 함께 지워져요." : ` 발견 기록과 획득한 ${t.points}포인트도 함께 지워지고 개인·팀 순위에 반영돼요.`) : " 지도와 힌트 목록에서 사라져요."}`,
+                body: `‘${t.name}’ 보물을 삭제할까요?${t.foundBy ? (t.outcome === "bomb" ? " 발견 기록과 이 꽝으로 생긴 휴식 제한도 함께 지워져요." : ` 발견 기록과 획득한 ${t.points}포인트도 함께 지워지고 개인·팀 순위에 반영돼요.`) : " 지도와 보물 목록에서 사라져요."}`,
                 input: { action: "deleteTreasure", id: t.id },
                 success: "보물을 삭제했어요.",
               })

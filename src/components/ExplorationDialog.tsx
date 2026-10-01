@@ -51,7 +51,7 @@ export default function ExplorationDialog({
         </div>
         <button className="text-button" onClick={onClose}>
           <NotebookPen size={16} />
-          힌트 목록
+          보물 목록
         </button>
       </header>
       {children}

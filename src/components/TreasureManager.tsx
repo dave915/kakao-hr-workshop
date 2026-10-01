@@ -587,13 +587,13 @@ function RegistrationEditor({
                   />
                 </label>
                 <label>
-                  작은 힌트
+                  작은 힌트 (선택)
                   <textarea
                     name="hint"
                     value={selected.hint}
                     maxLength={300}
                     rows={3}
-                    placeholder="예: 벤치 옆 커다란 나무 아래를 찾아보세요."
+                    placeholder="비워둬도 나침반으로 찾을 수 있어요."
                     onChange={(event) =>
                       update(selected.id, { hint: event.target.value })
                     }
@@ -813,8 +813,8 @@ function RegistrationEditor({
                   </h3>
                   <p>
                     {workspace.mode === "onsite"
-                      ? "현재 위치에 등록을 누르면 이름이 자동으로 채워져요. 힌트만 더하면 준비 끝!"
-                      : "지도에 핀을 여러 개 놓고, 각 초안의 힌트를 채워주세요."}
+                      ? "현재 위치에 등록을 누르면 이름이 자동으로 채워져요. 위치를 확인하고 바로 저장하세요."
+                      : "지도에 핀을 여러 개 놓고 한 번에 저장하세요. 힌트는 필요할 때만 적어주세요."}
                   </p>
                 </>
               )}

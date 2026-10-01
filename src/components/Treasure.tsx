@@ -110,7 +110,7 @@ export default function Treasure({
       setCamera(false);
       setDirectionFocus(false);
       if (treasure?.foundBy && treasure.foundBy !== me?.id)
-        notify("누군가 먼저 발견했어요! 다른 힌트로 탐험을 이어가요.");
+        notify("누군가 먼저 발견했어요! 다른 보물로 탐험을 이어가요.");
     }
   }, [
     treasure?.id,
@@ -233,7 +233,7 @@ export default function Treasure({
     >
       <span className="mini-tag">시작 대기</span>
       <h2>아직 보물찾기 시작 전이에요</h2>
-      <p>추진위원회가 보물찾기를 시작하면 힌트를 따라 탐색할 수 있어요.</p>
+      <p>추진위원회가 보물찾기를 시작하면 나침반을 따라 탐색할 수 있어요.</p>
     </section>
   ) : treasure && !treasure.foundBy ? (
     <ExplorationGuide
@@ -270,7 +270,7 @@ export default function Treasure({
         발견 완료
       </span>
       <h2>{treasure.name}</h2>
-      <p>{treasure.hint}</p>
+      {treasure.hint ? <p>{treasure.hint}</p> : null}
       <strong>
         발견한 사람:{" "}
         {englishName(state.members[treasure.foundBy!]?.handle, "삭제된 참가자")}
@@ -283,17 +283,17 @@ export default function Treasure({
     </section>
   ) : (
     <Empty
-      title="정답 대신, 작은 힌트부터"
-      body="힌트를 고르면 큰 지도에서 보물을 향한 방향과 가까워지는 정도를 안내해요."
+      title="찾고 싶은 보물을 골라주세요"
+      body="보물을 고르면 큰 지도에서 나침반으로 방향과 가까워지는 정도를 안내해요."
     />
   );
   return (
     <div className="hunt-page page-enter">
       <div className="page-intro">
         <div>
-          <span className="eyebrow">FOLLOW THE CLUES</span>
+          <span className="eyebrow">FOLLOW THE COMPASS</span>
           <h1>보이지 않아 더 설레는 모험</h1>
-          <p>힌트를 따라 걸어요. 가까워질수록 탐험 온도가 올라가요.</p>
+          <p>나침반을 따라 걸어요. 가까워질수록 탐험 온도가 올라가요.</p>
         </div>
         <span className="outline-pill">
           <span
@@ -317,7 +317,7 @@ export default function Treasure({
       )}
       {!navigator.onLine && (
         <p className="guide-status" role="status">
-          오프라인이에요. 힌트는 볼 수 있지만 탐색 안내와 발견에는 연결이
+          오프라인이에요. 보물 목록은 볼 수 있지만 탐색 안내와 발견에는 연결이
           필요해요.
         </p>
       )}
@@ -351,7 +351,7 @@ export default function Treasure({
               className="text-button"
               onClick={startCamera}
               disabled={disabled || !treasure || Boolean(treasure.foundBy)}
-              title={!treasure ? "먼저 보물 힌트를 골라주세요" : undefined}
+              title={!treasure ? "먼저 보물을 골라주세요" : undefined}
             >
               <CameraIcon size={15} />
               AR로 찾기
@@ -362,14 +362,14 @@ export default function Treasure({
         <aside className="clue-panel">
           <div className="clue-panel-heading">
             <span className="eyebrow">EXPLORER’S NOTEBOOK</span>
-            <h2>어떤 힌트를 따라갈까요?</h2>
+            <h2>어떤 보물을 찾아볼까요?</h2>
           </div>
           <div className="segmented">
             <button
               className={listMode === "clues" ? "selected" : ""}
               onClick={() => setListMode("clues")}
             >
-              미발견 힌트 {clues.length}
+              미발견 보물 {clues.length}
             </button>
             <button
               className={listMode === "found" ? "selected" : ""}
@@ -395,11 +395,11 @@ export default function Treasure({
                 </span>
                 <span className="clue-item-copy">
                   <strong>{t.name}</strong>
-                  <span>{t.hint}</span>
+                  {t.hint ? <span>{t.hint}</span> : null}
                   <small>
                     {t.foundBy
                       ? `${englishName(state.members[t.foundBy]?.handle, "삭제된 참가자")} · 발견`
-                      : `${t.points} P · 힌트로 탐색`}
+                      : `${t.points} P · 나침반으로 탐색`}
                   </small>
                 </span>
                 <ArrowUpRight size={17} />
@@ -410,12 +410,12 @@ export default function Treasure({
             <Empty
               title={
                 listMode === "clues"
-                  ? "아직 숨겨진 힌트가 없어요"
+                  ? "아직 숨겨진 보물이 없어요"
                   : "첫 발견을 기다리고 있어요"
               }
               body={
                 listMode === "clues"
-                  ? "새로운 보물이 등록되면 이곳에 힌트가 나타나요."
+                  ? "새로운 보물이 등록되면 이곳에서 선택할 수 있어요."
                   : "누군가 발견하면 지도에도 위치가 나타나요."
               }
             />
@@ -561,7 +561,7 @@ export default function Treasure({
             <p>
               {result.outcome === "bomb"
                 ? "잠깐의 쉼도 모험의 일부니까요. 휴식 후 다시 도전해요."
-                : "우리 팀의 탐험 수첩에도 기록했어요. 다음 힌트로 모험을 이어가요!"}
+                : "우리 팀의 탐험 수첩에도 기록했어요. 다음 보물로 모험을 이어가요!"}
             </p>
             <button className="button dark" onClick={() => setResult(null)}>
               {result.outcome === "bomb" ? "알겠어요" : "다음 모험으로"}

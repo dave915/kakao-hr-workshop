@@ -67,9 +67,9 @@ export function treasureGuidance(
     throw new GameError("휴식 시간이 끝나면 다시 탐험할 수 있어요.");
   const target = state.treasures.find((t) => t.id === id);
   if (!target)
-    throw new GameError("이 보물은 더 이상 없어요. 다른 힌트를 골라주세요.");
+    throw new GameError("이 보물은 더 이상 없어요. 다른 보물을 골라주세요.");
   if (target.foundBy)
-    throw new GameError("누군가 먼저 발견했어요! 다른 힌트를 골라주세요.");
+    throw new GameError("누군가 먼저 발견했어요! 다른 보물을 골라주세요.");
   if (
     !Number.isFinite(position.timestamp) ||
     Math.abs(now - position.timestamp) > 60000 ||

@@ -470,7 +470,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     const first = {
       id: "batch-a",
       name: "보물 A",
-      hint: "나무 아래",
+      hint: "",
       lat: 37.54,
       lng: 127.04,
       points: 200,
@@ -509,6 +509,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         first.id,
         second.id,
       ]);
+      expect(saved.treasures.slice(-2).map((t) => t.hint)).toEqual(["", ""]);
       expect(
         (await db.doc("private/treasures").get()).data().kinds[second.id],
       ).toBe("bomb");

@@ -57,9 +57,9 @@ export default function ExplorationGuide({
       aria-label="보물 탐색 안내"
     >
       <div className="guide-clue">
-        <span className="eyebrow">FOLLOW THE CLUE</span>
+        <span className="eyebrow">FOLLOW THE COMPASS</span>
         <h2>{treasure.name}</h2>
-        <p>{treasure.hint}</p>
+        {treasure.hint ? <p>{treasure.hint}</p> : null}
       </div>
       {tracking ? (
         <>

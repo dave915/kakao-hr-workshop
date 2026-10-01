@@ -57,7 +57,7 @@ export const scheduleInput = z
 export const treasureInput = z.object({
   id: text(100),
   name: text(80),
-  hint: text(300),
+  hint: z.string().trim().max(300).default(""),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   radius: z.number().int().min(10).max(200),
