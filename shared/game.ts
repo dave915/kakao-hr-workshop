@@ -81,6 +81,9 @@ export function claimTreasure(
   return {
     outcome,
     points: outcome === "bomb" ? 0 : treasure.points,
+    ...(treasure.prizeAmount !== undefined
+      ? { prizeAmount: treasure.prizeAmount }
+      : {}),
     blockedUntil: member.blockedUntil,
   };
 }

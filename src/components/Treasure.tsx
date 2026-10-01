@@ -14,6 +14,7 @@ import {
 import { useWorkshop } from "../lib/store";
 import { remainingTreasures } from "../../shared/game";
 import { hasCoordinates } from "../../shared/exploration";
+import { prizeLabel } from "../../shared/prizes";
 import type { ClaimResult, Position } from "../../shared/types";
 import { englishName, errorMessage } from "../lib/utils";
 import { Drawer, Empty, type Notify } from "./common";
@@ -278,7 +279,9 @@ export default function Treasure({
       <small>
         {treasure.outcome === "bomb"
           ? "깜짝 꽝이 숨어있던 곳이에요."
-          : `${treasure.points} 포인트의 보물이었어요.`}
+          : treasure.prizeAmount !== undefined
+            ? `${prizeLabel(treasure.prizeAmount)} 보물 · ${treasure.points} 포인트`
+            : `${treasure.points} 포인트의 보물이었어요.`}
       </small>
     </section>
   ) : (
@@ -398,7 +401,7 @@ export default function Treasure({
                   {t.hint ? <span>{t.hint}</span> : null}
                   <small>
                     {t.foundBy
-                      ? `${englishName(state.members[t.foundBy]?.handle, "삭제된 참가자")} · 발견`
+                      ? `${englishName(state.members[t.foundBy]?.handle, "삭제된 참가자")} · ${t.prizeAmount !== undefined ? prizeLabel(t.prizeAmount) : "발견"}`
                       : `${t.points} P · 나침반으로 탐색`}
                   </small>
                 </span>
@@ -556,7 +559,9 @@ export default function Treasure({
             <h2>
               {result.outcome === "bomb"
                 ? "5분 동안 잠깐 쉬어가요"
-                : `+${result.points} 포인트!`}
+                : result.prizeAmount !== undefined
+                  ? `${prizeLabel(result.prizeAmount)} 보물 발견!`
+                  : `+${result.points} 포인트!`}
             </h2>
             <p>
               {result.outcome === "bomb"

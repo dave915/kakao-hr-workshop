@@ -1,4 +1,5 @@
 import { GameError } from "./game";
+import { prizeInventory, prizeLabel } from "./prizes";
 import type { Treasure, TreasureSecrets, WorkshopState } from "./types";
 import type { ActionInput, TreasureInput } from "./validation";
 
@@ -13,14 +14,17 @@ export function registrationValues(
     lat: t.lat,
     lng: t.lng,
     points: t.points,
+    ...(t.prizeAmount !== undefined ? { prizeAmount: t.prizeAmount } : {}),
     radius: t.radius,
     kind,
   };
 }
 export function sameRegistration(a: TreasureInput, b: TreasureInput): boolean {
-  return (Object.keys(a) as (keyof TreasureInput)[]).every(
-    (key) => a[key] === b[key],
-  );
+  return (
+    [
+      ...new Set([...Object.keys(a), ...Object.keys(b)]),
+    ] as (keyof TreasureInput)[]
+  ).every((key) => a[key] === b[key]);
 }
 
 /** Validate the complete batch before changing either state or private kinds. */
@@ -56,8 +60,32 @@ export function saveTreasures(
       throw new GameError(
         `‘${next.name}’은 이미 등록되어 있어요. 목록에서 다시 선택해주세요.`,
       );
+    if (current?.prizeAmount !== undefined && next.prizeAmount === undefined)
+      throw new GameError(
+        "등록된 보물의 금액을 유지해주세요. 앱을 새로고침한 뒤 다시 시도해주세요.",
+      );
     return true;
   });
+  // Check the final batch, including swaps, before mutating either collection.
+  for (const treasure of changes) {
+    if (
+      treasure.prizeAmount !== undefined &&
+      (treasure.prizeAmount === 0) !== (treasure.kind === "bomb")
+    )
+      throw new GameError(
+        "선택한 보물 금액과 종류가 맞지 않아요. 다시 선택해주세요.",
+      );
+  }
+  const changedIds = new Set(changes.map((t) => t.id));
+  const inventory = prizeInventory([
+    ...state.treasures.filter((t) => !changedIds.has(t.id)),
+    ...changes,
+  ]);
+  const exhausted = inventory.find((p) => p.placed > p.quantity);
+  if (exhausted)
+    throw new GameError(
+      `${prizeLabel(exhausted.amount)} 보물은 총 ${exhausted.quantity}개예요. 남은 수량을 확인하고 다른 보물을 선택해주세요.`,
+    );
   for (const { original: _original, kind, ...treasure } of changes) {
     const index = state.treasures.findIndex((t) => t.id === treasure.id);
     const next = { ...treasure, foundBy: null, foundAt: null };

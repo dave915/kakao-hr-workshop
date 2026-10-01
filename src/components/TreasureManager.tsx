@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Check,
+  ArrowLeft,
   Copy,
   LocateFixed,
   Map,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { hasCoordinates } from "../../shared/exploration";
 import { registrationValues } from "../../shared/treasure-registration";
+import { prizeInventory, prizeLabel } from "../../shared/prizes";
 import type { Position, Treasure } from "../../shared/types";
 import { useWorkshop } from "../lib/store";
 import { englishName, errorMessage } from "../lib/utils";
@@ -31,6 +33,7 @@ import TreasurePlacementMap, {
   type PlacementPin,
 } from "./TreasurePlacementMap";
 import type { Notify } from "./common";
+import QuickTreasurePlacement from "./QuickTreasurePlacement";
 
 interface Props {
   busy: boolean;
@@ -39,13 +42,34 @@ interface Props {
 }
 export default function TreasureManager(props: Props) {
   const { state, me, demo } = useWorkshop();
+  const [advanced, setAdvanced] = useState(false);
   if (!state || !me) return null;
   const scope = draftStorageKey(
     demo ? "demo" : import.meta.env.VITE_FIREBASE_PROJECT_ID || "live",
     me.id,
     state.resetGeneration ?? 0,
   );
-  return <RegistrationEditor key={scope} {...props} scope={scope} />;
+  return advanced ? (
+    <>
+      <button
+        className="text-button quick-back"
+        disabled={props.busy}
+        onClick={() => setAdvanced(false)}
+      >
+        <ArrowLeft size={17} />
+        보물 놓기로 돌아가기
+      </button>
+      <RegistrationEditor key={scope} {...props} scope={scope} />
+    </>
+  ) : (
+    <QuickTreasurePlacement
+      key={scope}
+      scope={scope.replace("hr-treasure-drafts-v1", "hr-treasure-quick-v1")}
+      busy={props.busy}
+      notify={props.notify}
+      onAdvanced={() => setAdvanced(true)}
+    />
+  );
 }
 function RegistrationEditor({
   busy,
@@ -95,6 +119,7 @@ function RegistrationEditor({
   const selectedSaved = registered.find((t) => t.id === workspace.selected);
   const allItems = [...registered, ...workspace.drafts];
   const total = new Set(allItems.map((t) => t.id)).size;
+  const stock = prizeInventory(registered);
 
   useEffect(() => {
     mounted.current = true;
@@ -268,6 +293,9 @@ function RegistrationEditor({
       lng: source.lng,
       kind,
       points: source.points,
+      ...(source.prizeAmount !== undefined
+        ? { prizeAmount: source.prizeAmount }
+        : {}),
       radius: source.radius,
     };
     append(draft);
@@ -281,6 +309,14 @@ function RegistrationEditor({
     setError("");
     const values = [];
     for (const item of items) {
+      if (item.prizeAmount === undefined) {
+        commit((w) => ({ ...w, selected: item.id }));
+        setError(
+          `‘${item.name || "이름 없는 보물"}’: 보물 금액 또는 꽝을 선택해주세요.`,
+        );
+        editor.current?.scrollIntoView({ block: "nearest" });
+        return;
+      }
       const result = validateDraft(item);
       if (result.error) {
         commit((w) => ({ ...w, selected: item.id }));
@@ -600,18 +636,33 @@ function RegistrationEditor({
                   />
                 </label>
                 <label>
-                  숨길 선물
+                  보물 금액
                   <select
-                    name="kind"
-                    value={selected.kind}
+                    name="prizeAmount"
+                    value={selected.prizeAmount ?? ""}
                     onChange={(event) =>
                       update(selected.id, {
-                        kind: event.target.value as TreasureDraft["kind"],
+                        prizeAmount: stock.find(
+                          (p) => String(p.amount) === event.target.value,
+                        )?.amount,
+                        kind: event.target.value === "0" ? "bomb" : "treasure",
                       })
                     }
                   >
-                    <option value="treasure">보물 · 포인트 획득</option>
-                    <option value="bomb">꽝 · 탐험 5분 휴식</option>
+                    <option value="">금액 또는 꽝을 선택해주세요</option>
+                    {stock.map((p) => (
+                      <option
+                        key={p.amount}
+                        value={p.amount}
+                        disabled={
+                          p.remaining === 0 &&
+                          selectedSaved?.prizeAmount !== p.amount
+                        }
+                      >
+                        {prizeLabel(p.amount)} · {p.remaining} / {p.quantity}개
+                        남음
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <div className="draft-location">
@@ -758,13 +809,17 @@ function RegistrationEditor({
                   </div>
                 </DraftDetails>
                 <p className="footnote">
-                  종류는 발견 전까지 비밀이에요. 이름과 힌트에 꽝인지 적지
+                  금액과 종류는 발견 전까지 비밀이에요. 이름과 힌트에 적지
                   마세요.
                 </p>
                 <div className="draft-save-actions">
                   <button
                     className="button dark"
-                    disabled={Boolean(conflict) || locating}
+                    disabled={
+                      Boolean(conflict) ||
+                      locating ||
+                      selected.prizeAmount === undefined
+                    }
                   >
                     <Save size={17} />
                     {saving
@@ -854,7 +909,9 @@ function RegistrationEditor({
             <span
               className={`mini-tag ${secrets[t.id] === "bomb" || t.outcome === "bomb" ? "orange" : "green"}`}
             >
-              {secrets[t.id] === "bomb" || t.outcome === "bomb" ? "꽝" : "보물"}
+              {t.prizeAmount !== undefined
+                ? prizeLabel(t.prizeAmount)
+                : "금액 미지정"}
             </span>
             <div>
               <h3>{t.name}</h3>

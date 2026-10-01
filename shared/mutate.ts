@@ -1,7 +1,7 @@
 import { arGuidance, treasureGuidance } from "./exploration";
 import { claimTreasure, GameError, isAdmin } from "./game";
 import { makeSeed } from "./seed";
-import { saveTreasures } from "./treasure-registration";
+import { registrationValues, saveTreasures } from "./treasure-registration";
 import type { ActionInput } from "./validation";
 import type { ActionResponse, TreasureSecrets, WorkshopState } from "./types";
 export function mutate(
@@ -168,13 +168,23 @@ export function mutate(
       const current = state.treasures.find((t) => t.id === input.treasure.id);
       if (current?.foundBy)
         throw new GameError("이미 발견된 보물은 변경할 수 없어요.");
-      const { kind, ...treasure } = input.treasure;
-      secrets[treasure.id] = kind;
-      state.treasures = state.treasures
-        .filter((t) => t.id !== treasure.id)
-        .concat({ ...treasure, foundBy: null, foundAt: null });
-      if (state.treasures.length > 100)
-        throw new GameError("보물은 최대 100개까지 등록할 수 있어요.");
+      saveTreasures(state, secrets, {
+        action: "saveTreasures",
+        resetGeneration: state.resetGeneration ?? 0,
+        treasures: [
+          {
+            ...input.treasure,
+            ...(current
+              ? {
+                  original: registrationValues(
+                    current,
+                    secrets[current.id] ?? current.outcome ?? "treasure",
+                  ),
+                }
+              : {}),
+          },
+        ],
+      });
       break;
     }
     case "deleteTreasure": {

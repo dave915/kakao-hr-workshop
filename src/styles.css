@@ -6357,3 +6357,251 @@ td .text-button {
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+.quick-placement {
+  max-width: 840px;
+}
+.quick-heading {
+  scroll-margin-top: 80px;
+}
+.quick-heading .section-heading {
+  align-items: flex-start;
+}
+.placement-steps {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  list-style: none;
+  padding: 0 0 20px;
+  margin: 20px 0 24px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+.placement-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.placement-steps li > span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-weight: 700;
+}
+.placement-steps [aria-current="step"] {
+  color: var(--green);
+  font-weight: 700;
+}
+.placement-steps [aria-current="step"] > span {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--surface);
+}
+.prize-stock-summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin-bottom: 20px;
+}
+.prize-stock-summary h3 {
+  font-size: 18px;
+}
+.prize-stock-summary h3 strong {
+  color: var(--green);
+  margin-left: 6px;
+}
+.prize-stock-summary > span {
+  font-size: 14px;
+}
+.prize-stock-summary small {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 12px;
+}
+.prize-unassigned {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: color-mix(in oklch, var(--yellow) 18%, var(--surface));
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.prize-unassigned .text-button {
+  min-height: 36px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.place-treasure-start {
+  margin-bottom: 20px;
+  min-height: 52px;
+}
+.prize-stock-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.prize-stock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 4px;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.prize-stock-item > strong {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.prize-stock-item > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.prize-stock-item b {
+  color: var(--green);
+}
+.prize-stock-item small {
+  color: var(--muted);
+  font-size: 11px;
+}
+button.prize-stock-item:not(:disabled):hover,
+button.prize-stock-item:not(:disabled):focus-visible {
+  border-color: var(--green);
+  background: var(--soft-green);
+}
+.prize-stock-item.is-empty,
+.prize-stock-item:disabled {
+  background: var(--paper);
+  opacity: 0.65;
+}
+.quick-placement > .footnote {
+  margin-top: 16px;
+}
+.quick-registration {
+  max-width: 560px;
+}
+.quick-prize-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 20px;
+}
+.quick-prize-selected > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.quick-prize-selected span,
+.quick-prize-selected small {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.quick-prize-selected strong {
+  font-size: 32px;
+  color: var(--green);
+}
+.quick-location-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.quick-location-status > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.quick-location-status strong {
+  font-size: 13px;
+}
+.quick-location-status small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.quick-registration .placement-map {
+  height: 250px;
+}
+.quick-relocate {
+  margin: 8px 0;
+  min-height: 44px;
+}
+.quick-register-button {
+  min-height: 52px;
+}
+.quick-details {
+  margin: 20px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 0;
+}
+.quick-details summary {
+  font-size: 13px;
+  cursor: pointer;
+}
+.quick-details summary > span {
+  color: var(--muted);
+  font-size: 11px;
+  margin-left: 8px;
+}
+.quick-details fieldset {
+  border: 0;
+  padding: 16px 0 0;
+  margin: 0;
+  min-width: 0;
+}
+.quick-cancel {
+  min-height: 44px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.quick-advanced {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.quick-advanced .text-button,
+.quick-back {
+  min-height: 44px;
+}
+.quick-back {
+  margin-bottom: 16px;
+}
+@media (max-width: 760px) {
+  .placement-steps {
+    gap: 16px;
+    font-size: 12px;
+  }
+  .placement-steps li {
+    gap: 6px;
+  }
+  .prize-stock-grid {
+    gap: 10px;
+  }
+  .prize-stock-item {
+    padding: 16px 12px;
+  }
+  .prize-stock-item > strong {
+    font-size: 19px;
+  }
+  .prize-stock-item > span {
+    font-size: 12px;
+  }
+  .quick-details input,
+  .quick-details textarea {
+    font-size: 16px;
+  }
+  .quick-registration .placement-map {
+    height: 220px;
+  }
+}

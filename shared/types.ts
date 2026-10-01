@@ -1,3 +1,4 @@
+import type { PrizeAmount } from "./prizes";
 export type Role = "member" | "admin" | "superadmin";
 export type Page =
   | "home"
@@ -35,6 +36,7 @@ export interface Treasure {
   lat: number;
   lng: number;
   points: number;
+  prizeAmount?: PrizeAmount;
   radius: number;
   foundBy: string | null;
   foundAt: number | null;
@@ -103,6 +105,7 @@ export interface Position {
 export interface ClaimResult {
   outcome: "treasure" | "bomb";
   points: number;
+  prizeAmount?: PrizeAmount;
   blockedUntil: number;
 }
 export interface ActionResponse {

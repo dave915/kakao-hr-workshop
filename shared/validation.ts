@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRIZE_PLAN, type PrizeAmount } from "./prizes";
 const text = (max: number) =>
   z.string().trim().min(1, "내용을 입력해주세요.").max(max);
 const iso = z
@@ -62,6 +63,14 @@ export const treasureInput = z.object({
   lng: z.number().min(-180).max(180),
   radius: z.number().int().min(10).max(200),
   points: z.number().int().min(10).max(1000),
+  prizeAmount: z
+    .number()
+    .refine(
+      (amount): amount is PrizeAmount =>
+        PRIZE_PLAN.some((p) => p.amount === amount),
+      "목록에 있는 보물 금액을 선택해주세요.",
+    )
+    .optional(),
   kind: z.enum(["treasure", "bomb"]),
 });
 export type TreasureInput = z.infer<typeof treasureInput>;

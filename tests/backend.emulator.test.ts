@@ -556,6 +556,73 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       await restore.commit();
     }
   });
+  it("serializes competing registrations for the last cash prize and keeps its amount private", async () => {
+    const originalState = (
+      await db.doc("workshops/main").get()
+    ).data() as WorkshopState;
+    const originalSecrets = (await db.doc("private/treasures").get()).data();
+    const originalVisible = await db.doc("workshops/participants").get();
+    const base = {
+      name: "보물",
+      hint: "",
+      lat: 37.3,
+      lng: 127.1,
+      points: 100,
+      radius: 10,
+      kind: "treasure",
+      prizeAmount: 50000,
+    };
+    const requests = ["cash-a", "cash-b"].map((id) => ({
+      action: "saveTreasures",
+      resetGeneration: originalState.resetGeneration ?? 0,
+      treasures: [{ ...base, id }],
+    }));
+    try {
+      await db.doc("workshops/main").set({ ...originalState, treasures: [] });
+      await db.doc("private/treasures").set({ kinds: {} });
+      const responses = await Promise.all(
+        requests.map((input) => call("workshopAction", input, adminToken)),
+      );
+      expect(responses.filter((r) => r.status === 200)).toHaveLength(1);
+      expect(responses.filter((r) => r.status !== 200)).toHaveLength(1);
+      const saved = (
+        await db.doc("workshops/main").get()
+      ).data() as WorkshopState;
+      expect(saved.treasures).toHaveLength(1);
+      expect(saved.treasures[0].prizeAmount).toBe(50000);
+      const visible = (await db.doc("workshops/participants").get()).data();
+      expect(visible.treasures[0]).not.toHaveProperty("prizeAmount");
+      expect(visible.treasures[0]).not.toHaveProperty("lat");
+      const winningRequest = requests.find(
+        (r) => r.treasures[0].id === saved.treasures[0].id,
+      )!;
+      expect(
+        (await call("workshopAction", winningRequest, adminToken)).status,
+      ).toBe(200);
+      expect((await db.doc("workshops/main").get()).data()).toEqual(saved);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            {
+              action: "saveTreasure",
+              treasure: { ...base, id: "legacy-cash" },
+            },
+            adminToken,
+          )
+        ).status,
+      ).not.toBe(200);
+      expect((await db.doc("workshops/main").get()).data()).toEqual(saved);
+    } finally {
+      const restore = db.batch();
+      restore.set(db.doc("workshops/main"), originalState);
+      restore.set(db.doc("private/treasures"), originalSecrets);
+      if (originalVisible.exists)
+        restore.set(originalVisible.ref, originalVisible.data());
+      else restore.delete(originalVisible.ref);
+      await restore.commit();
+    }
+  });
   it("issues an unguessable personal link and redeems it as the exact member", async () => {
     const created = await call(
       "workshopAction",

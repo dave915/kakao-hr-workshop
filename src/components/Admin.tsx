@@ -42,7 +42,7 @@ type Tab = "members" | "schedule" | "treasures" | "notices" | "settings";
 const tabs = [
   { id: "members", label: "참가자·권한", icon: Users },
   { id: "schedule", label: "일정 관리", icon: CalendarDays },
-  { id: "treasures", label: "보물 배치", icon: Map },
+  { id: "treasures", label: "보물 놓기", icon: Map },
   { id: "notices", label: "공지·푸시", icon: Megaphone },
   { id: "settings", label: "워크샵 설정", icon: Settings2 },
 ] as const;

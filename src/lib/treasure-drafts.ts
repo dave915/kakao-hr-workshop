@@ -100,6 +100,7 @@ export function validateDraft(
       lat: "위도를 −90~90 사이로 입력해주세요.",
       lng: "경도를 −180~180 사이로 입력해주세요.",
       points: "포인트를 10~1,000 사이의 정수로 입력해주세요.",
+      prizeAmount: "등록할 보물의 금액 또는 꽝을 선택해주세요.",
       radius: "발견 반경을 10~200m 사이의 정수로 입력해주세요.",
     };
     return { error: messages[String(field)] ?? "입력 내용을 확인해주세요." };
