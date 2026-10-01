@@ -4,7 +4,6 @@ import {
   Gift,
   Timer,
   X,
-  PartyPopper,
   Maximize2,
   ArrowUpRight,
   Check,
@@ -17,8 +16,8 @@ import { hasCoordinates } from "../../shared/exploration";
 import { prizeLabel } from "../../shared/prizes";
 import type { ClaimResult, Position } from "../../shared/types";
 import { englishName, errorMessage } from "../lib/utils";
-import { Drawer, Empty, type Notify } from "./common";
-import { TreasureIllustration } from "./ExpeditionArt";
+import { Empty, type Notify } from "./common";
+import TreasureDiscovery from "./TreasureDiscovery";
 import { locate, useExploration } from "../hooks/useExploration";
 import { useMapHeading } from "../hooks/useMapHeading";
 import ExplorationGuide from "./ExplorationGuide";
@@ -546,34 +545,7 @@ export default function Treasure({
         </Suspense>
       )}
       {result && (
-        <Drawer
-          title={
-            result.outcome === "bomb"
-              ? "앗, 깜짝 선물이었어요!"
-              : "새로운 보물을 발견했어요!"
-          }
-          onClose={() => setResult(null)}
-        >
-          <div className={`result-view ${result.outcome}`}>
-            <TreasureIllustration bomb={result.outcome === "bomb"} />
-            <h2>
-              {result.outcome === "bomb"
-                ? "5분 동안 잠깐 쉬어가요"
-                : result.prizeAmount !== undefined
-                  ? `${prizeLabel(result.prizeAmount)} 보물 발견!`
-                  : `+${result.points} 포인트!`}
-            </h2>
-            <p>
-              {result.outcome === "bomb"
-                ? "잠깐의 쉼도 모험의 일부니까요. 휴식 후 다시 도전해요."
-                : "우리 팀의 탐험 수첩에도 기록했어요. 다음 보물로 모험을 이어가요!"}
-            </p>
-            <button className="button dark" onClick={() => setResult(null)}>
-              {result.outcome === "bomb" ? "알겠어요" : "다음 모험으로"}
-              <PartyPopper size={17} />
-            </button>
-          </div>
-        </Drawer>
+        <TreasureDiscovery result={result} onClose={() => setResult(null)} />
       )}
     </div>
   );

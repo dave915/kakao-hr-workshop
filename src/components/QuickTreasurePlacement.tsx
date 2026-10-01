@@ -26,6 +26,8 @@ import {
 } from "../lib/treasure-drafts";
 import TreasurePlacementMap from "./TreasurePlacementMap";
 import type { Notify } from "./common";
+import PrizeDiscoveryImage from "./PrizeDiscoveryImage";
+import TreasureDiscovery from "./TreasureDiscovery";
 
 interface Props {
   scope: string;
@@ -64,6 +66,7 @@ export default function QuickTreasurePlacement({
   const [storageError, setStorageError] = useState(initial.error);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [previewAmount, setPreviewAmount] = useState<PrizeAmount | null>(null);
   const savingRef = useRef(false);
   const locationRequest = useRef(0);
   const mounted = useRef(true);
@@ -526,6 +529,42 @@ export default function QuickTreasurePlacement({
             이번 보물 취소
           </button>
         </div>
+      )}
+      {step === "stock" && (
+        <details className="prize-art-preview">
+          <summary>발견 이미지 미리보기</summary>
+          <p>금액을 누르면 참가자에게 보일 발견 화면을 확인할 수 있어요.</p>
+          <div className="prize-art-preview-grid">
+            {stock.map(({ amount }) => (
+              <button
+                key={amount}
+                aria-label={`${prizeLabel(amount)} 발견 화면 미리보기`}
+                onClick={() => setPreviewAmount(amount)}
+              >
+                <PrizeDiscoveryImage
+                  result={{
+                    outcome: amount === 0 ? "bomb" : "treasure",
+                    prizeAmount: amount,
+                  }}
+                  compact
+                />
+                <strong>{prizeLabel(amount)}</strong>
+              </button>
+            ))}
+          </div>
+        </details>
+      )}
+      {previewAmount !== null && (
+        <TreasureDiscovery
+          preview
+          result={{
+            outcome: previewAmount === 0 ? "bomb" : "treasure",
+            prizeAmount: previewAmount,
+            points: previewAmount === 0 ? 0 : 100,
+            blockedUntil: 0,
+          }}
+          onClose={() => setPreviewAmount(null)}
+        />
       )}
       <div className="quick-advanced">
         <button

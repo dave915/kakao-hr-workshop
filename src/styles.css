@@ -1958,7 +1958,7 @@ main {
 }
 .result-view h2 {
   font-family: "Jua", sans-serif;
-  font-size: 38px;
+  font-size: clamp(26px, 7vw, 38px);
   font-weight: 400;
   color: #647c49;
 }
@@ -1972,6 +1972,76 @@ main {
 }
 .result-view .button {
   margin-top: 15px;
+}
+.prize-discovery-art {
+  width: min(240px, 65vw);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  animation: reveal 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.prize-discovery-art img,
+.prize-art-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.prize-art-thumbnail {
+  width: 100px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.prize-art-thumbnail .discovery-object {
+  font-size: 60px;
+  animation: none;
+}
+.prize-art-preview {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 80px;
+}
+.prize-art-preview > summary {
+  cursor: pointer;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.prize-art-preview > p {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.prize-art-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.prize-art-preview-grid > button {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.prize-art-preview-grid > button:hover,
+.prize-art-preview-grid > button:focus-visible {
+  background: var(--soft-green);
+}
+@media (max-width: 760px) {
+  .prize-art-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prize-discovery-art {
+    animation: none;
+  }
 }
 .toast {
   position: fixed;
