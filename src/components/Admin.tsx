@@ -984,6 +984,7 @@ function SettingsForm({
             startsAt: fromLocalInput(String(fd.get("startsAt"))),
             endsAt: fromLocalInput(String(fd.get("endsAt"))),
             center: [Number(fd.get("lat")), Number(fd.get("lng"))],
+            photoNotifications: fd.get("photoNotifications") === "on",
           });
         }}
       >
@@ -1064,6 +1065,19 @@ function SettingsForm({
             />
           </label>
         </div>
+        <label className="check-label">
+          <input
+            type="checkbox"
+            name="photoNotifications"
+            defaultChecked={settings.photoNotifications !== false}
+          />
+          사진첩 알림 보내기
+        </label>
+        <p className="footnote">
+          새 글, 좋아요, 댓글, 멘션을 알려드려요. 워크샵 시작일부터 종료일까지는
+          실시간, 그 외에는 매일 오전 9시에 요약해 보내요. 한국 시간 기준이며 새
+          소식이 없으면 보내지 않아요.
+        </p>
         <button className="button dark" disabled={busy}>
           워크샵 정보 저장
         </button>

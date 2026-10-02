@@ -61,6 +61,7 @@ export interface Settings {
   endsAt: string;
   center: [number, number];
   gameOpen: boolean;
+  photoNotifications?: boolean;
 }
 export interface ActivityGroup {
   id: string;

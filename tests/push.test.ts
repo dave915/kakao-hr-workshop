@@ -191,6 +191,37 @@ describe("Web Push system notifications", () => {
     await waitUntil.mock.calls[0][0];
     expect(openWindow).toHaveBeenCalledWith(`${scope}#/notices`);
   });
+  it("routes photo notifications to a specific post and digests to the feed", async () => {
+    const postId = "a34c8e84-e452-4431-bb38-1dd83f698304";
+    await receive({
+      data: {
+        type: "photo-activity",
+        title: "사진첩",
+        postId,
+        eventId: "photo-event",
+      },
+    });
+    expect(showNotification).toHaveBeenCalledWith(
+      "사진첩",
+      expect.objectContaining({
+        tag: "photo-event",
+        data: { page: "photos", postId },
+      }),
+    );
+    for (const [data, target] of [
+      [{ page: "photos", postId }, `${scope}#/photos?post=${postId}`],
+      [{ page: "photos" }, `${scope}#/photos`],
+      [{ page: "photos", postId: "../../bad" }, `${scope}#/photos`],
+    ] as const) {
+      const waitUntil = vi.fn();
+      listeners.notificationclick({
+        notification: { close: vi.fn(), data },
+        waitUntil,
+      });
+      await waitUntil.mock.calls[0][0];
+      expect(openWindow).toHaveBeenLastCalledWith(target);
+    }
+  });
 });
 
 describe("device push registration", () => {

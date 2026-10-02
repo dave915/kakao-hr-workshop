@@ -63,7 +63,7 @@ const pageNames: Record<Page, string> = {
   admin: "추진위원회",
 };
 const pageFromHash = (): Page => {
-  const p = location.hash.replace("#/", "") as Page;
+  const p = location.hash.replace("#/", "").split("?")[0] as Page;
   return p in pageNames ? p : "home";
 };
 export default function App() {
@@ -202,8 +202,10 @@ export default function App() {
       if ((await m.isSupported()) && !cancelled)
         stop = m.onMessage(m.getMessaging(app!), (payload) =>
           notify(
-            (payload.data?.type === "treasure-found"
-              ? payload.data.body
+            (["treasure-found", "photo-activity"].includes(
+              payload.data?.type ?? "",
+            )
+              ? payload.data?.body
               : payload.data?.title) || "새로운 워크샵 소식이 도착했어요.",
           ),
         );

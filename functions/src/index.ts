@@ -15,6 +15,11 @@ import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { discoveryPush } from "../../shared/discovery-push";
 import { discoveryPushId, dispatchDiscoveryPush } from "./discovery-push";
 import { handlePhotoBoard, cleanupPhotos } from "./photos";
+import {
+  queuePhotoEvent,
+  dispatchPhotoPush,
+  sendDuePhotoPushes,
+} from "./photo-notifications";
 import { actionInput } from "../../shared/validation";
 import { mutate } from "../../shared/mutate";
 import { GameError, isAdmin } from "../../shared/game";
@@ -45,6 +50,24 @@ export const sendTreasureDiscovery = onDocumentCreated(
   { document: "treasurePushes/{pushId}", retry: true, timeoutSeconds: 120 },
   async (event) => {
     if (event.data) await dispatchDiscoveryPush(event.data.ref);
+  },
+);
+export const queuePhotoNotifications = onDocumentCreated(
+  { document: "photoEvents/{eventId}", retry: true, timeoutSeconds: 120 },
+  async (event) => {
+    if (event.data) await queuePhotoEvent(event.data.ref);
+  },
+);
+export const sendPhotoNotification = onDocumentCreated(
+  { document: "photoPushes/{pushId}", retry: true, timeoutSeconds: 120 },
+  async (event) => {
+    if (event.data) await dispatchPhotoPush(event.data.ref);
+  },
+);
+export const sendPhotoDigests = onSchedule(
+  { schedule: "* * * * *", timeZone: "Asia/Seoul", timeoutSeconds: 120 },
+  async () => {
+    await sendDuePhotoPushes();
   },
 );
 const hash = (value: string) =>

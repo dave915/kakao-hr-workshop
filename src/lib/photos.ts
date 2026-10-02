@@ -87,6 +87,30 @@ async function demoWrite(post: DemoPost) {
       reject(new Error("사진 저장 공간이 부족해요. 사진을 줄여주세요."));
   });
 }
+export async function getPhotoPost(
+  id: string,
+  member: Member,
+  generation: number,
+): Promise<PhotoPost> {
+  if (!demoMode) {
+    const result = await photoAction({ action: "get", id });
+    if (!result.post) throw new Error("게시글을 찾을 수 없어요.");
+    return result.post;
+  }
+  const item = (await demoRead()).find(
+    (entry) =>
+      entry.post.id === id &&
+      entry.post.generation === generation &&
+      entry.post.status === "published",
+  );
+  if (!item) throw new Error("게시글이 삭제되었거나 더 이상 볼 수 없어요.");
+  return {
+    ...item.post,
+    liked: item.likes?.includes(member.id) ?? false,
+    likeCount: item.likes?.length ?? 0,
+    ...demoCommentSummary(item, member),
+  };
+}
 export async function listPhotos(
   member: Member,
   generation: number,

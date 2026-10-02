@@ -432,6 +432,54 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
     await db.doc(`photoPosts/${post.id}`).update({ status: "published" });
     return { ...post, status: "published" as const };
   }
+  it("commits one notification event per publish, like, comment and comment like; opens a linked post securely", async () => {
+    const post = await begin();
+    await upload(post);
+    expect(
+      (await call({ action: "publish", id: post.id }, tokens["alex.k"])).status,
+    ).toBe(200);
+    expect(
+      (await call({ action: "publish", id: post.id }, tokens["alex.k"])).status,
+    ).toBe(200);
+    const like = (liked: boolean) =>
+      call({ action: "like", id: post.id, liked }, tokens["june.p"]);
+    await like(true);
+    await like(false);
+    await like(true);
+    const commentId = randomUUID();
+    const commentInput = {
+      action: "addComment",
+      id: post.id,
+      commentId,
+      body: "@alex.k 함께해서 좋아요 @dave.h",
+    };
+    await call(commentInput, tokens["june.p"]);
+    await call(commentInput, tokens["june.p"]);
+    await call(
+      { action: "likeComment", id: post.id, commentId, liked: true },
+      tokens["dave.h"],
+    );
+    const events = (
+      await db.collection("photoEvents").where("postId", "==", post.id).get()
+    ).docs.map((doc: any) => doc.data());
+    expect(events).toHaveLength(4);
+    expect(
+      events.find((event: any) => event.action === "comment").recipients,
+    ).toEqual({ "alex.k": "mention", "dave.h": "mention" });
+    expect(
+      events.find((event: any) => event.action === "like" && event.commentId)
+        .recipients,
+    ).toEqual({ "june.p": "like" });
+    expect(
+      (await call({ action: "get", id: post.id }, tokens["june.p"])).result
+        .post,
+    ).toMatchObject({ id: post.id, liked: true });
+    expect((await call({ action: "get", id: post.id })).status).toBe(401);
+    await db.doc(`photoPosts/${post.id}`).update({ status: "deleted" });
+    expect(
+      (await call({ action: "get", id: post.id }, tokens["june.p"])).status,
+    ).toBe(404);
+  }, 20000);
   it("counts each member's like once under retries and concurrent requests and reports the viewer's state", async () => {
     const post = await published();
     const like = (uid: string, liked: boolean) =>

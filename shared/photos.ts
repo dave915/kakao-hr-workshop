@@ -28,6 +28,7 @@ export const photoCursor = z.object({
 });
 export type PhotoCursor = z.infer<typeof photoCursor>;
 export const photoActionInput = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("get"), id: z.string().uuid() }),
   z.object({
     action: z.literal("like"),
     id: z.string().uuid(),

@@ -92,6 +92,7 @@ export const settingsInput = z
       z.number().min(-180).max(180),
     ]),
     gameOpen: z.boolean(),
+    photoNotifications: z.boolean().optional(),
   })
   .refine(
     (s) => Date.parse(s.endsAt) > Date.parse(s.startsAt),

@@ -13,6 +13,7 @@ import { useWorkshop } from "../lib/store";
 import { englishName, errorMessage } from "../lib/utils";
 import {
   listPhotos,
+  getPhotoPost,
   publishPhotos,
   removePhotoPost,
   setPhotoLike,
@@ -32,6 +33,7 @@ import PhotoImage from "./PhotoImage";
 import PhotoFeedPost from "./PhotoFeedPost";
 import PhotoComments from "./PhotoComments";
 import MentionSuggestions from "./MentionSuggestions";
+import { photoDeliveryTime } from "../../shared/photo-notifications";
 
 function PreparedPreview({ photo }: { photo: PreparedPhoto }) {
   const [url, setUrl] = useState("");
@@ -44,6 +46,17 @@ function PreparedPreview({ photo }: { photo: PreparedPhoto }) {
 }
 export default function PhotoBoard({ notify }: { notify: Notify }) {
   const captionInput = useRef<HTMLTextAreaElement>(null);
+  const [linkedPost, setLinkedPost] = useState(() =>
+    new URLSearchParams(location.hash.split("?")[1] ?? "").get("post"),
+  );
+  useEffect(() => {
+    const change = () =>
+      setLinkedPost(
+        new URLSearchParams(location.hash.split("?")[1] ?? "").get("post"),
+      );
+    window.addEventListener("hashchange", change);
+    return () => window.removeEventListener("hashchange", change);
+  }, []);
   const { state, me, demo } = useWorkshop();
   const [posts, setPosts] = useState<PhotoPost[]>([]),
     [cursor, setCursor] = useState<PhotoCursor | null>(null);
@@ -91,11 +104,17 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
     setLoading(true);
     setError("");
     try {
-      const result = await listPhotos(
-        me,
-        generation,
-        more ? (cursor ?? undefined) : undefined,
-      );
+      const targetId = !more ? linkedPost : null;
+      const [result, target] = await Promise.all([
+        listPhotos(me, generation, more ? (cursor ?? undefined) : undefined),
+        targetId
+          ? getPhotoPost(targetId, me, generation).catch((e) => {
+              if (mounted.current && version === loadVersion.current)
+                setError(errorMessage(e));
+              return null;
+            })
+          : Promise.resolve(null),
+      ]);
       if (!mounted.current || version !== loadVersion.current) return;
       setPosts((current) =>
         more
@@ -105,7 +124,12 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
                 (p) => !current.some((c) => c.id === p.id),
               ),
             ]
-          : (result.posts ?? []),
+          : target
+            ? [
+                target,
+                ...(result.posts ?? []).filter((post) => post.id !== target.id),
+              ]
+            : (result.posts ?? []),
       );
       setCursor(result.nextCursor ?? null);
       setRemaining(result.remaining ?? PHOTO_MONTHLY_LIMIT);
@@ -118,7 +142,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
   }
   useEffect(() => {
     void load();
-  }, [me?.id, generation]);
+  }, [me?.id, generation, linkedPost]);
   useEffect(() => {
     if (!posting) return;
     const prevent = (event: BeforeUnloadEvent) => {
@@ -327,6 +351,15 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
           올리기
         </button>
       </header>
+      {state.settings.photoNotifications !== false && (
+        <p className="photo-notification-policy">
+          {demo ? "예시 화면에서는 푸시가 발송되지 않아요. " : ""}
+          {photoDeliveryTime(state.settings, Date.now()).mode === "realtime"
+            ? "워크샵 기간에는 사진첩 소식을 실시간으로 알려드려요."
+            : "사진첩 소식은 매일 오전 9시에 모아 알려드려요. 워크샵 기간에는 실시간으로 보내요."}{" "}
+          알림은 나의 탐험 여권에서 켤 수 있어요.
+        </p>
+      )}
       <div className="photo-board-toolbar">
         <span>
           <LockKeyhole size={13} />

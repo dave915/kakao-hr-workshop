@@ -30,6 +30,7 @@ self.addEventListener("push", (event) => {
       noticeId?: string;
       eventId?: string;
       type?: string;
+      postId?: string;
     };
   } = {};
   try {
@@ -44,7 +45,15 @@ self.addEventListener("push", (event) => {
       icon: new URL("./icon-192.png", self.registration.scope).href,
       tag: payload.data?.eventId || payload.data?.noticeId || "workshop",
       data: {
-        page: payload.data?.type === "treasure-found" ? "treasure" : "notices",
+        page:
+          payload.data?.type === "treasure-found"
+            ? "treasure"
+            : payload.data?.type === "photo-activity"
+              ? "photos"
+              : "notices",
+        ...(payload.data?.type === "photo-activity" && payload.data.postId
+          ? { postId: payload.data.postId }
+          : {}),
       },
     }),
   );
@@ -52,8 +61,19 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const page =
-    event.notification.data?.page === "treasure" ? "treasure" : "notices";
-  const url = new URL(`./#/${page}`, self.registration.scope).href;
+    event.notification.data?.page === "treasure"
+      ? "treasure"
+      : event.notification.data?.page === "photos"
+        ? "photos"
+        : "notices";
+  const postId = event.notification.data?.postId;
+  const query =
+    page === "photos" &&
+    typeof postId === "string" &&
+    /^[0-9a-f-]{36}$/i.test(postId)
+      ? `?post=${encodeURIComponent(postId)}`
+      : "";
+  const url = new URL(`./#/${page}${query}`, self.registration.scope).href;
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })

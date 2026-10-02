@@ -24,6 +24,8 @@ import {
   type PhotoResponse,
 } from "../../shared/photos";
 import type { WorkshopState } from "../../shared/types";
+import { photoEvent } from "../../shared/photo-notifications";
+import { preparePhotoEvent } from "./photo-notifications";
 
 const bucket = () =>
   getStorage().bucket(
@@ -57,7 +59,13 @@ async function authorize(
       "unauthenticated",
       "새 입장 링크로 다시 입장해주세요.",
     );
-  return { me, generation: state!.resetGeneration ?? 0, profile, profileRef };
+  return {
+    me,
+    state: state!,
+    generation: state!.resetGeneration ?? 0,
+    profile,
+    profileRef,
+  };
 }
 function writable(post: PhotoPost | undefined, uid: string, admin: boolean) {
   if (!post) throw new HttpsError("not-found", "게시글을 찾을 수 없어요.");
@@ -287,6 +295,26 @@ export async function handlePhotoBoard(
     });
   }
   const ref = db.doc(`photoPosts/${input.id}`);
+  if (input.action === "get") {
+    return db.runTransaction(async (tx) => {
+      const auth = await authorize(tx, request);
+      const post = (await tx.get(ref)).data() as PhotoPost | undefined;
+      if (
+        !post ||
+        post.status !== "published" ||
+        post.generation !== auth.generation
+      )
+        throw new HttpsError(
+          "not-found",
+          "게시글이 삭제되었거나 더 이상 볼 수 없어요.",
+        );
+      const [like, commentPreview] = await Promise.all([
+        tx.get(ref.collection("likes").doc(auth.me.id)),
+        socialView(tx, ref, post, auth.me.id),
+      ]);
+      return { post: { ...post, liked: like.exists, commentPreview } };
+    });
+  }
   if (
     [
       "like",
@@ -316,6 +344,13 @@ export async function handlePhotoBoard(
         if (existing.exists === input.liked)
           return { liked: input.liked, likeCount: count };
         const likeCount = Math.max(0, count + (input.liked ? 1 : -1));
+        const enqueue = input.liked
+          ? await preparePhotoEvent(
+              tx,
+              photoEvent(auth.state, auth.me, post, "like", now),
+            )
+          : () => {};
+        enqueue();
         if (input.liked) tx.create(likeRef, { createdAt: now });
         else tx.delete(likeRef);
         tx.update(ref, { likeCount });
@@ -426,6 +461,13 @@ export async function handlePhotoBoard(
             (existing.exists === input.liked ? 0 : input.liked ? 1 : -1),
         );
         if (existing.exists !== input.liked) {
+          const enqueue = input.liked
+            ? await preparePhotoEvent(
+                tx,
+                photoEvent(auth.state, auth.me, post, "like", now, comment),
+              )
+            : () => {};
+          enqueue();
           if (input.liked) tx.create(likeRef, { createdAt: now });
           else tx.delete(likeRef);
           tx.update(target, { likeCount });
@@ -559,6 +601,19 @@ export async function handlePhotoBoard(
           ),
         ]);
         const commentCount = (post.commentCount ?? 0) + 1;
+        const enqueue = await preparePhotoEvent(
+          tx,
+          photoEvent(
+            auth.state,
+            auth.me,
+            post,
+            "comment",
+            now,
+            comment,
+            replyTo,
+          ),
+        );
+        enqueue();
         tx.create(target, comment);
         tx.set(limitRef, { count: (limit.data()?.count ?? 0) + 1, day });
         if (updatedParent)
@@ -862,6 +917,13 @@ export async function handlePhotoBoard(
         status: "published" as const,
         updatedAt: Date.now(),
       };
+      if (current.status !== "published") {
+        const enqueue = await preparePhotoEvent(
+          tx,
+          photoEvent(auth.state, auth.me, published, "post", Date.now()),
+        );
+        enqueue();
+      }
       tx.set(ref, published);
       return { post: published };
     });

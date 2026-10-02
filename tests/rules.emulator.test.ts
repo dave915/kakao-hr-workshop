@@ -87,6 +87,22 @@ describe.skipIf(!enabled)("Firestore security rules", () => {
     await assertFails(getDoc(doc(db, "invites", "secret")));
     await assertFails(getDoc(doc(db, "inviteLinks", "admin")));
   });
+  it("keeps photo delivery queues and recipient markers server-only for every role", async () => {
+    for (const uid of ["member", "admin"]) {
+      const db = env
+        .authenticatedContext(uid, { sessionVersion: 1 })
+        .firestore();
+      for (const path of [
+        "photoEvents/event",
+        "photoEvents/event/recipients/target",
+        "photoPushes/job",
+        "photoPushes/job/items/event",
+      ]) {
+        await assertFails(getDoc(doc(db, path)));
+        await assertFails(setDoc(doc(db, path), { status: "pending" }));
+      }
+    }
+  });
   it("denies participants the full coordinates even with a forged role claim", async () => {
     const db = env
       .authenticatedContext("member", { sessionVersion: 1, role: "superadmin" })
