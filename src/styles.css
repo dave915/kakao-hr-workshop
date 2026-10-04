@@ -6051,6 +6051,7 @@ td .text-button {
   }
   .photo-board > .empty-state,
   .photo-board > .photo-feedback,
+  .photo-board > .photo-notification-policy,
   .photo-board > .footnote {
     margin-inline: 20px;
   }
@@ -6899,6 +6900,8 @@ button.prize-stock-item:not(:disabled):focus-visible {
   line-height: 1.8;
   margin: 12px 0 20px;
   max-width: 65ch;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 .photo-mentions {
   position: relative;
