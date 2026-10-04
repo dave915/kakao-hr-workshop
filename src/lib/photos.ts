@@ -1,3 +1,4 @@
+import { photoCache } from "./photo-cache";
 import { httpsCallable } from "firebase/functions";
 import {
   getStorage,
@@ -238,6 +239,7 @@ export async function publishPhotos(
 export async function removePhotoPost(post: PhotoPost, member: Member) {
   if (!demoMode) {
     await photoAction({ action: "delete", id: post.id });
+    photoCache.removePost(post.id);
     return;
   }
   if (member.id !== post.authorId && member.role === "member")
@@ -252,8 +254,18 @@ export async function removePhotoPost(post: PhotoPost, member: Member) {
       comments: [],
       commentLikes: {},
     });
+  photoCache.removePost(post.id);
 }
-export async function readPhoto(
+export function readPhoto(
+  post: PhotoPost,
+  index: number,
+  size: "full" | "thumb",
+) {
+  return photoCache.read(`${post.id}:${index}:${size}`, () =>
+    fetchPhoto(post, index, size),
+  );
+}
+async function fetchPhoto(
   post: PhotoPost,
   index: number,
   size: "full" | "thumb",

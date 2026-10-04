@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useClock } from "../hooks/useClock";
+import { koreaDay, scheduleSelection } from "../lib/schedule-navigation";
 import {
   CalendarDays,
   MapPin,
@@ -13,13 +15,41 @@ import { formatDate, formatTime } from "../lib/utils";
 import { scheduleStatus } from "../../shared/game";
 import { Empty } from "./common";
 const icons = { gather: Flag, activity: Compass, meal: Utensils, rest: Coffee };
-export default function Timeline({ now }: { now: number }) {
+const eventFromHash = () =>
+  new URLSearchParams(location.hash.split("?")[1] ?? "").get("event");
+export default function Timeline() {
+  const [eventId, setEventId] = useState(eventFromHash);
+  useEffect(() => {
+    const change = () => setEventId(eventFromHash());
+    window.addEventListener("hashchange", change);
+    return () => window.removeEventListener("hashchange", change);
+  }, []);
+  return <TimelineView key={eventId ?? "default"} eventId={eventId} />;
+}
+function TimelineView({ eventId }: { eventId: string | null }) {
+  const now = useClock(60_000);
   const { state } = useWorkshop();
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null | undefined>(
+    undefined,
+  );
   const [day, setDay] = useState("");
+  const { days, selected, target } = scheduleSelection(
+    state?.schedule ?? [],
+    now,
+    day,
+    eventId,
+  );
+  const expandedId = expanded === undefined ? target?.id : expanded;
+  useEffect(() => {
+    if (!target) return;
+    const frame = requestAnimationFrame(() => {
+      document
+        .getElementById(`schedule-${target.id}`)
+        ?.scrollIntoView({ block: "center" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [target?.id]);
   if (!state) return null;
-  const days = [...new Set(state.schedule.map((s) => s.startsAt.slice(0, 10)))];
-  const selected = days.includes(day) ? day : days[0];
   return (
     <div className="page-enter">
       <div className="page-intro">
@@ -35,6 +65,7 @@ export default function Timeline({ now }: { now: number }) {
           <button
             key={d}
             className={selected === d ? "selected" : ""}
+            aria-pressed={selected === d}
             onClick={() => setDay(d)}
           >
             DAY {i + 1}
@@ -45,12 +76,16 @@ export default function Timeline({ now }: { now: number }) {
       {state.schedule.length ? (
         <div className="full-timeline">
           {state.schedule
-            .filter((s) => s.startsAt.slice(0, 10) === selected)
+            .filter((s) => koreaDay(s.startsAt) === selected)
             .map((s) => {
               const status = scheduleStatus(s, now);
               const Icon = icons[s.category];
               return (
-                <article key={s.id} className={`timeline-item ${status}`}>
+                <article
+                  key={s.id}
+                  id={`schedule-${s.id}`}
+                  className={`timeline-item ${status}`}
+                >
                   <div className="time-column">
                     <strong>{formatTime(s.startsAt)}</strong>
                     <span>{formatTime(s.endsAt)}</span>
@@ -62,9 +97,9 @@ export default function Timeline({ now }: { now: number }) {
                   </div>
                   <div className="timeline-body">
                     <button
-                      aria-expanded={expanded === s.id}
+                      aria-expanded={expandedId === s.id}
                       onClick={() =>
-                        setExpanded(expanded === s.id ? null : s.id)
+                        setExpanded(expandedId === s.id ? null : s.id)
                       }
                     >
                       <span>
@@ -82,11 +117,11 @@ export default function Timeline({ now }: { now: number }) {
                         </span>
                       </span>
                       <ChevronDown
-                        className={expanded === s.id ? "rotate" : ""}
+                        className={expandedId === s.id ? "rotate" : ""}
                         size={20}
                       />
                     </button>
-                    {expanded === s.id && (
+                    {expandedId === s.id && (
                       <p className="timeline-description">
                         {s.description || "시작 시간에 맞춰 모여주세요."}
                       </p>

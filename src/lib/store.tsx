@@ -1,9 +1,11 @@
+import { photoCache } from "./photo-cache";
 import { participantView } from "../../shared/exploration";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useMemo,
   useState,
@@ -70,9 +72,14 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
   const dataRef = useRef(demoData);
   dataRef.current = demoData;
   const me = uid && state ? (state.members[uid] ?? null) : null;
+  useLayoutEffect(() => {
+    photoCache.setScope(me ? `${me.id}:${state?.resetGeneration ?? 0}` : null);
+  }, [me?.id, state?.resetGeneration]);
+  useEffect(() => () => photoCache.setScope(null), []);
   useEffect(() => {
     if (!auth || !db) return;
     return onAuthStateChanged(auth, (user) => {
+      photoCache.setScope(null);
       setUid(user?.uid ?? null);
       setReadyUid(user?.uid ?? null);
       setAccessRole(null);
@@ -279,6 +286,7 @@ export function WorkshopProvider({ children }: { children: ReactNode }) {
     await signInWithCustomToken(auth, data.token);
   }, []);
   const logout = useCallback(async () => {
+    photoCache.clear();
     if (demoMode) {
       setUid(null);
       localStorage.removeItem("hr-demo-user");

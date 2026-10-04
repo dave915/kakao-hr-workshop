@@ -6,6 +6,9 @@ import {
   createHandlerBoundToURL,
 } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
+import { CacheFirst } from "workbox-strategies";
+import { ExpirationPlugin } from "workbox-expiration";
+import { FONT_CACHE } from "../shared/font-cache";
 import { initializeApp } from "firebase/app";
 import { getMessaging } from "firebase/messaging/sw";
 declare const self: ServiceWorkerGlobalScope & {
@@ -17,6 +20,20 @@ self.addEventListener("message", (e) => {
 clientsClaim();
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
+registerRoute(
+  ({ request, url }) =>
+    request.destination === "font" && url.origin === self.location.origin,
+  new CacheFirst({
+    cacheName: FONT_CACHE,
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 512,
+        maxAgeSeconds: 365 * 24 * 60 * 60,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
 registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")));
 // Handle FCM's data-only Web Push here, including while an app window is visible.
 // Firebase's default foreground routing skips showNotification; Safari can revoke

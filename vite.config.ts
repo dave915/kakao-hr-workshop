@@ -49,12 +49,14 @@ export default defineConfig({
         ],
       },
       injectManifest: {
-        globPatterns: ["**/*.{js,css,html,png,webp,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,png,webp,svg}"],
         maximumFileSizeToCacheInBytes: 4000000,
       },
     }),
   ],
   build: {
+    // Small unicode subsets must remain demand-loaded, not embedded in CSS.
+    assetsInlineLimit: (path) => (/\.woff2?$/.test(path) ? false : undefined),
     rollupOptions: {
       output: {
         manualChunks: {

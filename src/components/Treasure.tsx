@@ -10,6 +10,7 @@ import {
   MapPin,
   LocateFixed,
 } from "lucide-react";
+import { useClock } from "../hooks/useClock";
 import { useWorkshop } from "../lib/store";
 import { remainingTreasures } from "../../shared/game";
 import { hasCoordinates } from "../../shared/exploration";
@@ -27,13 +28,8 @@ import DirectionFocus from "./DirectionFocus";
 export { locate } from "../hooks/useExploration";
 const TreasureMap = lazy(() => import("./TreasureMap"));
 const Camera = lazy(() => import("./Camera"));
-export default function Treasure({
-  notify,
-  now,
-}: {
-  notify: Notify;
-  now: number;
-}) {
+export default function Treasure({ notify }: { notify: Notify }) {
+  const now = useClock(1000);
   const { state, me, act } = useWorkshop();
   const guideRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);

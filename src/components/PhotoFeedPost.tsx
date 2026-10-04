@@ -172,7 +172,6 @@ export default function PhotoFeedPost({
               <PhotoImage
                 post={post}
                 index={index}
-                full
                 enabled={index === active}
               />
             </button>

@@ -36,6 +36,7 @@ import { app, configured } from "./lib/firebase";
 import { isAdmin } from "../shared/game";
 import { englishName, errorMessage } from "./lib/utils";
 import { registerWorker } from "./lib/pwa";
+import { cacheUsedFonts } from "./lib/font-cache";
 import { startDeviceReporting } from "./lib/device-status";
 import { useUnreadNotices } from "./lib/notice-read";
 import type { Page } from "../shared/types";
@@ -89,7 +90,6 @@ export default function App() {
     return startDeviceReporting(act);
   }, [me?.id, demo, act]);
   const [toast, setToast] = useState("");
-  const [now, setNow] = useState(Date.now());
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState("");
   const [code, setCode] = useState("");
@@ -101,6 +101,7 @@ export default function App() {
   const {
     open: mobileMenu,
     close: closeMobileMenu,
+    closeForNavigation: closeMenuForNavigation,
     toggle: toggleMobileMenu,
   } = useMobileMenu(Boolean(me && state && !loading && !joining && !joinError));
   const joiningCode = useRef("");
@@ -110,15 +111,14 @@ export default function App() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 6000);
   };
-  const navigate = (target: Page) => {
-    location.hash = `/${target}`;
-    closeMobileMenu();
+  const navigate = (target: Page, eventId?: string) => {
+    location.hash = `/${target}${target === "timeline" && eventId ? `?event=${encodeURIComponent(eventId)}` : ""}`;
+    closeMenuForNavigation();
+    requestAnimationFrame(() =>
+      document.getElementById("main-content")?.focus({ preventScroll: true }),
+    );
     window.scrollTo({ top: 0, behavior: "instant" });
   };
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, []);
   useEffect(() => {
     const change = () => setOnline(navigator.onLine);
     window.addEventListener("online", change);
@@ -130,7 +130,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     const handle = () => {
-      closeMobileMenu();
+      closeMenuForNavigation();
       if (location.hash.startsWith("#/join/")) {
         const raw = location.hash.slice(7);
         if (joiningCode.current === raw) return;
@@ -157,7 +157,7 @@ export default function App() {
     handle();
     window.addEventListener("hashchange", handle);
     return () => window.removeEventListener("hashchange", handle);
-  }, [login, closeMobileMenu]);
+  }, [login, closeMenuForNavigation]);
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
@@ -173,9 +173,14 @@ export default function App() {
   }, []);
   useEffect(() => {
     const promise = registerWorker();
+    const cacheFonts = () => {
+      void cacheUsedFonts().catch(() => {});
+    };
+    if (promise) document.fonts?.addEventListener("loadingdone", cacheFonts);
     if (promise)
       void promise
         .then((reg) => {
+          cacheFonts();
           if (reg.waiting) setUpdate(reg);
           reg.addEventListener("updatefound", () => {
             const worker = reg.installing;
@@ -193,6 +198,7 @@ export default function App() {
             "앱의 오프라인 기능을 준비하지 못했어요. 네트워크를 확인해주세요.",
           ),
         );
+    return () => document.fonts?.removeEventListener("loadingdone", cacheFonts);
   }, []);
   useEffect(() => {
     if (!app || !me) return;
@@ -321,7 +327,16 @@ export default function App() {
     );
   return (
     <div className={`app-shell ${mobileMenu ? "mobile-menu-open" : ""}`}>
-      <a className="skip-link" href="#main-content">
+      <a
+        className="skip-link"
+        href="#main-content"
+        onClick={(event) => {
+          event.preventDefault();
+          const main = document.getElementById("main-content");
+          main?.focus({ preventScroll: true });
+          main?.scrollIntoView({ block: "start" });
+        }}
+      >
         본문으로 건너뛰기
       </a>
       {mobileMenu && (
@@ -334,9 +349,19 @@ export default function App() {
       )}
       <aside
         id="main-sidebar"
+        role={mobileMenu ? "dialog" : undefined}
+        aria-modal={mobileMenu ? true : undefined}
+        aria-label={mobileMenu ? "전체 메뉴" : undefined}
         className={`sidebar ${mobileMenu ? "mobile-open" : ""}`}
       >
-        <a className="wordmark" href="#/home">
+        <a
+          className="wordmark"
+          href="#/home"
+          onClick={(event) => {
+            event.preventDefault();
+            navigate("home");
+          }}
+        >
           kakao<span>bank</span>
           <small>HR WORKSHOP</small>
         </a>
@@ -470,11 +495,11 @@ export default function App() {
             }
           >
             {page === "home" ? (
-              <Home navigate={navigate} now={now} />
+              <Home navigate={navigate} />
             ) : page === "timeline" ? (
-              <Timeline now={now} />
+              <Timeline />
             ) : page === "treasure" ? (
-              <Treasure notify={notify} now={now} />
+              <Treasure notify={notify} />
             ) : page === "team" ? (
               <Team />
             ) : page === "notices" ? (

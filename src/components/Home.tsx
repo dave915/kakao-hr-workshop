@@ -11,6 +11,7 @@ import {
   Footprints,
   Sparkles,
 } from "lucide-react";
+import { useClock } from "../hooks/useClock";
 import { useWorkshop } from "../lib/store";
 import { englishName, formatDate, formatTime } from "../lib/utils";
 import { remainingTreasures, scheduleStatus } from "../../shared/game";
@@ -19,11 +20,10 @@ import { ExpeditionArt } from "./ExpeditionArt";
 import { Avatar, SectionTitle } from "./common";
 export default function Home({
   navigate,
-  now,
 }: {
-  navigate: (page: Page) => void;
-  now: number;
+  navigate: (page: Page, eventId?: string) => void;
 }) {
+  const now = useClock(60_000);
   const { state, me, demo } = useWorkshop();
   if (!state || !me) return null;
   const upcoming = state.schedule.filter(
@@ -109,7 +109,7 @@ export default function Home({
                   <button
                     key={s.id}
                     className={`schedule-row ${s.id === next?.id ? "next" : ""}`}
-                    onClick={() => navigate("timeline")}
+                    onClick={() => navigate("timeline", s.id)}
                   >
                     <div className="schedule-time">
                       {formatTime(s.startsAt)}
