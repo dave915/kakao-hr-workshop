@@ -14,6 +14,7 @@ import {
   PHOTO_PAGE_SIZE,
   PHOTO_MONTHLY_LIMIT,
   COMMENT_PAGE_SIZE,
+  PHOTO_LIKES_PAGE_SIZE,
   COMMENT_PREVIEW_SIZE,
   recentComments,
   threadedCommentPreview,
@@ -318,6 +319,7 @@ export async function handlePhotoBoard(
   if (
     [
       "like",
+      "likes",
       "comments",
       "replies",
       "likeComment",
@@ -337,6 +339,53 @@ export async function handlePhotoBoard(
           "not-found",
           "게시글이 삭제되었거나 더 이상 볼 수 없어요. 사진첩을 새로고침해주세요.",
         );
+      if (input.action === "likes") {
+        let target = ref;
+        let likeCount = post.likeCount ?? 0;
+        if (input.commentId) {
+          target = commentRef(ref, input.commentId, input.parentId);
+          const comment = (await tx.get(target)).data() as
+            PhotoComment | undefined;
+          if (
+            !comment ||
+            comment.status !== "active" ||
+            comment.parentId !== input.parentId
+          )
+            throw new HttpsError(
+              "not-found",
+              "댓글이 삭제되었거나 더 이상 볼 수 없어요.",
+            );
+          if (input.parentId) {
+            const parent = await tx.get(
+              ref.collection("comments").doc(input.parentId),
+            );
+            if (
+              !parent.exists ||
+              !["active", "thread"].includes(parent.data()!.status)
+            )
+              throw new HttpsError("not-found", "답글 대상을 확인해주세요.");
+          }
+          likeCount = comment.likeCount ?? 0;
+        }
+        let query = target
+          .collection("likes")
+          .orderBy(FieldPath.documentId())
+          .limit(PHOTO_LIKES_PAGE_SIZE + 1);
+        if (input.cursor) query = query.startAfter(input.cursor);
+        const snapshot = await tx.get(query);
+        const page = snapshot.docs.slice(0, PHOTO_LIKES_PAGE_SIZE);
+        return {
+          likeCount,
+          likers: page.map((doc) => ({
+            id: doc.id,
+            handle: Object.hasOwn(auth.state.members, doc.id)
+              ? auth.state.members[doc.id].handle
+              : null,
+          })),
+          nextLikeCursor:
+            snapshot.size > PHOTO_LIKES_PAGE_SIZE ? page.at(-1)!.id : null,
+        };
+      }
       if (input.action === "like") {
         const likeRef = ref.collection("likes").doc(auth.me.id);
         const existing = await tx.get(likeRef);

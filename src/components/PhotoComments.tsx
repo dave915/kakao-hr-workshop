@@ -61,6 +61,7 @@ function CommentRow({
   deleting,
   confirm,
   onLike,
+  onShowLikes,
   onReply,
   onConfirm,
   onCancel,
@@ -73,6 +74,7 @@ function CommentRow({
   deleting: boolean;
   confirm: boolean;
   onLike: () => void;
+  onShowLikes: () => void;
   onReply: () => void;
   onConfirm: () => void;
   onCancel: () => void;
@@ -164,6 +166,7 @@ function CommentRow({
           busy={liking}
           disabled={disabled}
           onClick={onLike}
+          onShowLikes={onShowLikes}
         />
       )}
     </div>
@@ -175,6 +178,7 @@ export default function PhotoComments({
   initialComment,
   onUpdate,
   onCommentChange,
+  onShowLikes,
   onClose,
 }: {
   post: PhotoPost;
@@ -182,6 +186,7 @@ export default function PhotoComments({
   initialComment?: PhotoComment;
   onUpdate: (result: PhotoResponse) => void;
   onCommentChange: (comment: PhotoComment) => void;
+  onShowLikes: (comment: PhotoComment) => void;
   onClose: () => void;
 }) {
   const [comments, setComments] = useState<PhotoComment[]>([]),
@@ -451,6 +456,7 @@ export default function PhotoComments({
       deleting={deleting === comment.id}
       confirm={confirm === comment.id}
       onLike={() => void like(comment)}
+      onShowLikes={() => onShowLikes(comment)}
       onReply={() => reply(comment)}
       onConfirm={() => setConfirm(comment.id)}
       onCancel={() => setConfirm(null)}

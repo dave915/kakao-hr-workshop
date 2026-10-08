@@ -593,6 +593,7 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
     const post = await published();
     const requests = [
       { action: "like", id: post.id, liked: true },
+      { action: "likes", id: post.id },
       { action: "comments", id: post.id },
       {
         action: "addComment",
@@ -715,6 +716,124 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
     expect(result.status, JSON.stringify(result)).toBe(200);
     return result.result.comment;
   }
+  it("reads legacy liker IDs without rewriting likes or creating notifications", async () => {
+    const post = await published();
+    const ref = db.doc(`photoPosts/${post.id}`);
+    await ref.collection("likes").doc("alex.k").set({ createdAt: 100 });
+    await ref.collection("likes").doc("june.p").set({});
+    await ref.collection("likes").doc("removed-member").set({ createdAt: 90 });
+    await ref.update({ likeCount: 3 });
+    const before = (await ref.get()).data();
+    const result = await call(
+      { action: "likes", id: post.id },
+      tokens["june.p"],
+    );
+    expect(result.status).toBe(200);
+    expect(result.result).toEqual({
+      likeCount: 3,
+      nextLikeCursor: null,
+      likers: [
+        { id: "alex.k", handle: "alex.k" },
+        { id: "june.p", handle: "june.p" },
+        { id: "removed-member", handle: null },
+      ],
+    });
+    expect((await ref.get()).data()).toEqual(before);
+    expect((await ref.collection("likes").get()).size).toBe(3);
+    expect(
+      (await db.collection("photoEvents").where("postId", "==", post.id).get())
+        .empty,
+    ).toBe(true);
+    await call({ action: "like", id: post.id, liked: false }, tokens["june.p"]);
+    expect(
+      (await call({ action: "likes", id: post.id }, tokens["alex.k"])).result
+        .likers,
+    ).not.toContainEqual({ id: "june.p", handle: "june.p" });
+  });
+  it("paginates all liker documents, including old records without timestamps", async () => {
+    const post = await published(),
+      ref = db.doc(`photoPosts/${post.id}`),
+      batch = db.batch();
+    const ids = Array.from(
+      { length: 55 },
+      (_, i) => `member-${String(i).padStart(3, "0")}`,
+    );
+    ids.forEach((id) => batch.set(ref.collection("likes").doc(id), {}));
+    batch.update(ref, { likeCount: ids.length });
+    await batch.commit();
+    const first = await call(
+      { action: "likes", id: post.id },
+      tokens["alex.k"],
+    );
+    const second = await call(
+      { action: "likes", id: post.id, cursor: first.result.nextLikeCursor },
+      tokens["alex.k"],
+    );
+    expect(first.result.likers).toHaveLength(50);
+    expect(second.result.likers).toHaveLength(5);
+    expect(second.result.nextLikeCursor).toBeNull();
+    expect(
+      [...first.result.likers, ...second.result.likers].map(
+        (item: { id: string }) => item.id,
+      ),
+    ).toEqual(ids);
+    expect(first.result.likeCount).toBe(55);
+  });
+  it("shows comment and reply likers while enforcing target and deletion rules", async () => {
+    const post = await published();
+    const parent = await addThreadComment(post, "alex.k", "원댓글");
+    const reply = await addThreadComment(post, "june.p", "답글", parent.id);
+    const rootRef = db.doc(`photoPosts/${post.id}/comments/${parent.id}`);
+    const replyRef = db.doc(`photoPosts/${post.id}/replies/${reply.id}`);
+    await rootRef.collection("likes").doc("june.p").set({ createdAt: 1 });
+    await replyRef.collection("likes").doc("dave.h").set({ createdAt: 2 });
+    await rootRef.update({ likeCount: 1 });
+    await replyRef.update({ likeCount: 1 });
+    expect(
+      (
+        await call(
+          { action: "likes", id: post.id, commentId: parent.id },
+          tokens["dave.h"],
+        )
+      ).result.likers,
+    ).toEqual([{ id: "june.p", handle: "june.p" }]);
+    const request = {
+      action: "likes",
+      id: post.id,
+      commentId: reply.id,
+      parentId: parent.id,
+    };
+    expect((await call(request, tokens["alex.k"])).result.likers).toEqual([
+      { id: "dave.h", handle: "dave.h" },
+    ]);
+    expect(
+      (await call({ ...request, parentId: randomUUID() }, tokens["alex.k"]))
+        .status,
+    ).toBe(404);
+    await call(
+      { action: "deleteComment", id: post.id, commentId: parent.id },
+      tokens["alex.k"],
+    );
+    expect(
+      (
+        await call(
+          { action: "likes", id: post.id, commentId: parent.id },
+          tokens["dave.h"],
+        )
+      ).status,
+    ).toBe(404);
+    expect((await call(request, tokens["alex.k"])).status).toBe(200);
+    await call(
+      {
+        action: "deleteComment",
+        id: post.id,
+        commentId: reply.id,
+        parentId: parent.id,
+      },
+      tokens["june.p"],
+    );
+    expect((await call(request, tokens["alex.k"])).status).toBe(404);
+  });
   it("threads replies and replies-to-replies, using the actual target author and stable counters on retries", async () => {
     const post = await published(),
       root = await addThreadComment(post, "alex.k", "원댓글");

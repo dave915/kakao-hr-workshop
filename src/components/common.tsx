@@ -1,5 +1,5 @@
 import { ArrowUpRight, Sparkles, X } from "lucide-react";
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { lockDocumentScroll } from "../lib/scroll-lock";
 export function SectionTitle({
   eyebrow,
@@ -55,6 +55,7 @@ export function Drawer({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useLayoutEffect(() => {
     const d = ref.current;
     const unlock = lockDocumentScroll();
@@ -75,11 +76,11 @@ export function Drawer({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      aria-labelledby="drawer-title"
+      aria-labelledby={titleId}
     >
       <div className="drawer-content">
         <div className="drawer-header">
-          <h2 id="drawer-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button className="icon-button" onClick={onClose} aria-label="닫기">
             <X size={22} />
           </button>

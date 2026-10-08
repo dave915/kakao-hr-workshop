@@ -25,6 +25,7 @@ export default function PhotoFeedPost({
   onOpen,
   onDelete,
   onLike,
+  onShowLikes,
   onComments,
   onCommentLike,
   commentLikeBusy,
@@ -37,6 +38,7 @@ export default function PhotoFeedPost({
   onOpen: (post: PhotoPost, index: number) => void;
   onDelete: (post: PhotoPost) => void;
   onLike: (post: PhotoPost) => void;
+  onShowLikes: (post: PhotoPost, comment?: PhotoComment) => void;
   onComments: (post: PhotoPost, comment?: PhotoComment) => void;
   onCommentLike: (post: PhotoPost, comment: PhotoComment) => void;
   commentLikeBusy: (comment: PhotoComment) => boolean;
@@ -250,7 +252,15 @@ export default function PhotoFeedPost({
             </div>
           )}
         </div>
-        <p className="photo-like-count">좋아요 {post.likeCount ?? 0}개</p>
+        <button
+          type="button"
+          className="photo-like-count"
+          disabled={disabled || likeBusy}
+          onClick={() => onShowLikes(post)}
+          aria-label={`${name}의 게시글 좋아요한 사람 ${post.likeCount ?? 0}명 보기`}
+        >
+          좋아요 {post.likeCount ?? 0}개 <ChevronRight size={14} />
+        </button>
         {post.caption && (
           <div className="photo-post-caption">
             <p
@@ -313,6 +323,7 @@ export default function PhotoFeedPost({
                     busy={commentLikeBusy(comment)}
                     disabled={disabled}
                     onClick={() => onCommentLike(post, comment)}
+                    onShowLikes={() => onShowLikes(post, comment)}
                   />
                 )}
               </li>

@@ -9,6 +9,7 @@ export const PHOTO_STORAGE_LIMIT = 4000;
 export const PHOTO_DRAFT_LIFETIME = 30 * 60 * 1000;
 export const COMMENT_MAX_LENGTH = 500;
 export const COMMENT_PAGE_SIZE = 20;
+export const PHOTO_LIKES_PAGE_SIZE = 50;
 export const COMMENT_PREVIEW_SIZE = 3;
 export const COMMENTS_PER_POST = 200;
 export const COMMENTS_PER_MEMBER_DAY = 100;
@@ -28,6 +29,23 @@ export const photoCursor = z.object({
 });
 export type PhotoCursor = z.infer<typeof photoCursor>;
 export const photoActionInput = z.discriminatedUnion("action", [
+  z
+    .object({
+      action: z.literal("likes"),
+      id: z.string().uuid(),
+      commentId: z.string().uuid().optional(),
+      parentId: z.string().uuid().optional(),
+      cursor: z
+        .string()
+        .min(1)
+        .max(128)
+        .regex(/^[A-Za-z0-9._-]+$/)
+        .optional(),
+    })
+    .refine(
+      (input) => !input.parentId || Boolean(input.commentId),
+      "좋아요를 확인할 댓글을 선택해주세요.",
+    ),
   z.object({ action: z.literal("get"), id: z.string().uuid() }),
   z.object({
     action: z.literal("like"),
@@ -123,7 +141,13 @@ export interface PhotoComment {
   /** Personalized response only. */
   liked?: boolean;
 }
+export interface PhotoLiker {
+  id: string;
+  handle: string | null;
+}
 export interface PhotoResponse {
+  likers?: PhotoLiker[];
+  nextLikeCursor?: string | null;
   liked?: boolean;
   likeCount?: number;
   commentCount?: number;

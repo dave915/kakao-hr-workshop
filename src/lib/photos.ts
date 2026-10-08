@@ -13,6 +13,7 @@ import {
   PHOTO_PAGE_SIZE,
   PHOTO_MONTHLY_LIMIT,
   COMMENT_PAGE_SIZE,
+  PHOTO_LIKES_PAGE_SIZE,
   recentComments,
   threadedCommentPreview,
   COMMENTS_PER_POST,
@@ -322,6 +323,69 @@ async function updateDemoPost<T>(
       );
     tx.onerror = () => reject(new Error("변경 내용을 저장하지 못했어요."));
   });
+}
+export async function listPhotoLikes(
+  post: PhotoPost,
+  members: Record<string, Member>,
+  comment?: PhotoComment,
+  cursor?: string,
+): Promise<PhotoResponse> {
+  if (!demoMode)
+    return photoAction({
+      action: "likes",
+      id: post.id,
+      ...(comment
+        ? {
+            commentId: comment.id,
+            ...(comment.parentId ? { parentId: comment.parentId } : {}),
+          }
+        : {}),
+      ...(cursor ? { cursor } : {}),
+    });
+  const record = (await demoRead()).find(
+    (item) =>
+      item.post.id === post.id &&
+      item.post.generation === post.generation &&
+      item.post.status === "published",
+  );
+  if (!record) throw new Error("게시글이 삭제되었거나 더 이상 볼 수 없어요.");
+  if (comment) {
+    const current = record.comments?.find((item) => item.id === comment.id);
+    const parent = comment.parentId
+      ? record.comments?.find((item) => item.id === comment.parentId)
+      : undefined;
+    if (
+      !current ||
+      current.status !== "active" ||
+      current.parentId !== comment.parentId ||
+      (comment.parentId &&
+        (!parent || !["active", "thread"].includes(parent.status)))
+    )
+      throw new Error("댓글이 삭제되었거나 더 이상 볼 수 없어요.");
+  }
+  const ids = [
+    ...new Set(
+      comment
+        ? (record.commentLikes?.[comment.id] ?? [])
+        : (record.likes ?? []),
+    ),
+  ].sort();
+  const page = ids
+    .filter((id) => !cursor || id > cursor)
+    .slice(0, PHOTO_LIKES_PAGE_SIZE + 1);
+  return {
+    likeCount: ids.length,
+    likers: page
+      .slice(0, PHOTO_LIKES_PAGE_SIZE)
+      .map((id) => ({
+        id,
+        handle: Object.hasOwn(members, id) ? members[id].handle : null,
+      })),
+    nextLikeCursor:
+      page.length > PHOTO_LIKES_PAGE_SIZE
+        ? page[PHOTO_LIKES_PAGE_SIZE - 1]
+        : null,
+  };
 }
 export async function setPhotoLike(
   post: PhotoPost,

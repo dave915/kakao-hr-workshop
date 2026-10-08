@@ -32,6 +32,7 @@ import { Drawer, Empty, type Notify } from "./common";
 import PhotoImage from "./PhotoImage";
 import PhotoFeedPost from "./PhotoFeedPost";
 import PhotoComments from "./PhotoComments";
+import PhotoLikes from "./PhotoLikes";
 import MentionSuggestions from "./MentionSuggestions";
 import { photoDeliveryTime } from "../../shared/photo-notifications";
 
@@ -67,6 +68,10 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
   const [commentsFor, setCommentsFor] = useState<{
     postId: string;
     initialComment?: PhotoComment;
+  } | null>(null);
+  const [likesFor, setLikesFor] = useState<{
+    postId: string;
+    comment?: PhotoComment;
   } | null>(null);
   const likeLocks = useRef(new Set<string>());
   const commentLikeLocks = useRef(new Set<string>());
@@ -155,6 +160,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
   if (!state || !me) return null;
   const busy = posting || preparing;
   const commentPost = posts.find((post) => post.id === commentsFor?.postId);
+  const likedPost = posts.find((post) => post.id === likesFor?.postId);
   function updateComments(postId: string, result: PhotoResponse) {
     setPosts((current) =>
       current.map((post) =>
@@ -423,6 +429,9 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
               [...commentLiking].some((key) => key.startsWith(`${post.id}/`))
             }
             onLike={(post) => void like(post)}
+            onShowLikes={(post, comment) =>
+              setLikesFor({ postId: post.id, comment })
+            }
             onComments={(post, initialComment) =>
               setCommentsFor({ postId: post.id, initialComment })
             }
@@ -462,7 +471,18 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
           onCommentChange={(comment) =>
             updatePreviewComment(commentPost.id, comment)
           }
+          onShowLikes={(comment) =>
+            setLikesFor({ postId: commentPost.id, comment })
+          }
           onClose={() => setCommentsFor(null)}
+        />
+      )}
+      {likedPost && (
+        <PhotoLikes
+          key={`${likedPost.id}:${likesFor?.comment?.id ?? "post"}`}
+          post={likedPost}
+          comment={likesFor?.comment}
+          onClose={() => setLikesFor(null)}
         />
       )}
       {compose && (
