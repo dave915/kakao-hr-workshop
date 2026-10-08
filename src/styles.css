@@ -3454,6 +3454,94 @@ td .text-button {
 }
 
 /* Hint-led exploration: undiscovered coordinates never become map pins. */
+.treasure-tutorial-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 6px 2px;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 6px;
+}
+.treasure-tutorial-trigger:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.treasure-tutorial-dialog {
+  width: min(480px, calc(100vw - 32px));
+  height: min(920px, calc(100dvh - 32px));
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+}
+.treasure-tutorial-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.treasure-tutorial-dialog::backdrop {
+  background: color-mix(in oklch, var(--ink) 60%, transparent);
+}
+.treasure-tutorial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top));
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+}
+.treasure-tutorial-header h2 {
+  font-size: 20px;
+}
+.treasure-tutorial-header .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.treasure-tutorial-media {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.treasure-tutorial-media video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+.treasure-tutorial-footer {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+}
+.treasure-tutorial-error {
+  align-self: center;
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+  word-break: keep-all;
+}
+@media (max-width: 600px) {
+  .treasure-tutorial-dialog {
+    width: 100vw;
+    height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+}
 .hunt-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(280px, 1fr);

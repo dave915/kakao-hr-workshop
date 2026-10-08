@@ -9,6 +9,7 @@ import {
   Check,
   MapPin,
   LocateFixed,
+  CirclePlay,
 } from "lucide-react";
 import { useClock } from "../hooks/useClock";
 import { useWorkshop } from "../lib/store";
@@ -19,6 +20,7 @@ import type { ClaimResult, Position } from "../../shared/types";
 import { englishName, errorMessage } from "../lib/utils";
 import { Empty, type Notify } from "./common";
 import TreasureDiscovery from "./TreasureDiscovery";
+import TreasureTutorial from "./TreasureTutorial";
 import { locate, useExploration } from "../hooks/useExploration";
 import { useMapHeading } from "../hooks/useMapHeading";
 import ExplorationGuide from "./ExplorationGuide";
@@ -34,6 +36,7 @@ export default function Treasure({ notify }: { notify: Notify }) {
   const guideRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [camera, setCamera] = useState(false);
+  const [tutorial, setTutorial] = useState(false);
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [directionFocus, setDirectionFocus] = useState(false);
@@ -292,6 +295,14 @@ export default function Treasure({ notify }: { notify: Notify }) {
           <span className="eyebrow">FOLLOW THE COMPASS</span>
           <h1>보이지 않아 더 설레는 모험</h1>
           <p>나침반을 따라 걸어요. 가까워질수록 탐험 온도가 올라가요.</p>
+          <button
+            className="treasure-tutorial-trigger"
+            aria-haspopup="dialog"
+            onClick={() => setTutorial(true)}
+          >
+            <CirclePlay size={19} aria-hidden="true" />
+            보물 찾는 방법
+          </button>
         </div>
         <span className="outline-pill">
           <span
@@ -543,6 +554,7 @@ export default function Treasure({ notify }: { notify: Notify }) {
       {result && (
         <TreasureDiscovery result={result} onClose={() => setResult(null)} />
       )}
+      {tutorial && <TreasureTutorial onClose={() => setTutorial(false)} />}
     </div>
   );
 }
