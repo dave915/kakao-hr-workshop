@@ -226,6 +226,7 @@ describe("Web Push system notifications", () => {
 
 describe("device push registration", () => {
   let saved: Map<string, string>;
+  let subscription: { unsubscribe: ReturnType<typeof vi.fn> };
   let permission: {
     permission: string;
     requestPermission: ReturnType<typeof vi.fn>;
@@ -247,9 +248,10 @@ describe("device push registration", () => {
       permission: "granted",
       requestPermission: vi.fn().mockResolvedValue("granted"),
     };
+    subscription = { unsubscribe: vi.fn().mockResolvedValue(true) };
     registration = {
       pushManager: {
-        getSubscription: vi.fn().mockResolvedValue({ endpoint: "test" }),
+        getSubscription: vi.fn().mockResolvedValue(subscription),
       },
     };
     worker = {
@@ -335,5 +337,82 @@ describe("device push registration", () => {
     const { registerWorker } = await import("../src/lib/pwa");
     await expect(registerWorker()).rejects.toThrow("offline");
     expect(await registerWorker()).toBe(registration);
+  });
+  it("disables push after a reload using the existing app-scoped subscription", async () => {
+    saved.set("hr-push-token", "old-token");
+    const act = vi.fn().mockResolvedValue({});
+    const { disablePush, getPushStatus } = await import("../src/lib/pwa");
+    await disablePush(act);
+    expect(act).toHaveBeenCalledExactlyOnceWith({
+      action: "unregisterPush",
+      token: "old-token",
+    });
+    expect(worker.getRegistration).toHaveBeenCalledExactlyOnceWith(
+      "/kakao-hr-workshop/",
+    );
+    expect(subscription.unsubscribe).toHaveBeenCalledOnce();
+    expect(worker.register).not.toHaveBeenCalled();
+    expect(messaging.deleteToken).not.toHaveBeenCalled();
+    expect(messaging.getToken).not.toHaveBeenCalled();
+    expect(saved.has("hr-push-token")).toBe(false);
+    expect(await getPushStatus()).toBe("disabled");
+    expect(window.dispatchEvent).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ type: "hr-push-change" }),
+    );
+  });
+  it.each(["worker", "subscription", "serviceWorker API"])(
+    "clears a stale token when the %s is already gone",
+    async (missing) => {
+      saved.set("hr-push-token", "old-token");
+      if (missing === "worker")
+        worker.getRegistration.mockResolvedValue(undefined);
+      else if (missing === "subscription")
+        registration.pushManager.getSubscription.mockResolvedValue(null);
+      else vi.stubGlobal("navigator", {});
+      const act = vi.fn().mockResolvedValue({});
+      const { disablePush } = await import("../src/lib/pwa");
+      await disablePush(act);
+      expect(act).toHaveBeenCalledExactlyOnceWith({
+        action: "unregisterPush",
+        token: "old-token",
+      });
+      expect(subscription.unsubscribe).not.toHaveBeenCalled();
+      expect(worker.register).not.toHaveBeenCalled();
+      expect(messaging.deleteToken).not.toHaveBeenCalled();
+      expect(messaging.getToken).not.toHaveBeenCalled();
+      expect(saved.has("hr-push-token")).toBe(false);
+    },
+  );
+  it("can disable push after notification permission is revoked", async () => {
+    saved.set("hr-push-token", "old-token");
+    permission.permission = "denied";
+    const { disablePush } = await import("../src/lib/pwa");
+    await disablePush(vi.fn().mockResolvedValue({}));
+    expect(subscription.unsubscribe).toHaveBeenCalledOnce();
+    expect(permission.requestPermission).not.toHaveBeenCalled();
+    expect(messaging.getToken).not.toHaveBeenCalled();
+    expect(saved.has("hr-push-token")).toBe(false);
+  });
+  it("keeps the token and subscription for retry if server removal fails", async () => {
+    saved.set("hr-push-token", "old-token");
+    const { disablePush } = await import("../src/lib/pwa");
+    await expect(
+      disablePush(vi.fn().mockRejectedValue(new Error("offline"))),
+    ).rejects.toThrow("offline");
+    expect(subscription.unsubscribe).not.toHaveBeenCalled();
+    expect(saved.get("hr-push-token")).toBe("old-token");
+    expect(window.dispatchEvent).not.toHaveBeenCalled();
+  });
+  it("can retry a failed browser unsubscribe without losing the saved token", async () => {
+    saved.set("hr-push-token", "old-token");
+    subscription.unsubscribe.mockRejectedValueOnce(new Error("offline"));
+    const act = vi.fn().mockResolvedValue({});
+    const { disablePush } = await import("../src/lib/pwa");
+    await expect(disablePush(act)).rejects.toThrow("offline");
+    expect(saved.get("hr-push-token")).toBe("old-token");
+    expect(window.dispatchEvent).not.toHaveBeenCalled();
+    await disablePush(act);
+    expect(subscription.unsubscribe).toHaveBeenCalledTimes(2);
+    expect(saved.has("hr-push-token")).toBe(false);
   });
 });

@@ -84,10 +84,15 @@ export async function disablePush(
 ) {
   const token = localStorage.getItem("hr-push-token");
   if (token) await act({ action: "unregisterPush", token });
-  if (app) {
-    const { getMessaging, deleteToken, isSupported } =
-      await import("firebase/messaging");
-    if (await isSupported()) await deleteToken(getMessaging(app));
+  if ("serviceWorker" in navigator) {
+    // After a reload, Firebase deleteToken() forgets our custom worker and tries
+    // /firebase-messaging-sw.js. Unsubscribe the existing app worker directly;
+    // getToken() will refresh the FCM token for the next browser subscription.
+    const registration = await navigator.serviceWorker.getRegistration(
+      import.meta.env.BASE_URL,
+    );
+    const subscription = await registration?.pushManager?.getSubscription();
+    if (subscription) await subscription.unsubscribe();
   }
   localStorage.removeItem("hr-push-token");
   window.dispatchEvent(new Event("hr-push-change"));
