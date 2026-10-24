@@ -36,6 +36,7 @@ import { app, configured } from "./lib/firebase";
 import { isAdmin } from "../shared/game";
 import { englishName, errorMessage } from "./lib/utils";
 import { registerWorker } from "./lib/pwa";
+import { watchAppUpdates } from "./lib/pwa-updates";
 import { cacheUsedFonts } from "./lib/font-cache";
 import { startDeviceReporting } from "./lib/device-status";
 import { useUnreadNotices } from "./lib/notice-read";
@@ -97,7 +98,6 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(
     null,
   );
-  const [update, setUpdate] = useState<ServiceWorkerRegistration | null>(null);
   const {
     open: mobileMenu,
     close: closeMobileMenu,
@@ -173,32 +173,25 @@ export default function App() {
   }, []);
   useEffect(() => {
     const promise = registerWorker();
+    const stopUpdates = promise ? watchAppUpdates(promise) : undefined;
     const cacheFonts = () => {
       void cacheUsedFonts().catch(() => {});
     };
     if (promise) document.fonts?.addEventListener("loadingdone", cacheFonts);
     if (promise)
       void promise
-        .then((reg) => {
+        .then(() => {
           cacheFonts();
-          if (reg.waiting) setUpdate(reg);
-          reg.addEventListener("updatefound", () => {
-            const worker = reg.installing;
-            worker?.addEventListener("statechange", () => {
-              if (
-                worker.state === "installed" &&
-                navigator.serviceWorker.controller
-              )
-                setUpdate(reg);
-            });
-          });
         })
         .catch(() =>
           notify(
             "앱의 오프라인 기능을 준비하지 못했어요. 네트워크를 확인해주세요.",
           ),
         );
-    return () => document.fonts?.removeEventListener("loadingdone", cacheFonts);
+    return () => {
+      stopUpdates?.();
+      document.fonts?.removeEventListener("loadingdone", cacheFonts);
+    };
   }, []);
   useEffect(() => {
     if (!app || !me) return;
@@ -464,24 +457,6 @@ export default function App() {
               aria-label="알림 닫기"
             >
               <X size={15} />
-            </button>
-          </div>
-        )}
-        {update && (
-          <div className="connection-banner">
-            새로운 앱 버전이 준비됐어요.
-            <button
-              className="text-button"
-              onClick={() => {
-                navigator.serviceWorker.addEventListener(
-                  "controllerchange",
-                  () => location.reload(),
-                  { once: true },
-                );
-                update.waiting?.postMessage({ type: "SKIP_WAITING" });
-              }}
-            >
-              지금 업데이트
             </button>
           </div>
         )}

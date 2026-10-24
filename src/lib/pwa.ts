@@ -7,6 +7,7 @@ export function registerWorker() {
   registrationPromise ??= navigator.serviceWorker
     .register(`${import.meta.env.BASE_URL}sw.js`, {
       scope: import.meta.env.BASE_URL,
+      updateViaCache: "none",
     })
     .catch((error) => {
       registrationPromise = null;

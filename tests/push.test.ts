@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("workbox-core", () => ({ clientsClaim: vi.fn() }));
 vi.mock("workbox-precaching", () => ({
-  precacheAndRoute: vi.fn(),
+  precache: vi.fn(),
+  addRoute: vi.fn(),
   cleanupOutdatedCaches: vi.fn(),
   createHandlerBoundToURL: vi.fn(),
 }));
@@ -50,6 +51,7 @@ describe("Web Push system notifications", () => {
     openWindow = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("self", {
       __WB_MANIFEST: [],
+      skipWaiting: vi.fn().mockResolvedValue(undefined),
       addEventListener: (name: string, handler: (event: any) => void) => {
         listeners[name] = handler;
       },
@@ -77,6 +79,16 @@ describe("Web Push system notifications", () => {
     expect(lifetime).toBeInstanceOf(Promise);
     return lifetime!;
   }
+  it("activates a newly installed app version without waiting for an update button", async () => {
+    let lifetime: Promise<void> | undefined;
+    listeners.install({
+      waitUntil: (promise: Promise<void>) => {
+        lifetime = promise;
+      },
+    });
+    await lifetime;
+    expect(self.skipWaiting).toHaveBeenCalledOnce();
+  });
   it.each(["visible", "hidden"])(
     "shows a system notification when the app is %s",
     async (visibilityState) => {

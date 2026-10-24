@@ -1,7 +1,8 @@
 /// <reference lib="webworker" />
 import { clientsClaim } from "workbox-core";
 import {
-  precacheAndRoute,
+  precache,
+  addRoute,
   cleanupOutdatedCaches,
   createHandlerBoundToURL,
 } from "workbox-precaching";
@@ -14,12 +15,31 @@ import { getMessaging } from "firebase/messaging/sw";
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
 };
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting());
+});
 self.addEventListener("message", (e) => {
   if (e.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 clientsClaim();
 cleanupOutdatedCaches();
-precacheAndRoute(self.__WB_MANIFEST);
+precache(self.__WB_MANIFEST);
+const offlinePage = createHandlerBoundToURL("index.html");
+// Navigation must take precedence over the precache's index.html/root matches.
+registerRoute(
+  new NavigationRoute(async (options) => {
+    try {
+      const response = await fetch(
+        new Request(options.request, { cache: "no-store" }),
+      );
+      if (response.ok) return response;
+    } catch {
+      // Offline navigation falls back to the installed, fully cached app version.
+    }
+    return offlinePage(options);
+  }),
+);
+addRoute();
 registerRoute(
   ({ request, url }) =>
     request.destination === "font" && url.origin === self.location.origin,
@@ -34,7 +54,6 @@ registerRoute(
     ],
   }),
 );
-registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")));
 // Handle FCM's data-only Web Push here, including while an app window is visible.
 // Firebase's default foreground routing skips showNotification; Safari can revoke
 // subscriptions for such silent pushes. Keep display inside the push lifetime and
