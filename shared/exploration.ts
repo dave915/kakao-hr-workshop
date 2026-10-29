@@ -1,4 +1,5 @@
 import { distanceMeters, GameError } from "./game";
+import { COMMITTEE_AUDIENCE } from "./notices";
 import type {
   Position,
   Treasure,
@@ -19,6 +20,7 @@ export function hasCoordinates(t: VisibleTreasure): t is Treasure {
 export function participantView(state: WorkshopState): WorkshopView {
   return {
     ...state,
+    notices: state.notices.filter((n) => n.audience !== COMMITTEE_AUDIENCE),
     activityGroups: (state.activityGroups ?? []).filter(
       (group) => group.published,
     ),

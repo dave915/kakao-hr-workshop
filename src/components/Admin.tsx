@@ -27,6 +27,7 @@ import {
   toLocalInput,
 } from "../lib/utils";
 import { isAdmin, memberRanking } from "../../shared/game";
+import { COMMITTEE_AUDIENCE, noticeAudienceLabel } from "../../shared/notices";
 import type { Member, Schedule, Settings } from "../../shared/types";
 import type { ActionInput } from "../../shared/validation";
 import { Avatar, Drawer, Empty, type Notify } from "./common";
@@ -552,6 +553,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                 받는 탐험대
                 <select name="audience">
                   <option value="all">모든 탐험대원</option>
+                  <option value={COMMITTEE_AUDIENCE}>워추위만</option>
                   {[
                     ...new Set(Object.values(state.members).map((m) => m.team)),
                   ].map((team) => (
@@ -559,6 +561,10 @@ export default function Admin({ notify }: { notify: Notify }) {
                   ))}
                 </select>
               </label>
+              <p className="footnote">
+                ‘워추위만’은 추진위원회·슈퍼 어드민 권한이 있는 대원에게만
+                공지와 푸시를 보내요.
+              </p>
               <label>
                 공지 제목
                 <input
@@ -600,7 +606,7 @@ export default function Admin({ notify }: { notify: Notify }) {
                 <article key={n.id}>
                   <div className="sent-notice-heading">
                     <span className="mini-tag">
-                      {n.audience === "all" ? "전체" : n.audience}
+                      {noticeAudienceLabel(n.audience)}
                     </span>
                     <button
                       className="icon-button"

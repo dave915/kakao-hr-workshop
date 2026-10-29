@@ -6,6 +6,7 @@ import { makeSeed, demoSecrets } from "../shared/seed";
 import type { Treasure, WorkshopState } from "../shared/types";
 import { registrationValues } from "../shared/treasure-registration";
 import { discoveryPush } from "../shared/discovery-push";
+import { COMMITTEE_AUDIENCE } from "../shared/notices";
 const require = createRequire(
   new URL("../functions/package.json", import.meta.url),
 );
@@ -81,6 +82,55 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         200,
       );
   }, 30000);
+  it("publishes committee notices privately and never pushes them to ordinary or deleted members", async () => {
+    const input = {
+      action: "publishNotice",
+      title: "워추위 전용 회의",
+      body: "운영진만 확인할 안내",
+      audience: COMMITTEE_AUDIENCE,
+      push: true,
+    };
+    const denied = await call("workshopAction", input, memberToken);
+    expect(denied.status).toBe(400);
+    const registrations = [
+      { id: "committee-notice-member", uid: "alex.k" },
+      { id: "committee-notice-deleted", uid: "gone" },
+    ];
+    let noticeId: string | undefined;
+    try {
+      for (const registration of registrations)
+        await db.doc(`pushTokens/${registration.id}`).set({
+          uid: registration.uid,
+          token: `fixture-${registration.id}`,
+        });
+      const published = await call("workshopAction", input, adminToken);
+      expect(published.status).toBe(200);
+      noticeId = published.result.noticeId;
+      expect(published.result).toMatchObject({ delivered: 0, failed: 0 });
+      const canonical = (await db.doc("workshops/main").get()).data();
+      expect(
+        canonical.notices.find((n: { id: string }) => n.id === noticeId),
+      ).toMatchObject({ audience: COMMITTEE_AUDIENCE, pushStatus: "sent" });
+      const participantResponse = await fetch(
+        `http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-workshop/databases/(default)/documents/workshops/participants`,
+        { headers: { Authorization: `Bearer ${memberToken}` } },
+      );
+      expect(participantResponse.status).toBe(200);
+      const participantData = await participantResponse.text();
+      expect(participantData).not.toContain(input.title);
+      expect(participantData).not.toContain(input.body);
+      expect(participantData).not.toContain(COMMITTEE_AUDIENCE);
+    } finally {
+      for (const registration of registrations)
+        await db.doc(`pushTokens/${registration.id}`).delete();
+      if (noticeId)
+        await call(
+          "workshopAction",
+          { action: "deleteNotice", id: noticeId },
+          adminToken,
+        );
+    }
+  });
   it("keeps private activity rosters out of the participant document and restricts publication to admins", async () => {
     const group = {
       id: randomUUID(),

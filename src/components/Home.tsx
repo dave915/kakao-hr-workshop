@@ -15,6 +15,7 @@ import { useClock } from "../hooks/useClock";
 import { useWorkshop } from "../lib/store";
 import { englishName, formatDate, formatTime } from "../lib/utils";
 import { remainingTreasures, scheduleStatus } from "../../shared/game";
+import { isNoticeRecipient } from "../../shared/notices";
 import type { Page } from "../../shared/types";
 import { ExpeditionArt } from "./ExpeditionArt";
 import { Avatar, SectionTitle } from "./common";
@@ -36,9 +37,7 @@ export default function Home({
       .filter((m) => m.team === me.team)
       .reduce((sum, m) => sum + m.found, 0),
   };
-  const notice = state.notices.find(
-    (n) => n.audience === "all" || n.audience === me.team,
-  );
+  const notice = state.notices.find((n) => isNoticeRecipient(n.audience, me));
   return (
     <div className="home-page page-enter">
       <div className="page-intro">

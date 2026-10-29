@@ -3,11 +3,12 @@ import { useWorkshop } from "../lib/store";
 import { englishName, formatDate, formatTime } from "../lib/utils";
 import { Empty } from "./common";
 import NoticeBody from "./NoticeBody";
+import { isNoticeRecipient, noticeAudienceLabel } from "../../shared/notices";
 export default function Notices() {
   const { state, me } = useWorkshop();
   if (!state || !me) return null;
-  const notices = state.notices.filter(
-    (n) => n.audience === "all" || n.audience === me.team,
+  const notices = state.notices.filter((n) =>
+    isNoticeRecipient(n.audience, me),
   );
   return (
     <div className="page-enter narrow-page">
@@ -26,7 +27,9 @@ export default function Notices() {
               <div className="notice-meta">
                 <span className="mini-tag yellow">
                   <Bell size={12} />
-                  {n.audience === "all" ? "전체 안내" : n.audience}
+                  {n.audience === "all"
+                    ? "전체 안내"
+                    : noticeAudienceLabel(n.audience)}
                 </span>
                 <time>
                   {formatDate(new Date(n.createdAt).toISOString())} ·{" "}

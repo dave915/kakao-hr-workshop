@@ -1,6 +1,7 @@
 import { arGuidance, treasureGuidance } from "./exploration";
 import { claimTreasure, GameError, isAdmin } from "./game";
 import { makeSeed } from "./seed";
+import { COMMITTEE_AUDIENCE } from "./notices";
 import { registrationValues, saveTreasures } from "./treasure-registration";
 import type { ActionInput } from "./validation";
 import type { ActionResponse, TreasureSecrets, WorkshopState } from "./types";
@@ -278,6 +279,7 @@ export function mutate(
     case "publishNotice": {
       if (
         input.audience !== "all" &&
+        input.audience !== COMMITTEE_AUDIENCE &&
         !Object.values(state.members).some((m) => m.team === input.audience)
       )
         throw new GameError("발송할 팀을 찾을 수 없어요.");

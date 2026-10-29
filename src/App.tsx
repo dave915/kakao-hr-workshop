@@ -34,6 +34,7 @@ import { ExpeditionArt } from "./components/ExpeditionArt";
 import { useWorkshop } from "./lib/store";
 import { app, configured } from "./lib/firebase";
 import { isAdmin } from "../shared/game";
+import { isNoticeRecipient } from "../shared/notices";
 import { englishName, errorMessage } from "./lib/utils";
 import { registerWorker } from "./lib/pwa";
 import { watchAppUpdates } from "./lib/pwa-updates";
@@ -82,9 +83,7 @@ export default function App() {
   } = useWorkshop();
   const [page, setPage] = useState<Page>(pageFromHash);
   const visibleNotices =
-    state?.notices.filter(
-      (n) => n.audience === "all" || n.audience === me?.team,
-    ) ?? [];
+    state?.notices.filter((n) => isNoticeRecipient(n.audience, me)) ?? [];
   const unread = useUnreadNotices(me?.id, visibleNotices, page === "notices");
   useEffect(() => {
     if (!me || demo) return;

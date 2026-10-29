@@ -23,6 +23,7 @@ import {
 import { actionInput } from "../../shared/validation";
 import { mutate } from "../../shared/mutate";
 import { GameError, isAdmin } from "../../shared/game";
+import { isNoticeRecipient } from "../../shared/notices";
 import { updateDeviceStatus } from "../../shared/device-status";
 import type {
   ActionResponse,
@@ -585,8 +586,7 @@ export const workshopAction = onCall(
           const p = state.members[t.data().uid];
           return (
             state.notices.some((n) => n.id === result.noticeId) &&
-            p &&
-            (input.audience === "all" || p.team === input.audience)
+            isNoticeRecipient(input.audience, p)
           );
         });
         for (let i = 0; i < tokens.length; i += 500) {
