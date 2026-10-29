@@ -1242,6 +1242,18 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         .get();
       expect(jobs.size).toBe(1);
       expect(jobs.docs[0].data().title).toBe("응원을 발견했어요!");
+      const chosenBody = jobs.docs[0].data().body;
+      expect(chosenBody).toContain("Alex");
+      expect(chosenBody).not.toContain("Dave");
+      expect(chosenBody).not.toContain("쉬는 시간 없이 탐험을 이어가요!");
+      const repeated = await claim(cheers[0].id);
+      expect(repeated.status).toBe(400);
+      const unchanged = await db
+        .collection("treasurePushes")
+        .where("treasureId", "==", cheers[0].id)
+        .get();
+      expect(unchanged.size).toBe(1);
+      expect(unchanged.docs[0].data().body).toBe(chosenBody);
       const next = await claim(cash.id);
       expect(next.status).toBe(200);
       expect(next.result.result).toMatchObject({

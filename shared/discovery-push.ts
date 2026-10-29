@@ -2,6 +2,18 @@ import { englishName } from "./names";
 import { prizeLabel } from "./prizes";
 import type { Member, Treasure, WorkshopState } from "./types";
 
+const CHEER_MESSAGES = [
+  "{name}가 응원 보물을 발견했습니다! 마주치면 엄지 척을 날려주세요!",
+  "{name}가 응원을 획득했습니다! 만나면 하이파이브를 요청하세요!",
+  "응원 보물 발견자 {name}! 마주치면 경례로 예우해주세요!",
+  "{name}가 희귀 보물을 찾았습니다! 만나면 축하의 한마디를 건네주세요!",
+  "{name}의 응원 게이지가 충전되었습니다! 마주치면 축하 댄스를 선물해주세요!",
+  "{name}가 행운의 응원을 발견했습니다! 만나면 행운을 나눠달라고 해보세요!",
+  "응원 보물을 획득한 {name}! 만나면 응원 한 스푼을 보태주세요!",
+  "{name}가 응원을 발견했습니다! 마주치면 ‘당신이 보물입니다!’라고 외쳐주세요!",
+  "전설의 응원 보물 발견자 {name}! 마주치면 과장되게 존경을 표해주세요!",
+] as const;
+
 export interface DiscoveryPush {
   treasureId: string;
   finderId: string;
@@ -25,6 +37,7 @@ export interface DiscoveryPush {
 export function discoveryPush(
   state: WorkshopState,
   treasure: Treasure,
+  random: () => number = Math.random,
 ): DiscoveryPush {
   const finder = treasure.foundBy && state.members[treasure.foundBy];
   if (!finder || treasure.foundAt === null || !treasure.outcome)
@@ -49,7 +62,9 @@ export function discoveryPush(
       treasure.outcome === "bomb"
         ? `${name}가 꽝을 발견했어요. 잠깐 쉬고 다시 도전해요!`
         : treasure.outcome === "cheer"
-          ? `${name}가 응원을 발견했어요. 쉬는 시간 없이 탐험을 이어가요!`
+          ? CHEER_MESSAGES[
+              Math.floor(random() * CHEER_MESSAGES.length)
+            ].replaceAll("{name}", name)
           : `${name}가 ${reward}을 발견했어요!`,
     createdAt: treasure.foundAt,
     status: "pending",
