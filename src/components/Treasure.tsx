@@ -408,7 +408,7 @@ export default function Treasure({ notify }: { notify: Notify }) {
                   <small>
                     {t.foundBy
                       ? `${englishName(state.members[t.foundBy]?.handle, "삭제된 참가자")} · ${t.prizeAmount !== undefined ? prizeLabel(t.prizeAmount) : "발견"}`
-                      : `${t.points} P · 나침반으로 탐색`}
+                      : "나침반으로 탐색"}
                   </small>
                 </span>
                 <ArrowUpRight size={17} />
@@ -430,7 +430,7 @@ export default function Treasure({ notify }: { notify: Notify }) {
             />
           )}
           <p className="footnote">
-            미발견 보물의 위치는 비밀이에요. 먼저 발견한 대원만 포인트를 얻을 수
+            미발견 보물의 위치는 비밀이에요. 먼저 발견한 대원만 보물을 얻을 수
             있어요.
           </p>
         </aside>
