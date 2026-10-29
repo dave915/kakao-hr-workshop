@@ -1,5 +1,5 @@
 import { GameError } from "./game";
-import { prizeInventory, prizeLabel } from "./prizes";
+import { prizeInventory, prizeLabel, TOTAL_PRIZE_QUANTITY } from "./prizes";
 import type { Treasure, TreasureSecrets, WorkshopState } from "./types";
 import type { ActionInput, TreasureInput } from "./validation";
 
@@ -38,8 +38,10 @@ export function saveTreasures(
   const additions = input.treasures.filter(
     (t) => !state.treasures.some((saved) => saved.id === t.id),
   );
-  if (state.treasures.length + additions.length > 100)
-    throw new GameError("보물은 최대 100개까지 등록할 수 있어요.");
+  if (state.treasures.length + additions.length > TOTAL_PRIZE_QUANTITY)
+    throw new GameError(
+      `보물은 최대 ${TOTAL_PRIZE_QUANTITY}개까지 등록할 수 있어요.`,
+    );
   const changes = input.treasures.filter(({ original, ...next }) => {
     const current = state.treasures.find((t) => t.id === next.id);
     const values =
@@ -69,22 +71,25 @@ export function saveTreasures(
   // Check the final batch, including swaps, before mutating either collection.
   for (const treasure of changes) {
     if (
-      treasure.prizeAmount !== undefined &&
-      (treasure.prizeAmount === 0) !== (treasure.kind === "bomb")
+      (treasure.kind === "cheer" && treasure.prizeAmount !== 0) ||
+      (treasure.prizeAmount !== undefined &&
+        (treasure.kind === "treasure"
+          ? treasure.prizeAmount === 0
+          : treasure.prizeAmount !== 0))
     )
       throw new GameError(
         "선택한 보물 금액과 종류가 맞지 않아요. 다시 선택해주세요.",
       );
   }
   const changedIds = new Set(changes.map((t) => t.id));
-  const inventory = prizeInventory([
-    ...state.treasures.filter((t) => !changedIds.has(t.id)),
-    ...changes,
-  ]);
+  const inventory = prizeInventory(
+    [...state.treasures.filter((t) => !changedIds.has(t.id)), ...changes],
+    secrets,
+  );
   const exhausted = inventory.find((p) => p.placed > p.quantity);
   if (exhausted)
     throw new GameError(
-      `${prizeLabel(exhausted.amount)} 보물은 총 ${exhausted.quantity}개예요. 남은 수량을 확인하고 다른 보물을 선택해주세요.`,
+      `${prizeLabel(exhausted.amount, exhausted.kind)} 보물은 총 ${exhausted.quantity}개예요. 남은 수량을 확인하고 다른 보물을 선택해주세요.`,
     );
   for (const { original: _original, kind, ...treasure } of changes) {
     const index = state.treasures.findIndex((t) => t.id === treasure.id);

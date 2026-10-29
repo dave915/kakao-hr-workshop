@@ -1131,6 +1131,138 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       await ref.delete();
     }
   }, 30000);
+  it("registers fifty cheers and fifty blanks separately and allows immediate play after a cheer", async () => {
+    const original = (await db.doc("workshops/main").get()).data();
+    const originalSecrets = (await db.doc("private/treasures").get()).data();
+    const originalVisible = (
+      await db.doc("workshops/participants").get()
+    ).data();
+    const state = structuredClone(original) as WorkshopState;
+    state.treasures = [];
+    state.settings.gameOpen = true;
+    state.members["alex.k"].blockedUntil = 0;
+    const base = {
+      name: "보물",
+      hint: "",
+      lat: 37.3,
+      lng: 127.1,
+      radius: 10,
+      points: 100,
+      prizeAmount: 0,
+    };
+    const cheers = Array.from({ length: 50 }, (_, i) => ({
+      ...base,
+      id: `cheer-fixture-${i}`,
+      kind: "cheer",
+    }));
+    const blanks = Array.from({ length: 50 }, (_, i) => ({
+      ...base,
+      id: `blank-fixture-${i}`,
+      kind: "bomb",
+    }));
+    const cash = {
+      ...base,
+      id: "cheer-followup-cash",
+      kind: "treasure",
+      prizeAmount: 1000,
+    };
+    try {
+      const setup = db.batch();
+      setup.set(db.doc("workshops/main"), state);
+      setup.set(db.doc("private/treasures"), { kinds: {} });
+      setup.set(db.doc("workshops/participants"), participantView(state));
+      await setup.commit();
+      const saved = await call(
+        "workshopAction",
+        {
+          action: "saveTreasures",
+          resetGeneration: state.resetGeneration ?? 0,
+          treasures: [...cheers, ...blanks, cash],
+        },
+        adminToken,
+      );
+      expect(saved.status).toBe(200);
+      const privateKinds = (await db.doc("private/treasures").get()).data()
+        .kinds;
+      expect(
+        Object.values(privateKinds).filter((kind) => kind === "cheer"),
+      ).toHaveLength(50);
+      expect(
+        Object.values(privateKinds).filter((kind) => kind === "bomb"),
+      ).toHaveLength(50);
+      const excess = await call(
+        "workshopAction",
+        {
+          action: "saveTreasure",
+          treasure: { ...cheers[0], id: "excess-cheer" },
+        },
+        adminToken,
+      );
+      expect(excess.status).toBe(400);
+      expect(excess.error.message).toContain("응원");
+      const hidden = (await db.doc("workshops/participants").get()).data()
+        .treasures[0];
+      expect(hidden).not.toHaveProperty("prizeAmount");
+      expect(hidden).not.toHaveProperty("outcome");
+      const claim = (id: string) =>
+        call(
+          "workshopAction",
+          {
+            action: "claimCamera",
+            treasureId: id,
+            position: {
+              lat: base.lat,
+              lng: base.lng,
+              accuracy: 5,
+              timestamp: Date.now(),
+            },
+          },
+          memberToken,
+        );
+      const cheer = await claim(cheers[0].id);
+      expect(cheer.status).toBe(200);
+      expect(cheer.result.result).toEqual({
+        outcome: "cheer",
+        prizeAmount: 0,
+        points: 0,
+        blockedUntil: 0,
+      });
+      const afterCheer = (await db.doc("workshops/main").get()).data();
+      expect(afterCheer.members["alex.k"]).toMatchObject({
+        score: state.members["alex.k"].score,
+        found: state.members["alex.k"].found,
+        blockedUntil: 0,
+      });
+      expect(
+        (await db.doc("workshops/participants").get()).data().treasures[0],
+      ).toMatchObject({ outcome: "cheer", prizeAmount: 0 });
+      const jobs = await db
+        .collection("treasurePushes")
+        .where("treasureId", "==", cheers[0].id)
+        .get();
+      expect(jobs.size).toBe(1);
+      expect(jobs.docs[0].data().title).toBe("응원을 발견했어요!");
+      const next = await claim(cash.id);
+      expect(next.status).toBe(200);
+      expect(next.result.result).toMatchObject({
+        outcome: "treasure",
+        blockedUntil: 0,
+      });
+    } finally {
+      const restore = db.batch();
+      restore.set(db.doc("workshops/main"), original);
+      restore.set(db.doc("private/treasures"), originalSecrets);
+      restore.set(db.doc("workshops/participants"), originalVisible);
+      for (const id of [cheers[0].id, cash.id]) {
+        const jobs = await db
+          .collection("treasurePushes")
+          .where("treasureId", "==", id)
+          .get();
+        for (const job of jobs.docs) restore.delete(job.ref);
+      }
+      await restore.commit();
+    }
+  }, 30000);
   it("persists a bomb lock and rejects discovery attempts during the lock", async () => {
     const bomb = makeSeed(true).treasures[2];
     const result = await call(

@@ -75,4 +75,20 @@ describe("discovery push messages and audience", () => {
         .sort(),
     ).toEqual(["admin", "admin-laptop", "alex", "ryan"]);
   });
+  it("announces encouragement without labeling it a blank prize or imposing a rest", () => {
+    const state = makeSeed(true);
+    const job = discoveryPush(state, {
+      ...state.treasures[0],
+      foundBy: "alex.k",
+      foundAt: 1000,
+      outcome: "cheer",
+      prizeAmount: 0,
+    });
+    expect(job).toMatchObject({
+      title: "응원을 발견했어요!",
+      body: "Alex가 응원을 발견했어요. 쉬는 시간 없이 탐험을 이어가요!",
+    });
+    expect(job.body).not.toContain("꽝");
+    expect(job.body).not.toContain("포인트");
+  });
 });

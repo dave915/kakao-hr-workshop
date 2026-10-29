@@ -15,7 +15,10 @@ export default function PrizeDiscoveryImage({
   return (
     <div className={compact ? "prize-art-thumbnail" : "prize-discovery-art"}>
       {failedSource === art.src ? (
-        <TreasureIllustration bomb={result.outcome === "bomb"} />
+        <TreasureIllustration
+          bomb={result.outcome === "bomb"}
+          cheer={result.outcome === "cheer"}
+        />
       ) : (
         <img
           src={art.src}

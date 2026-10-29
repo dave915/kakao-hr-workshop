@@ -62,7 +62,11 @@ export default function Team() {
                     </p>
                   </div>
                   <strong>
-                    {t.outcome === "bomb" ? "꽝!" : `+${t.points} P`}
+                    {t.outcome === "bomb"
+                      ? "꽝!"
+                      : t.outcome === "cheer"
+                        ? "응원"
+                        : `+${t.points} P`}
                   </strong>
                 </article>
               ))}

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PRIZE_PLAN, type PrizeAmount } from "./prizes";
+import { PRIZE_PLAN, TOTAL_PRIZE_QUANTITY, type PrizeAmount } from "./prizes";
 const text = (max: number) =>
   z.string().trim().min(1, "내용을 입력해주세요.").max(max);
 const iso = z
@@ -71,7 +71,7 @@ export const treasureInput = z.object({
       "목록에 있는 보물 금액을 선택해주세요.",
     )
     .optional(),
-  kind: z.enum(["treasure", "bomb"]),
+  kind: z.enum(["treasure", "bomb", "cheer"]),
 });
 export type TreasureInput = z.infer<typeof treasureInput>;
 export const treasureBatchItem = treasureInput
@@ -195,7 +195,7 @@ export const actionInput = z.discriminatedUnion("action", [
     treasures: z
       .array(treasureBatchItem)
       .min(1)
-      .max(100)
+      .max(TOTAL_PRIZE_QUANTITY)
       .refine(
         (items) => new Set(items.map((t) => t.id)).size === items.length,
         "같은 보물이 중복되어 있어요.",

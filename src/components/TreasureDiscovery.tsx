@@ -20,7 +20,9 @@ export default function TreasureDiscovery({
           ? "발견 화면 미리보기"
           : result.outcome === "bomb"
             ? "앗, 깜짝 선물이었어요!"
-            : "새로운 보물을 발견했어요!"
+            : result.outcome === "cheer"
+              ? "응원을 발견했어요!"
+              : "새로운 보물을 발견했어요!"
       }
       onClose={onClose}
     >
@@ -29,14 +31,18 @@ export default function TreasureDiscovery({
         <h2>
           {result.outcome === "bomb"
             ? "5분 동안 잠깐 쉬어가요"
-            : result.prizeAmount !== undefined
-              ? `${prizeLabel(result.prizeAmount)} 보물 발견!`
-              : `+${result.points} 포인트!`}
+            : result.outcome === "cheer"
+              ? "오늘의 탐험을 응원해요!"
+              : result.prizeAmount !== undefined
+                ? `${prizeLabel(result.prizeAmount)} 보물 발견!`
+                : `+${result.points} 포인트!`}
         </h2>
         <p>
           {result.outcome === "bomb"
             ? "잠깐의 쉼도 모험의 일부니까요. 휴식 후 다시 도전해요."
-            : "우리 팀의 탐험 수첩에도 기록했어요. 다음 보물로 모험을 이어가요!"}
+            : result.outcome === "cheer"
+              ? "0원 응원 보물이에요. 쉬는 시간 없이 바로 다음 보물을 찾아보세요!"
+              : "우리 팀의 탐험 수첩에도 기록했어요. 다음 보물로 모험을 이어가요!"}
         </p>
         <button className="button dark" onClick={onClose}>
           {preview

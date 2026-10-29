@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { treasureInput, type TreasureInput } from "../../shared/validation";
 import { DEFAULT_TREASURE_RADIUS } from "../../shared/game";
+import { TOTAL_PRIZE_QUANTITY } from "../../shared/prizes";
 
 const draftInput = treasureInput.extend({
   name: z.string().max(80),
@@ -19,7 +20,7 @@ const workspaceInput = z.object({
   mode: z.enum(["onsite", "map"]),
   drafts: z
     .array(draftInput)
-    .max(100)
+    .max(TOTAL_PRIZE_QUANTITY)
     .refine((items) => new Set(items.map((t) => t.id)).size === items.length),
   selected: z.string().nullable(),
   defaults: treasureInput.pick({ kind: true, radius: true, points: true }),
@@ -100,7 +101,7 @@ export function validateDraft(
       lat: "위도를 −90~90 사이로 입력해주세요.",
       lng: "경도를 −180~180 사이로 입력해주세요.",
       points: "포인트를 10~1,000 사이의 정수로 입력해주세요.",
-      prizeAmount: "등록할 보물의 금액 또는 꽝을 선택해주세요.",
+      prizeAmount: "등록할 보물의 금액, 꽝 또는 응원을 선택해주세요.",
       radius: "발견 반경을 10~200m 사이의 정수로 입력해주세요.",
     };
     return { error: messages[String(field)] ?? "입력 내용을 확인해주세요." };

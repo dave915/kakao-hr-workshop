@@ -13,7 +13,13 @@ import {
 } from "lucide-react";
 import { hasCoordinates } from "../../shared/exploration";
 import { registrationValues } from "../../shared/treasure-registration";
-import { prizeInventory, prizeLabel } from "../../shared/prizes";
+import {
+  prizeInventory,
+  prizeKey,
+  prizeKind,
+  prizeLabel,
+  TOTAL_PRIZE_QUANTITY,
+} from "../../shared/prizes";
 import type { Position, Treasure } from "../../shared/types";
 import { useWorkshop } from "../lib/store";
 import { englishName, errorMessage } from "../lib/utils";
@@ -119,7 +125,7 @@ function RegistrationEditor({
   const selectedSaved = registered.find((t) => t.id === workspace.selected);
   const allItems = [...registered, ...workspace.drafts];
   const total = new Set(allItems.map((t) => t.id)).size;
-  const stock = prizeInventory(registered);
+  const stock = prizeInventory(registered, secrets);
 
   useEffect(() => {
     mounted.current = true;
@@ -162,8 +168,13 @@ function RegistrationEditor({
     setFocus({ lat, lng, key: Date.now() + Math.random() });
   }
   function append(draft: TreasureDraft, focusPin = true) {
-    if (total >= 100 || workspaceRef.current.drafts.length >= 100) {
-      setError("보물은 초안을 포함해 최대 100개까지 등록할 수 있어요.");
+    if (
+      total >= TOTAL_PRIZE_QUANTITY ||
+      workspaceRef.current.drafts.length >= TOTAL_PRIZE_QUANTITY
+    ) {
+      setError(
+        `보물은 초안을 포함해 최대 ${TOTAL_PRIZE_QUANTITY}개까지 등록할 수 있어요.`,
+      );
       return;
     }
     commit((w) => ({ ...w, drafts: [...w.drafts, draft], selected: draft.id }));
@@ -312,7 +323,7 @@ function RegistrationEditor({
       if (item.prizeAmount === undefined) {
         commit((w) => ({ ...w, selected: item.id }));
         setError(
-          `‘${item.name || "이름 없는 보물"}’: 보물 금액 또는 꽝을 선택해주세요.`,
+          `‘${item.name || "이름 없는 보물"}’: 보물 금액, 꽝 또는 응원을 선택해주세요.`,
         );
         editor.current?.scrollIntoView({ block: "nearest" });
         return;
@@ -392,7 +403,9 @@ function RegistrationEditor({
           <h2>보물 등록</h2>
           <p>현장에서 하나씩, 지도에서 여러 개씩 숨겨보세요.</p>
         </div>
-        <span className="mini-tag">등록 {registered.length} / 100</span>
+        <span className="mini-tag">
+          등록 {registered.length} / {TOTAL_PRIZE_QUANTITY}
+        </span>
       </div>
       <div className="registration-modes" aria-label="보물 등록 방식">
         <button
@@ -430,7 +443,7 @@ function RegistrationEditor({
             {workspace.mode === "onsite" ? (
               <button
                 className="button dark"
-                disabled={disabled || locating || total >= 100}
+                disabled={disabled || locating || total >= TOTAL_PRIZE_QUANTITY}
                 onClick={() => void locateFor("add")}
               >
                 <LocateFixed size={18} />
@@ -440,7 +453,7 @@ function RegistrationEditor({
               <button
                 className="button dark"
                 aria-pressed={placement === "add"}
-                disabled={disabled || total >= 100}
+                disabled={disabled || total >= TOTAL_PRIZE_QUANTITY}
                 onClick={() => {
                   cancelLocation();
                   setPlacement(placement === "add" ? "browse" : "add");
@@ -452,7 +465,7 @@ function RegistrationEditor({
             )}
             <button
               className="text-button"
-              disabled={disabled || locating || total >= 100}
+              disabled={disabled || locating || total >= TOTAL_PRIZE_QUANTITY}
               onClick={() => {
                 cancelLocation();
                 append({
@@ -636,31 +649,39 @@ function RegistrationEditor({
                   />
                 </label>
                 <label>
-                  보물 금액
+                  보물 종류·금액
                   <select
                     name="prizeAmount"
-                    value={selected.prizeAmount ?? ""}
-                    onChange={(event) =>
-                      update(selected.id, {
-                        prizeAmount: stock.find(
-                          (p) => String(p.amount) === event.target.value,
-                        )?.amount,
-                        kind: event.target.value === "0" ? "bomb" : "treasure",
-                      })
+                    value={
+                      selected.prizeAmount === undefined
+                        ? ""
+                        : prizeKey(selected.prizeAmount, selected.kind)
                     }
+                    onChange={(event) => {
+                      const prize = stock.find(
+                        (p) => p.key === event.target.value,
+                      );
+                      update(selected.id, {
+                        prizeAmount: prize?.amount,
+                        kind: prize?.kind ?? "treasure",
+                      });
+                    }}
                   >
-                    <option value="">금액 또는 꽝을 선택해주세요</option>
+                    <option value="">금액, 꽝 또는 응원을 선택해주세요</option>
                     {stock.map((p) => (
                       <option
-                        key={p.amount}
-                        value={p.amount}
+                        key={p.key}
+                        value={p.key}
                         disabled={
                           p.remaining === 0 &&
-                          selectedSaved?.prizeAmount !== p.amount
+                          !(
+                            selectedSaved?.prizeAmount === p.amount &&
+                            prizeKind(selectedSaved, secrets) === p.kind
+                          )
                         }
                       >
-                        {prizeLabel(p.amount)} · {p.remaining} / {p.quantity}개
-                        남음
+                        {prizeLabel(p.amount, p.kind)} · {p.remaining} /{" "}
+                        {p.quantity}개 남음
                       </option>
                     ))}
                   </select>
@@ -831,7 +852,7 @@ function RegistrationEditor({
                   <button
                     type="button"
                     className="button"
-                    disabled={total >= 100}
+                    disabled={total >= TOTAL_PRIZE_QUANTITY}
                     onClick={() => duplicate(selected)}
                   >
                     <Copy size={17} />
@@ -852,7 +873,7 @@ function RegistrationEditor({
                   </p>
                   <button
                     className="button"
-                    disabled={disabled || total >= 100}
+                    disabled={disabled || total >= TOTAL_PRIZE_QUANTITY}
                     onClick={() => duplicate(selectedSaved)}
                   >
                     <Copy size={17} />새 보물로 복제
@@ -910,7 +931,7 @@ function RegistrationEditor({
               className={`mini-tag ${secrets[t.id] === "bomb" || t.outcome === "bomb" ? "orange" : "green"}`}
             >
               {t.prizeAmount !== undefined
-                ? prizeLabel(t.prizeAmount)
+                ? prizeLabel(t.prizeAmount, prizeKind(t, secrets))
                 : "금액 미지정"}
             </span>
             <div>
@@ -933,7 +954,7 @@ function RegistrationEditor({
               <button
                 className="icon-button"
                 aria-label={`${t.name} 복제`}
-                disabled={disabled || total >= 100}
+                disabled={disabled || total >= TOTAL_PRIZE_QUANTITY}
                 onClick={() => {
                   duplicate(t);
                   editor.current?.scrollIntoView({

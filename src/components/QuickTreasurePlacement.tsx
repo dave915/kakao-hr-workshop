@@ -9,8 +9,12 @@ import {
 } from "lucide-react";
 import {
   prizeInventory,
+  prizeKind,
   prizeLabel,
+  TOTAL_PRIZE_AMOUNT,
+  TOTAL_PRIZE_QUANTITY,
   type PrizeAmount,
+  type TreasureKind,
 } from "../../shared/prizes";
 import { hasCoordinates } from "../../shared/exploration";
 import { useWorkshop } from "../lib/store";
@@ -42,7 +46,7 @@ export default function QuickTreasurePlacement({
   notify,
   onAdvanced,
 }: Props) {
-  const { state, act } = useWorkshop();
+  const { state, secrets, act } = useWorkshop();
   const [initial] = useState(() => {
     try {
       return {
@@ -66,7 +70,10 @@ export default function QuickTreasurePlacement({
   const [storageError, setStorageError] = useState(initial.error);
   const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [previewAmount, setPreviewAmount] = useState<PrizeAmount | null>(null);
+  const [previewPrize, setPreviewPrize] = useState<{
+    amount: PrizeAmount;
+    kind: TreasureKind;
+  } | null>(null);
   const savingRef = useRef(false);
   const locationRequest = useRef(0);
   const mounted = useRef(true);
@@ -78,7 +85,7 @@ export default function QuickTreasurePlacement({
   } | null>(null);
   const disabled = busy || saving;
   const treasures = state!.treasures;
-  const stock = prizeInventory(treasures);
+  const stock = prizeInventory(treasures, secrets);
   const remaining = stock.reduce((sum, p) => sum + p.remaining, 0);
   const remainingAmount = stock.reduce(
     (sum, p) => sum + p.remaining * p.amount,
@@ -170,10 +177,10 @@ export default function QuickTreasurePlacement({
         setLocating(false);
     }
   }
-  function choose(amount: PrizeAmount) {
+  function choose(amount: PrizeAmount, kind: TreasureKind) {
     if (disabled) return;
     const existing = draftRef.current;
-    if (!existing && treasures.length >= 100) return;
+    if (!existing && treasures.length >= TOTAL_PRIZE_QUANTITY) return;
     const next = existing ?? {
       ...newDraft(treasures, emptyWorkspace().defaults, 0, 0),
       lat: null,
@@ -182,7 +189,7 @@ export default function QuickTreasurePlacement({
     persist({
       ...next,
       prizeAmount: amount,
-      kind: amount === 0 ? "bomb" : "treasure",
+      kind,
     });
     setError("");
     setStep("register");
@@ -209,7 +216,7 @@ export default function QuickTreasurePlacement({
       persist(null);
       setStep("stock");
       notify(
-        `${prizeLabel(current.prizeAmount)} 보물을 등록했어요. 다음 장소에서 보물 놓기를 눌러주세요.`,
+        `${prizeLabel(current.prizeAmount, current.kind)} 보물을 등록했어요. 다음 장소에서 보물 놓기를 눌러주세요.`,
       );
       heading.current?.scrollIntoView({ block: "start" });
     } catch (e) {
@@ -237,7 +244,7 @@ export default function QuickTreasurePlacement({
               {step === "stock"
                 ? "숨길 장소에 도착하면 보물을 골라 등록하세요."
                 : step === "choose"
-                  ? "금액별 남은 수량을 확인하고 하나를 골라주세요."
+                  ? "종류별 남은 수량을 확인하고 하나를 골라주세요."
                   : "지도에서 위치를 확인한 뒤 등록하면 끝이에요."}
             </p>
           </div>
@@ -281,11 +288,12 @@ export default function QuickTreasurePlacement({
               남은 보물 <strong>{remaining}개</strong>
             </h3>
             <span>
-              {remainingAmount.toLocaleString("ko-KR")}원 / 총 500,000원
+              {remainingAmount.toLocaleString("ko-KR")}원 / 총{" "}
+              {TOTAL_PRIZE_AMOUNT.toLocaleString("ko-KR")}원
             </span>
             <small>
-              금액 지정 {100 - remaining}개 · 전체 등록 {treasures.length} /
-              100개
+              종류 지정 {TOTAL_PRIZE_QUANTITY - remaining}개 · 전체 등록{" "}
+              {treasures.length} / {TOTAL_PRIZE_QUANTITY}개
             </small>
           </div>
           {unassigned > 0 && (
@@ -306,7 +314,7 @@ export default function QuickTreasurePlacement({
           {step === "stock" && (
             <button
               className="button dark full place-treasure-start"
-              disabled={disabled || treasures.length >= 100}
+              disabled={disabled || treasures.length >= TOTAL_PRIZE_QUANTITY}
               onClick={() => {
                 setError("");
                 setStep(draft ? "register" : "choose");
@@ -316,11 +324,11 @@ export default function QuickTreasurePlacement({
               {draft ? "작성 중인 보물 이어서 등록" : "보물 놓기"}
             </button>
           )}
-          <div className="prize-stock-grid" aria-label="금액별 남은 보물">
+          <div className="prize-stock-grid" aria-label="종류별 남은 보물">
             {stock.map((p) => {
               const content = (
                 <>
-                  <strong>{prizeLabel(p.amount)}</strong>
+                  <strong>{prizeLabel(p.amount, p.kind)}</strong>
                   <span>
                     <b>{p.remaining}개 남음</b> / {p.quantity}개
                   </span>
@@ -328,27 +336,37 @@ export default function QuickTreasurePlacement({
                     {p.placed}개 등록됨
                     {p.remaining === 0 ? " · 모두 놓았어요" : ""}
                   </small>
+                  {p.amount === 0 && (
+                    <small>
+                      {p.kind === "cheer"
+                        ? "0원 · 쉬는 시간 없음"
+                        : "0원 · 5분 휴식"}
+                    </small>
+                  )}
                 </>
               );
               const existingSlot = treasures.some(
-                (t) => t.id === draft?.id && t.prizeAmount === p.amount,
+                (t) =>
+                  t.id === draft?.id &&
+                  t.prizeAmount === p.amount &&
+                  prizeKind(t, secrets) === p.kind,
               );
               return step === "choose" ? (
                 <button
-                  key={p.amount}
+                  key={p.key}
                   className="prize-stock-item"
                   disabled={
                     disabled ||
                     (p.remaining === 0 && !existingSlot) ||
-                    (!draft && treasures.length >= 100)
+                    (!draft && treasures.length >= TOTAL_PRIZE_QUANTITY)
                   }
-                  onClick={() => choose(p.amount)}
+                  onClick={() => choose(p.amount, p.kind)}
                 >
                   {content}
                 </button>
               ) : (
                 <div
-                  key={p.amount}
+                  key={p.key}
                   className={`prize-stock-item ${p.remaining === 0 ? "is-empty" : ""}`}
                 >
                   {content}
@@ -370,7 +388,7 @@ export default function QuickTreasurePlacement({
               <strong>
                 {draft.prizeAmount === undefined
                   ? "금액을 선택해주세요"
-                  : prizeLabel(draft.prizeAmount)}
+                  : prizeLabel(draft.prizeAmount, draft.kind)}
               </strong>
               <small>
                 {draft.name} · 발견 반경 {draft.radius}m
@@ -513,8 +531,11 @@ export default function QuickTreasurePlacement({
             </fieldset>
           </details>
           <p className="footnote">
-            금액과 꽝 여부는 발견 전까지 참가자에게 보이지 않아요.
+            금액과 보물 종류는 발견 전까지 참가자에게 보이지 않아요.
             {draft.kind === "bomb" ? " 꽝은 탐험 5분 휴식이 적용돼요." : ""}
+            {draft.kind === "cheer"
+              ? " 응원은 0원이며 쉬는 시간 없이 탐험을 이어갈 수 있어요."
+              : ""}
           </p>
           <button
             className="text-button quick-cancel"
@@ -533,37 +554,39 @@ export default function QuickTreasurePlacement({
       {step === "stock" && (
         <details className="prize-art-preview">
           <summary>발견 이미지 미리보기</summary>
-          <p>금액을 누르면 참가자에게 보일 발견 화면을 확인할 수 있어요.</p>
+          <p>
+            보물 종류를 누르면 참가자에게 보일 발견 화면을 확인할 수 있어요.
+          </p>
           <div className="prize-art-preview-grid">
-            {stock.map(({ amount }) => (
+            {stock.map(({ amount, kind, key }) => (
               <button
-                key={amount}
-                aria-label={`${prizeLabel(amount)} 발견 화면 미리보기`}
-                onClick={() => setPreviewAmount(amount)}
+                key={key}
+                aria-label={`${prizeLabel(amount, kind)} 발견 화면 미리보기`}
+                onClick={() => setPreviewPrize({ amount, kind })}
               >
                 <PrizeDiscoveryImage
                   result={{
-                    outcome: amount === 0 ? "bomb" : "treasure",
+                    outcome: kind,
                     prizeAmount: amount,
                   }}
                   compact
                 />
-                <strong>{prizeLabel(amount)}</strong>
+                <strong>{prizeLabel(amount, kind)}</strong>
               </button>
             ))}
           </div>
         </details>
       )}
-      {previewAmount !== null && (
+      {previewPrize !== null && (
         <TreasureDiscovery
           preview
           result={{
-            outcome: previewAmount === 0 ? "bomb" : "treasure",
-            prizeAmount: previewAmount,
-            points: previewAmount === 0 ? 0 : 100,
+            outcome: previewPrize.kind,
+            prizeAmount: previewPrize.amount,
+            points: previewPrize.kind === "treasure" ? 100 : 0,
             blockedUntil: 0,
           }}
-          onClose={() => setPreviewAmount(null)}
+          onClose={() => setPreviewPrize(null)}
         />
       )}
       <div className="quick-advanced">

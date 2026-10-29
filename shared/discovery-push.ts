@@ -32,18 +32,25 @@ export function discoveryPush(
   const name = englishName(finder.handle);
   const reward =
     treasure.prizeAmount !== undefined
-      ? `${prizeLabel(treasure.prizeAmount)} 보물`
+      ? `${prizeLabel(treasure.prizeAmount, treasure.outcome)} 보물`
       : `${treasure.points.toLocaleString("ko-KR")}포인트 보물`;
   return {
     treasureId: treasure.id,
     finderId: finder.id,
     foundAt: treasure.foundAt,
     resetGeneration: state.resetGeneration ?? 0,
-    title: treasure.outcome === "bomb" ? "앗, 꽝 발견!" : "보물 발견!",
+    title:
+      treasure.outcome === "bomb"
+        ? "앗, 꽝 발견!"
+        : treasure.outcome === "cheer"
+          ? "응원을 발견했어요!"
+          : "보물 발견!",
     body:
       treasure.outcome === "bomb"
         ? `${name}가 꽝을 발견했어요. 잠깐 쉬고 다시 도전해요!`
-        : `${name}가 ${reward}을 발견했어요!`,
+        : treasure.outcome === "cheer"
+          ? `${name}가 응원을 발견했어요. 쉬는 시간 없이 탐험을 이어가요!`
+          : `${name}가 ${reward}을 발견했어요!`,
     createdAt: treasure.foundAt,
     status: "pending",
     attempts: 0,

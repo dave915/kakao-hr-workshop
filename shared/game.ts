@@ -74,13 +74,13 @@ export function claimTreasure(
   treasure.foundAt = now;
   treasure.outcome = outcome;
   if (outcome === "bomb") member.blockedUntil = now + 5 * 60 * 1000;
-  else {
+  else if (outcome === "treasure") {
     member.score += treasure.points;
     member.found += 1;
   }
   return {
     outcome,
-    points: outcome === "bomb" ? 0 : treasure.points,
+    points: outcome === "treasure" ? treasure.points : 0,
     ...(treasure.prizeAmount !== undefined
       ? { prizeAmount: treasure.prizeAmount }
       : {}),

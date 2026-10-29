@@ -1,4 +1,4 @@
-import type { PrizeAmount } from "./prizes";
+import type { PrizeAmount, TreasureKind } from "./prizes";
 export type Role = "member" | "admin" | "superadmin";
 export type Page =
   | "home"
@@ -40,7 +40,7 @@ export interface Treasure {
   radius: number;
   foundBy: string | null;
   foundAt: number | null;
-  outcome?: "treasure" | "bomb";
+  outcome?: TreasureKind;
 }
 export interface Notice {
   id: string;
@@ -102,7 +102,7 @@ export interface TreasureGuidance {
   cameraOnly: boolean;
   updatedAt: number;
 }
-export type TreasureSecrets = Record<string, "treasure" | "bomb">;
+export type TreasureSecrets = Record<string, TreasureKind>;
 export interface ArTarget {
   treasureId: string;
   lat: number;
@@ -117,7 +117,7 @@ export interface Position {
   timestamp: number;
 }
 export interface ClaimResult {
-  outcome: "treasure" | "bomb";
+  outcome: TreasureKind;
   points: number;
   prizeAmount?: PrizeAmount;
   blockedUntil: number;

@@ -277,9 +277,11 @@ export default function Treasure({ notify }: { notify: Notify }) {
       <small>
         {treasure.outcome === "bomb"
           ? "깜짝 꽝이 숨어있던 곳이에요."
-          : treasure.prizeAmount !== undefined
-            ? `${prizeLabel(treasure.prizeAmount)} 보물 · ${treasure.points} 포인트`
-            : `${treasure.points} 포인트의 보물이었어요.`}
+          : treasure.outcome === "cheer"
+            ? "응원이 담긴 보물이었어요. 쉬는 시간 없이 계속 탐험해요."
+            : treasure.prizeAmount !== undefined
+              ? `${prizeLabel(treasure.prizeAmount)} 보물 · ${treasure.points} 포인트`
+              : `${treasure.points} 포인트의 보물이었어요.`}
       </small>
     </section>
   ) : (
@@ -407,7 +409,7 @@ export default function Treasure({ notify }: { notify: Notify }) {
                   {t.hint ? <span>{t.hint}</span> : null}
                   <small>
                     {t.foundBy
-                      ? `${englishName(state.members[t.foundBy]?.handle, "삭제된 참가자")} · ${t.prizeAmount !== undefined ? prizeLabel(t.prizeAmount) : "발견"}`
+                      ? `${englishName(state.members[t.foundBy]?.handle, "삭제된 참가자")} · ${t.prizeAmount !== undefined ? prizeLabel(t.prizeAmount, t.outcome) : "발견"}`
                       : "나침반으로 탐색"}
                   </small>
                 </span>

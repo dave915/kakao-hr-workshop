@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { PRIZE_PLAN, prizeInventory } from "../shared/prizes";
+import {
+  PRIZE_PLAN,
+  prizeInventory,
+  TOTAL_PRIZE_QUANTITY,
+  type TreasureKind,
+} from "../shared/prizes";
 import { makeSeed } from "../shared/seed";
 import { mutate } from "../shared/mutate";
 import { actionInput, type TreasureInput } from "../shared/validation";
@@ -16,6 +21,7 @@ import type { TreasureSecrets } from "../shared/types";
 const prize = (
   id: string,
   prizeAmount: TreasureInput["prizeAmount"],
+  kind: TreasureKind = prizeAmount === 0 ? "bomb" : "treasure",
 ): TreasureInput => ({
   id,
   name: `보물 ${id}`,
@@ -24,7 +30,7 @@ const prize = (
   lng: 127.1,
   points: 100,
   radius: 10,
-  kind: prizeAmount === 0 ? "bomb" : "treasure",
+  kind,
   ...(prizeAmount !== undefined ? { prizeAmount } : {}),
 });
 function setup() {
@@ -47,21 +53,25 @@ function setup() {
 }
 
 describe("prize inventory registration", () => {
-  it("registers exactly the requested 100 prizes worth 500,000 won", () => {
-    const { state, save } = setup();
+  it("registers 95 cash prizes, 50 blanks and 50 cheers worth 500,000 won", () => {
+    const { state, secrets, save } = setup();
     save(
       PRIZE_PLAN.flatMap((p) =>
         Array.from({ length: p.quantity }, (_, index) =>
-          prize(`${p.amount}-${index}`, p.amount),
+          prize(`${p.kind}-${p.amount}-${index}`, p.amount, p.kind),
         ),
       ),
     );
-    expect(state.treasures).toHaveLength(100);
+    expect(state.treasures).toHaveLength(195);
+    expect(TOTAL_PRIZE_QUANTITY).toBe(195);
+    expect(
+      state.treasures.filter((t) => (t.prizeAmount ?? 0) > 0),
+    ).toHaveLength(95);
     expect(
       state.treasures.reduce((sum, t) => sum + (t.prizeAmount ?? 0), 0),
     ).toBe(500000);
     expect(
-      prizeInventory(state.treasures).every((p) => p.remaining === 0),
+      prizeInventory(state.treasures, secrets).every((p) => p.remaining === 0),
     ).toBe(true);
   });
   it("rejects oversubscribed batches and legacy single saves without partial writes", () => {
@@ -158,7 +168,7 @@ describe("prize inventory registration", () => {
       "원본",
     );
   });
-  it("validates denomination and kind, enforces the five blanks and keeps them secret", () => {
+  it("validates denomination and kind, enforces fifty blanks and keeps them secret", () => {
     const { state, secrets, save } = setup();
     expect(() =>
       actionInput.parse({
@@ -171,7 +181,7 @@ describe("prize inventory registration", () => {
       "종류",
     );
     expect(state.treasures).toHaveLength(0);
-    save(Array.from({ length: 5 }, (_, i) => prize(`blank-${i}`, 0)));
+    save(Array.from({ length: 50 }, (_, i) => prize(`blank-${i}`, 0)));
     expect(() => save([prize("extra", 0)])).toThrow("꽝");
     expect(participantView(state).treasures[0]).not.toHaveProperty(
       "prizeAmount",
@@ -190,6 +200,131 @@ describe("prize inventory registration", () => {
       points: 0,
       outcome: "bomb",
       blockedUntil: now + 300000,
+    });
+  });
+
+  it("keeps zero-won cheer stock separate, rejects overbooking and supports atomic kind swaps", () => {
+    const { state, secrets, save } = setup();
+    save([
+      ...Array.from({ length: 50 }, (_, i) => prize(`blank-${i}`, 0)),
+      ...Array.from({ length: 50 }, (_, i) => prize(`cheer-${i}`, 0, "cheer")),
+    ]);
+    const inventory = () =>
+      prizeInventory(state.treasures, secrets).filter((p) => p.amount === 0);
+    expect(inventory()).toEqual([
+      expect.objectContaining({ kind: "bomb", placed: 50, remaining: 0 }),
+      expect.objectContaining({ kind: "cheer", placed: 50, remaining: 0 }),
+    ]);
+    const before = structuredClone({ state, secrets });
+    expect(() => save([prize("extra-cheer", 0, "cheer")])).toThrow("응원");
+    expect({ state, secrets }).toEqual(before);
+    const blank = registrationValues(state.treasures[0], "bomb");
+    const cheer = registrationValues(state.treasures[50], "cheer");
+    expect(() => save([{ ...blank, kind: "cheer", original: blank }])).toThrow(
+      "응원",
+    );
+    expect({ state, secrets }).toEqual(before);
+    save([
+      { ...blank, kind: "cheer", original: blank },
+      { ...cheer, kind: "bomb", original: cheer },
+    ]);
+    expect(secrets[blank.id]).toBe("cheer");
+    expect(secrets[cheer.id]).toBe("bomb");
+    expect(inventory().map((p) => p.placed)).toEqual([50, 50]);
+    mutate(
+      state,
+      secrets,
+      "dave.h",
+      { action: "deleteTreasure", id: blank.id },
+      "unused",
+    );
+    expect(inventory().map((p) => p.remaining)).toEqual([0, 1]);
+  });
+
+  it("reveals an encouragement without points or a rest and immediately permits another discovery", () => {
+    const { state, secrets, save } = setup();
+    const cheer = prize("cheer", 0, "cheer");
+    const cash = prize("cash", 1000);
+    save([cheer, cash]);
+    const hidden = participantView(state).treasures.find(
+      (t) => t.id === cheer.id,
+    )!;
+    for (const field of ["outcome", "prizeAmount", "kind", "lat", "lng"])
+      expect(hidden).not.toHaveProperty(field);
+    const now = Date.now();
+    const position = {
+      lat: cheer.lat,
+      lng: cheer.lng,
+      accuracy: 5,
+      timestamp: now,
+    };
+    const result = claimTreasure(
+      state,
+      secrets,
+      "alex.k",
+      cheer.id,
+      position,
+      now,
+    );
+    expect(result).toEqual({
+      outcome: "cheer",
+      prizeAmount: 0,
+      points: 0,
+      blockedUntil: 0,
+    });
+    expect(state.members["alex.k"]).toMatchObject({
+      score: 0,
+      found: 0,
+      blockedUntil: 0,
+    });
+    expect(
+      participantView(state).treasures.find((t) => t.id === cheer.id),
+    ).toMatchObject({ outcome: "cheer", prizeAmount: 0, foundBy: "alex.k" });
+    save([cheer]);
+    expect(
+      prizeInventory(state.treasures, secrets).find((p) => p.kind === "cheer")
+        ?.remaining,
+    ).toBe(49);
+    expect(() =>
+      claimTreasure(state, secrets, "ryan.j", cheer.id, position, now),
+    ).toThrow("발견");
+    expect(
+      claimTreasure(state, secrets, "alex.k", cash.id, position, now),
+    ).toMatchObject({ outcome: "treasure", points: 100, blockedUntil: 0 });
+    mutate(
+      state,
+      secrets,
+      "dave.h",
+      { action: "deleteTreasure", id: cheer.id },
+      "unused",
+    );
+    expect(state.members["alex.k"]).toMatchObject({
+      score: 100,
+      found: 1,
+      blockedUntil: 0,
+    });
+    expect(
+      prizeInventory(state.treasures, secrets).find((p) => p.kind === "cheer")
+        ?.remaining,
+    ).toBe(50);
+  });
+
+  it("requires zero won for cheers and preserves their kind in stored drafts", () => {
+    const { state, save } = setup();
+    for (const amount of [undefined, 1000] as const)
+      expect(() => save([prize("invalid", amount, "cheer")])).toThrow("종류");
+    expect(state.treasures).toHaveLength(0);
+    const cheer = prize("cheer", 0, "cheer");
+    const restored = parseWorkspace(
+      JSON.stringify({
+        ...emptyWorkspace(),
+        drafts: [{ ...cheer, original: cheer }],
+      }),
+    );
+    expect(validateDraft(restored.drafts[0]).value).toMatchObject({
+      kind: "cheer",
+      prizeAmount: 0,
+      original: { kind: "cheer", prizeAmount: 0 },
     });
   });
 });

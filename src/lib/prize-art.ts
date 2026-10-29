@@ -23,6 +23,11 @@ const ART: Record<PrizeAmount, { file: string; description: string }> = {
 
 /** Resolve only from the confirmed discovery result, never an unexplored target. */
 export function prizeArt(result: Pick<ClaimResult, "outcome" | "prizeAmount">) {
+  if (result.outcome === "cheer")
+    return {
+      src: `${import.meta.env.BASE_URL}prize-art/cheer-v1.webp`,
+      alt: "엄지를 치켜든 따뜻한 돌 석상",
+    };
   const amount = result.outcome === "bomb" ? 0 : (result.prizeAmount ?? 10000);
   const art = ART[amount] ?? ART[10000];
   return {

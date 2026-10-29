@@ -193,10 +193,10 @@ describe("batch treasure registration", () => {
         state,
         secrets,
         "dave.h",
-        batch(Array.from({ length: 100 }, (_, i) => treasure(`new-${i}`))),
+        batch(Array.from({ length: 195 }, (_, i) => treasure(`new-${i}`))),
         "id",
       ),
-    ).toThrow("최대 100개");
+    ).toThrow("최대 195개");
     expect({ state, secrets }).toEqual(before);
   });
   it("rejects duplicate IDs, empty batches and invalid input", () => {

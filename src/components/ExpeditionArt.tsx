@@ -184,13 +184,19 @@ export function ExpeditionArt({
     </svg>
   );
 }
-export function TreasureIllustration({ bomb = false }: { bomb?: boolean }) {
+export function TreasureIllustration({
+  bomb = false,
+  cheer = false,
+}: {
+  bomb?: boolean;
+  cheer?: boolean;
+}) {
   return (
     <div
       className={`discovery-object ${bomb ? "bomb-object" : ""}`}
       aria-hidden="true"
     >
-      {bomb ? "💣" : "🎁"}
+      {bomb ? "💣" : cheer ? "👍" : "🎁"}
     </div>
   );
 }
