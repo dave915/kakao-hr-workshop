@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import {
@@ -43,6 +44,7 @@ import { startDeviceReporting } from "./lib/device-status";
 import { useUnreadNotices } from "./lib/notice-read";
 import type { Page } from "../shared/types";
 import { useMobileMenu } from "./hooks/useMobileMenu";
+import { useNavigationInsets } from "./hooks/useNavigationInsets";
 const Treasure = lazy(() => import("./components/Treasure"));
 const Admin = lazy(() => import("./components/Admin"));
 const PhotoBoard = lazy(() => import("./components/PhotoBoard"));
@@ -82,6 +84,9 @@ export default function App() {
     act,
   } = useWorkshop();
   const [page, setPage] = useState<Page>(pageFromHash);
+  const activeMobileTab = mobileNavigation.findIndex(
+    (item) => item.id === page,
+  );
   const visibleNotices =
     state?.notices.filter((n) => isNoticeRecipient(n.audience, me)) ?? [];
   const unread = useUnreadNotices(me?.id, visibleNotices, page === "notices");
@@ -103,6 +108,9 @@ export default function App() {
     closeForNavigation: closeMenuForNavigation,
     toggle: toggleMobileMenu,
   } = useMobileMenu(Boolean(me && state && !loading && !joining && !joinError));
+  const { topbarRef, bottomNavRef } = useNavigationInsets(
+    Boolean(me && state && !loading && !joining && !joinError),
+  );
   const joiningCode = useRef("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const notify = (message: string) => {
@@ -408,9 +416,9 @@ export default function App() {
         </div>
       </aside>
       <div className="main-shell">
-        <header className="topbar">
+        <header className="topbar" ref={topbarRef}>
           <button
-            className="mobile-menu-button icon-button"
+            className="mobile-menu-button ds-icon-button ds-glass"
             aria-label="전체 메뉴"
             aria-expanded={mobileMenu}
             aria-controls="main-sidebar"
@@ -425,19 +433,25 @@ export default function App() {
           </div>
           <div className="topbar-actions">
             {demo && <span className="demo-badge">미리보기 · 예시 데이터</span>}
-            <button
-              className="icon-button notification-button"
-              aria-label="새로운 소식 보기"
-              onClick={() => navigate("notices")}
-            >
-              <Bell size={19} />
-              {unread > 0 && <i aria-label={`읽지 않은 소식 ${unread}개`} />}
-            </button>
-            <button className="user-menu" onClick={() => navigate("profile")}>
-              <Avatar name={englishName(me.handle)} />
-              <span>{englishName(me.handle)}</span>
-              <ChevronRight size={13} />
-            </button>
+            <div className="ds-control-group ds-glass">
+              <button
+                className="ds-icon-button notification-button"
+                aria-label="새로운 소식 보기"
+                onClick={() => navigate("notices")}
+              >
+                <Bell size={22} aria-hidden="true" />
+                {unread > 0 && <i aria-label={`읽지 않은 소식 ${unread}개`} />}
+              </button>
+              <button
+                className="user-menu ds-icon-button"
+                aria-label="내 프로필 보기"
+                onClick={() => navigate("profile")}
+              >
+                <Avatar name={englishName(me.handle)} />
+                <span>{englishName(me.handle)}</span>
+                <ChevronRight size={13} aria-hidden="true" />
+              </button>
+            </div>
           </div>
         </header>
         {!online && (
@@ -495,15 +509,28 @@ export default function App() {
           </Suspense>
         </main>
       </div>
-      <nav className="bottom-nav" aria-label="모바일 메뉴">
+      <nav
+        ref={bottomNavRef}
+        className="bottom-nav ds-tabbar ds-tabbar--fixed ds-glass"
+        aria-label="모바일 메뉴"
+        data-indicator="true"
+        style={
+          { "--ds-active-index": Math.max(0, activeMobileTab) } as CSSProperties
+        }
+      >
+        <span
+          className="ds-tab-indicator"
+          aria-hidden="true"
+          hidden={activeMobileTab < 0}
+        />
         {mobileNavigation.map((n) => (
           <button
             key={n.id}
-            className={page === n.id ? "active" : ""}
+            className="ds-tab"
             onClick={() => navigate(n.id)}
             aria-current={page === n.id ? "page" : undefined}
           >
-            <n.icon size={21} />
+            <n.icon size={22} aria-hidden="true" />
             <span>{n.short}</span>
           </button>
         ))}

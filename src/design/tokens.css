@@ -1,0 +1,273 @@
+/*
+ * 일상 밖으로 · Apple-inspired / restrained Liquid Glass
+ * Canonical runtime tokens. See /DESIGN.md and docs/design/mobile-approved.png.
+ * Imported by src/main.tsx before the app stylesheet and shared primitives.
+ * --ds-* names avoid collisions with the incumbent --paper/--green palette.
+ * Light appearance only; dark mode needs a separately reviewed palette.
+ */
+:root {
+  /* Neutrals: content stays opaque. */
+  --ds-color-canvas: #f5f5f7;
+  --ds-color-surface: #ffffff;
+  --ds-color-surface-subtle: #eeeef1;
+  --ds-color-surface-hover: #e7e7ec;
+  --ds-color-surface-pressed: #dedee5;
+  --ds-color-text: #1d1d1f;
+  --ds-color-text-secondary: #6e6e73;
+  --ds-color-text-nav: #50505a;
+  --ds-color-text-disabled: #86868b;
+  --ds-color-on-action: #ffffff;
+  --ds-color-separator: #dedee3;
+  --ds-color-border: #d9d9df;
+  --ds-color-border-input: #86868b;
+
+  /* Accent is decorative; action blue supports small white labels (5.57:1). */
+  --ds-color-accent: #007aff;
+  --ds-color-action: #0066cc;
+  --ds-color-action-hover: #005bb8;
+  --ds-color-action-pressed: #004f9f;
+  --ds-color-selected: #e5f0ff;
+  --ds-color-focus: #005fcc;
+  --ds-color-selection-bg: #d9eaff;
+  --ds-color-selection-text: #1d1d1f;
+
+  /* Status is independent of brand/artwork and never color-only. */
+  --ds-color-success: #237647;
+  --ds-color-success-bg: #eaf5ed;
+  --ds-color-warning: #805500;
+  --ds-color-warning-bg: #fff4d6;
+  --ds-color-danger: #b42318;
+  --ds-color-danger-hover: #961d14;
+  --ds-color-danger-pressed: #7c180f;
+  --ds-color-danger-bg: #fff1f0;
+  --ds-color-disabled-bg: #e7e7ec;
+  --ds-color-notification: #c86b00;
+
+  /* Existing identity: avatar/illustration accents, not generic CTA colors. */
+  --ds-color-avatar-bg: #fbf0bf;
+  --ds-color-avatar-text: #745b17;
+  --ds-color-feature-bg: #242426;
+  --ds-color-feature-text: #ffffff;
+  --ds-color-feature-secondary: #d2d2d7;
+
+  /* Native fonts on Apple, existing local Noto Sans KR elsewhere. */
+  --ds-font-ui:
+    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
+    "Segoe UI", sans-serif;
+  --ds-font-display: var(--ds-font-ui);
+  --ds-font-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --ds-font-weight-regular: 400;
+  --ds-font-weight-medium: 500;
+  --ds-font-weight-semibold: 600;
+  --ds-font-weight-bold: 700;
+  /* px intentionally avoids the existing app's 14px root shrinking rem tokens. */
+  --ds-font-size-micro: 10px;
+  --ds-font-size-tab: 11px;
+  --ds-font-size-caption: 12px;
+  --ds-font-size-label: 13px;
+  --ds-font-size-body: 15px;
+  --ds-font-size-input: 16px;
+  --ds-font-size-title: 18px;
+  --ds-font-size-section: 20px;
+  --ds-font-size-page: 24px;
+  --ds-font-size-hero: 40px;
+  --ds-font-size-hero-desktop: 48px;
+  --ds-line-height-tight: 1.15;
+  --ds-line-height-heading: 1.3;
+  --ds-line-height-ui: 1.4;
+  --ds-line-height-body: 1.65;
+  --ds-letter-spacing-heading: -0.025em;
+  --ds-letter-spacing-body: -0.01em;
+  --ds-letter-spacing-eyebrow: 0.12em;
+
+  --ds-space-0: 0px;
+  --ds-space-1: 2px;
+  --ds-space-2: 4px;
+  --ds-space-3: 6px;
+  --ds-space-4: 8px;
+  --ds-space-5: 12px;
+  --ds-space-6: 16px;
+  --ds-space-7: 20px;
+  --ds-space-8: 24px;
+  --ds-space-9: 32px;
+  --ds-space-10: 40px;
+  --ds-space-11: 48px;
+  --ds-space-12: 64px;
+
+  --ds-radius-badge: 6px;
+  --ds-radius-control: 10px;
+  --ds-radius-surface: 16px;
+  --ds-radius-sheet: 24px;
+  --ds-radius-pill: 999px;
+  --ds-border-width: 1px;
+  --ds-focus-width: 3px;
+  --ds-focus-offset: 3px;
+
+  --ds-size-touch: 44px;
+  --ds-size-icon: 20px;
+  --ds-size-icon-nav: 22px;
+  --ds-icon-stroke: 1.75;
+  --ds-size-avatar: 32px;
+  --ds-size-topbar: 65px;
+  --ds-size-topbar-desktop: 80px;
+  --ds-size-tabbar: 64px;
+  --ds-size-tab: 54px;
+  --ds-tabbar-inset: 12px;
+  --ds-tabbar-bottom: 10px;
+  --ds-tabbar-max-width: 480px;
+  --ds-layout-gutter-mobile: 20px;
+  --ds-layout-gutter-desktop: 38px;
+  --ds-layout-sidebar: 232px;
+  --ds-layout-sidebar-compact: 205px;
+  --ds-layout-sidebar-tablet: 185px;
+  --ds-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ds-safe-left: env(safe-area-inset-left, 0px);
+  --ds-safe-right: env(safe-area-inset-right, 0px);
+  /* Optional measured height keeps enlarged labels from covering page content. */
+  --ds-nav-reserved-space: calc(
+    var(--ds-measured-tabbar-height, var(--ds-size-tabbar)) +
+      var(--ds-tabbar-bottom) + var(--ds-safe-bottom) + var(--ds-space-8)
+  );
+
+  /* Glass is ONLY for navigation islands / floating map or photo controls. */
+  --ds-glass-bg: rgb(255 255 255 / 62%);
+  --ds-glass-bg-hover: rgb(255 255 255 / 76%);
+  --ds-glass-bg-pressed: rgb(231 239 250 / 82%);
+  --ds-glass-bg-opaque: #ffffff;
+  --ds-glass-text: #24242b;
+  --ds-glass-selected-bg: rgb(222 237 255 / 90%);
+  --ds-glass-selected-text: #0058b5;
+  --ds-glass-border: rgb(255 255 255 / 42%);
+  --ds-glass-filter: blur(10px) saturate(1.65);
+  --ds-glass-sheen: linear-gradient(
+    135deg,
+    rgb(255 255 255 / 22%),
+    rgb(255 255 255 / 0%) 45%,
+    rgb(170 181 206 / 6%)
+  );
+  --ds-glass-edge: linear-gradient(
+    135deg,
+    rgb(255 255 255 / 95%),
+    rgb(255 255 255 / 30%) 38%,
+    rgb(35 45 65 / 14%) 67%,
+    rgb(255 255 255 / 80%)
+  );
+  --ds-glass-optics-opacity: 1;
+  --ds-glass-highlight:
+    inset 0 1px 0 rgb(255 255 255 / 85%), inset 0 -1px 0 rgb(35 45 65 / 10%);
+  --ds-nav-title-bg: rgb(245 245 247 / 92%);
+  --ds-shadow-none: none;
+  --ds-shadow-glass:
+    0 7px 22px rgb(29 29 31 / 10%), 0 1px 3px rgb(29 29 31 / 5%),
+    var(--ds-glass-highlight);
+  --ds-shadow-popover: 0 8px 28px rgb(29 29 31 / 14%);
+  --ds-shadow-modal: 0 16px 48px rgb(29 29 31 / 18%);
+  --ds-color-scrim: rgb(0 0 0 / 32%);
+
+  --ds-duration-fast: 120ms;
+  --ds-duration-normal: 180ms;
+  --ds-duration-panel: 240ms;
+  --ds-duration-selection: 320ms;
+  --ds-ease-selection: cubic-bezier(0.22, 1.12, 0.36, 1);
+  --ds-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ds-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  --ds-z-content: 0;
+  --ds-z-sticky: 40;
+  --ds-z-tabbar: 60;
+  --ds-z-backdrop: 70;
+  --ds-z-drawer: 80;
+  --ds-z-modal: 100;
+  --ds-z-toast: 110;
+}
+
+/* Readable material when backdrop filtering is unavailable. */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  :root {
+    --ds-glass-bg: var(--ds-glass-bg-opaque);
+    --ds-glass-bg-hover: var(--ds-color-surface-subtle);
+    --ds-glass-bg-pressed: var(--ds-color-surface-pressed);
+    --ds-glass-border: var(--ds-color-border);
+    --ds-glass-filter: none;
+    --ds-glass-highlight: inset 0 0 0 transparent;
+    --ds-glass-sheen: none;
+    --ds-glass-optics-opacity: 0;
+    --ds-glass-selected-bg: var(--ds-color-selected);
+  }
+}
+
+/* Browser preference plus explicit app-level fallback; support is not assumed. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root {
+    --ds-glass-bg: var(--ds-glass-bg-opaque);
+    --ds-glass-bg-hover: var(--ds-color-surface-subtle);
+    --ds-glass-bg-pressed: var(--ds-color-surface-pressed);
+    --ds-glass-border: var(--ds-color-border-input);
+    --ds-glass-filter: none;
+    --ds-glass-highlight: inset 0 0 0 transparent;
+    --ds-glass-sheen: none;
+    --ds-glass-optics-opacity: 0;
+    --ds-glass-selected-bg: var(--ds-color-selected);
+  }
+}
+
+:root[data-reduce-transparency="true"] {
+  --ds-glass-bg: var(--ds-glass-bg-opaque);
+  --ds-glass-bg-hover: var(--ds-color-surface-subtle);
+  --ds-glass-bg-pressed: var(--ds-color-surface-pressed);
+  --ds-glass-border: var(--ds-color-border-input);
+  --ds-glass-filter: none;
+  --ds-glass-highlight: inset 0 0 0 transparent;
+  --ds-glass-sheen: none;
+  --ds-glass-optics-opacity: 0;
+  --ds-glass-selected-bg: var(--ds-color-selected);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ds-duration-fast: 0ms;
+    --ds-duration-normal: 0ms;
+    --ds-duration-panel: 0ms;
+    --ds-duration-selection: 0ms;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --ds-color-canvas: Canvas;
+    --ds-color-surface: Canvas;
+    --ds-color-surface-subtle: Canvas;
+    --ds-color-surface-hover: Canvas;
+    --ds-color-surface-pressed: Canvas;
+    --ds-color-text: CanvasText;
+    --ds-color-text-secondary: CanvasText;
+    --ds-color-text-nav: ButtonText;
+    --ds-color-text-disabled: GrayText;
+    --ds-color-border: CanvasText;
+    --ds-color-border-input: ButtonText;
+    --ds-color-separator: CanvasText;
+    --ds-color-action: Highlight;
+    --ds-color-action-hover: Highlight;
+    --ds-color-action-pressed: Highlight;
+    --ds-color-on-action: HighlightText;
+    --ds-color-selected: Canvas;
+    --ds-color-focus: Highlight;
+    --ds-color-disabled-bg: Canvas;
+    --ds-glass-bg: Canvas;
+    --ds-glass-bg-hover: Canvas;
+    --ds-glass-bg-pressed: Canvas;
+    --ds-glass-border: ButtonText;
+    --ds-glass-filter: none;
+    --ds-glass-text: ButtonText;
+    --ds-glass-selected-text: Highlight;
+    --ds-glass-selected-bg: Canvas;
+    --ds-glass-sheen: none;
+    --ds-glass-optics-opacity: 0;
+    --ds-nav-title-bg: Canvas;
+    --ds-shadow-glass: none;
+    --ds-shadow-popover: none;
+    --ds-shadow-modal: none;
+  }
+}

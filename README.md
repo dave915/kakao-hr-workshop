@@ -2,6 +2,8 @@
 
 인사팀을 위한 모바일 PWA. 지도는 카카오맵 Web SDK를 사용합니다. 개인 입장 링크, 일정, 추진위원회 공지와 푸시, GPS 보물찾기를 한 앱에 담았습니다. React + TypeScript + Vite로 만든 정적 화면은 **GitHub Pages**, 인증·데이터·푸시는 **Firebase**를 사용합니다.
 
+화면 스타일을 변경할 때는 [디자인 시스템](DESIGN.md)을 기준으로 합니다. 최종 모바일 시안, 공통 [디자인 토큰](src/design/tokens.css), [컴포넌트 스타일](src/design/primitives.css), 기존 화면에 적용하는 순서를 함께 제공합니다.
+
 ## 바로 실행
 
 Node.js 22 이상이 필요합니다.

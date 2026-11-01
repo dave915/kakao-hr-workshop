@@ -1,0 +1,364 @@
+/* Opt-in recipes. Import AFTER tokens.css and the legacy styles.css. */
+.ds-surface,
+.ds-button,
+.ds-icon-button,
+.ds-control-group,
+.ds-tabbar,
+.ds-tab,
+.ds-input,
+.ds-chip {
+  box-sizing: border-box;
+  font-family: var(--ds-font-ui);
+}
+
+.ds-button,
+.ds-icon-button,
+.ds-tab {
+  cursor: pointer;
+  touch-action: manipulation;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ds-button:focus-visible,
+.ds-icon-button:focus-visible,
+.ds-tab:focus-visible,
+.ds-input:focus-visible,
+.ds-link:focus-visible {
+  outline: var(--ds-focus-width) solid var(--ds-color-focus);
+  outline-offset: var(--ds-focus-offset);
+}
+
+.ds-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-4);
+  min-height: var(--ds-size-touch);
+  padding: 10px var(--ds-space-6);
+  border: var(--ds-border-width) solid transparent;
+  border-radius: var(--ds-radius-control);
+  background: var(--ds-color-action);
+  color: var(--ds-color-on-action);
+  box-shadow: none;
+  font-size: var(--ds-font-size-body);
+  font-weight: var(--ds-font-weight-semibold);
+  line-height: var(--ds-line-height-ui);
+  transition: background-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.ds-button--secondary {
+  background: var(--ds-color-surface-subtle);
+  color: var(--ds-color-text);
+}
+
+.ds-button--danger {
+  background: var(--ds-color-danger);
+  color: var(--ds-color-on-action);
+}
+
+.ds-button--ghost {
+  background: transparent;
+  color: var(--ds-color-action);
+}
+
+@media (hover: hover) {
+  .ds-button:hover:not(:disabled) {
+    background: var(--ds-color-action-hover);
+    filter: none;
+  }
+  .ds-button--secondary:hover:not(:disabled),
+  .ds-button--ghost:hover:not(:disabled) {
+    background: var(--ds-color-surface-hover);
+  }
+  .ds-button--danger:hover:not(:disabled) {
+    background: var(--ds-color-danger-hover);
+  }
+}
+
+.ds-button:active:not(:disabled) {
+  background: var(--ds-color-action-pressed);
+  filter: none;
+  transform: none;
+}
+.ds-button--secondary:active:not(:disabled),
+.ds-button--ghost:active:not(:disabled) {
+  background: var(--ds-color-surface-pressed);
+}
+.ds-button--danger:active:not(:disabled) {
+  background: var(--ds-color-danger-pressed);
+}
+.ds-button:disabled {
+  background: var(--ds-color-disabled-bg);
+  color: var(--ds-color-text-disabled);
+  opacity: 1;
+  cursor: not-allowed;
+}
+.ds-button[aria-busy="true"] {
+  cursor: progress;
+}
+
+/* Apply to the shared group OR its single button; never nest glass surfaces. */
+.ds-glass {
+  position: relative;
+  background: var(--ds-glass-bg);
+  background-image: var(--ds-glass-sheen);
+  border: var(--ds-border-width) solid var(--ds-glass-border);
+  box-shadow: var(--ds-shadow-glass);
+  -webkit-backdrop-filter: var(--ds-glass-filter);
+  backdrop-filter: var(--ds-glass-filter);
+}
+/* Only the one-pixel edge catches light; content and focus rings stay unclipped. */
+.ds-glass::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--ds-glass-edge);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: var(--ds-glass-optics-opacity);
+  pointer-events: none;
+}
+
+.ds-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--ds-size-touch);
+  height: var(--ds-size-touch);
+  padding: 0;
+  border: var(--ds-border-width) solid transparent;
+  border-radius: var(--ds-radius-pill);
+  color: var(--ds-color-text);
+  background: transparent;
+  transition:
+    background-color var(--ds-duration-fast) var(--ds-ease-standard),
+    transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+.ds-icon-button.ds-glass {
+  border-color: var(--ds-glass-border);
+  background: var(--ds-glass-bg);
+  background-image: var(--ds-glass-sheen);
+}
+.ds-icon-button svg,
+.ds-tab svg {
+  width: var(--ds-size-icon-nav);
+  height: var(--ds-size-icon-nav);
+  flex: 0 0 auto;
+  stroke-width: var(--ds-icon-stroke);
+}
+.ds-control-group {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: var(--ds-space-1);
+  border-radius: var(--ds-radius-pill);
+}
+@media (hover: hover) {
+  .ds-icon-button:hover:not(:disabled) {
+    background-color: var(--ds-glass-bg-hover);
+    filter: none;
+  }
+}
+.ds-icon-button:active:not(:disabled) {
+  background-color: var(--ds-glass-bg-pressed);
+  filter: none;
+  transform: scale(0.96);
+}
+.ds-icon-button:disabled {
+  color: var(--ds-color-text-disabled);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.ds-tabbar {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+  max-width: var(--ds-tabbar-max-width);
+  min-height: var(--ds-size-tabbar);
+  padding: var(--ds-space-2);
+  border-radius: var(--ds-radius-pill);
+  /* Do not clip outlines or add overflow:hidden to the focusable tab group. */
+}
+.ds-tabbar--fixed {
+  position: fixed;
+  z-index: var(--ds-z-tabbar);
+  left: max(var(--ds-tabbar-inset), var(--ds-safe-left));
+  right: max(var(--ds-tabbar-inset), var(--ds-safe-right));
+  bottom: calc(var(--ds-tabbar-bottom) + var(--ds-safe-bottom));
+  max-width: var(--ds-tabbar-max-width);
+  margin-inline: auto;
+}
+/* This project's floating bottom navigation is mobile-only. */
+@media (min-width: 761px) {
+  .ds-tabbar--fixed {
+    display: none;
+  }
+}
+.ds-tab {
+  position: relative;
+  z-index: 1;
+  min-width: var(--ds-size-touch);
+  min-height: var(--ds-size-tab);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-2);
+  padding: var(--ds-space-2);
+  border: var(--ds-border-width) solid transparent;
+  border-radius: var(--ds-radius-pill);
+  color: var(--ds-glass-text);
+  background: transparent;
+  font-size: var(--ds-font-size-tab);
+  font-weight: var(--ds-font-weight-medium);
+  line-height: var(--ds-line-height-ui);
+  transition:
+    background-color var(--ds-duration-fast) var(--ds-ease-standard),
+    color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+.ds-tabbar .ds-tab[aria-current="page"] {
+  color: var(--ds-glass-selected-text);
+  background: var(--ds-glass-selected-bg);
+  font-weight: var(--ds-font-weight-semibold);
+}
+.ds-tabbar[data-indicator] .ds-tab[aria-current="page"] {
+  background: transparent;
+}
+.ds-tab-indicator {
+  position: absolute;
+  top: var(--ds-space-2);
+  bottom: var(--ds-space-2);
+  left: var(--ds-space-2);
+  width: calc((100% - 2 * var(--ds-space-2)) / 5);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-glass-selected-bg);
+  box-shadow: var(--ds-glass-highlight);
+  transform: translateX(calc(var(--ds-active-index, 0) * 100%));
+  transition: transform var(--ds-duration-selection) var(--ds-ease-selection);
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .ds-tab:hover:not([aria-current="page"]):not(:disabled) {
+    background: rgb(255 255 255 / 28%);
+  }
+  .ds-tab:hover:not(:disabled) {
+    filter: none;
+  }
+}
+.ds-tab:active:not(:disabled) {
+  background: rgb(255 255 255 / 36%);
+  filter: none;
+  transform: none;
+}
+.ds-tab:disabled {
+  color: var(--ds-color-text-disabled);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.ds-surface {
+  padding: var(--ds-space-7);
+  background: var(--ds-color-surface);
+  color: var(--ds-color-text);
+  border: var(--ds-border-width) solid var(--ds-color-border);
+  border-radius: var(--ds-radius-surface);
+  box-shadow: none;
+}
+.ds-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  padding: var(--ds-space-2) var(--ds-space-4);
+  background: var(--ds-color-surface-subtle);
+  color: var(--ds-color-text-secondary);
+  border: 0;
+  border-radius: var(--ds-radius-badge);
+  font-size: var(--ds-font-size-caption);
+  line-height: var(--ds-line-height-ui);
+}
+.ds-input {
+  width: 100%;
+  min-height: var(--ds-size-touch);
+  padding: 10px var(--ds-space-5);
+  background: var(--ds-color-surface);
+  color: var(--ds-color-text);
+  border: var(--ds-border-width) solid var(--ds-color-border-input);
+  border-radius: var(--ds-radius-control);
+  font-size: var(--ds-font-size-input);
+  line-height: var(--ds-line-height-ui);
+  caret-color: var(--ds-color-action);
+  transition: border-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+.ds-input::placeholder {
+  color: var(--ds-color-text-secondary);
+  opacity: 1;
+}
+.ds-input:focus-visible {
+  border-color: var(--ds-color-focus);
+}
+.ds-input[aria-invalid="true"] {
+  border-color: var(--ds-color-danger);
+}
+.ds-input:disabled {
+  background: var(--ds-color-surface-subtle);
+  color: var(--ds-color-text-disabled);
+  opacity: 1;
+  cursor: not-allowed;
+}
+.ds-link {
+  font-family: var(--ds-font-ui);
+  color: var(--ds-color-action);
+  text-underline-offset: 0.2em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-icon-button:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .ds-tab-indicator {
+    display: none;
+  }
+  .ds-button {
+    color: ButtonText;
+    background: ButtonFace;
+    box-shadow: none;
+  }
+  .ds-button:disabled {
+    color: GrayText;
+    background: ButtonFace;
+  }
+  .ds-button:hover:not(:disabled),
+  .ds-button:active:not(:disabled) {
+    color: ButtonText;
+    background: ButtonFace;
+  }
+  .ds-button,
+  .ds-icon-button,
+  .ds-tab {
+    border-color: ButtonText;
+  }
+  .ds-tabbar .ds-tab[aria-current="page"] {
+    outline: 2px solid Highlight;
+    outline-offset: -3px;
+  }
+  .ds-tabbar .ds-tab:focus-visible {
+    outline: var(--ds-focus-width) solid Highlight;
+    outline-offset: var(--ds-focus-offset);
+  }
+}

@@ -30,8 +30,8 @@ export default defineConfig({
           },
         ],
         prefer_related_applications: false,
-        background_color: "#faf9f3",
-        theme_color: "#f9df38",
+        background_color: "#f5f5f7",
+        theme_color: "#f5f5f7",
         icons: [
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },
           {
