@@ -195,8 +195,12 @@ export default function TreasureMap({
     return () => overlays.forEach((overlay) => overlay.setMap(null));
   }, [context, treasures, selected, secrets, showFound, foundOnly]);
   useEffect(() => {
-    if (!context || !position) return;
+    if (!context || !position || !root.current) return;
     const { map, sdk } = context;
+    // Kakao's drawing API needs a resolved color, not a CSS var() expression.
+    const locationColor = getComputedStyle(root.current)
+      .getPropertyValue("--ds-color-location")
+      .trim();
     const overlays: KakaoOverlay[] = [];
     if (position) {
       const location = new sdk.LatLng(position.lat, position.lng);
@@ -204,8 +208,8 @@ export default function TreasureMap({
         center: location,
         radius: Math.min(position.accuracy, 100),
         strokeWeight: 1,
-        strokeColor: "#477357",
-        fillColor: "#477357",
+        strokeColor: locationColor,
+        fillColor: locationColor,
         fillOpacity: 0.12,
       });
       accuracyCircle.setMap(map);

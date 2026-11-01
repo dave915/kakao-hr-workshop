@@ -1715,7 +1715,7 @@ main {
   background: #b1bba3;
 }
 .map-legend i.me {
-  background: #477357;
+  background: var(--ds-color-location);
 }
 .map-marker-root {
   display: flex;
@@ -3432,10 +3432,10 @@ td .text-button {
   display: block;
   width: 18px;
   height: 18px;
-  border: 3px solid #faf9f3;
+  border: 3px solid var(--ds-color-surface);
   border-radius: 50%;
-  background: #477357;
-  box-shadow: 0 0 0 1px #477357;
+  background: var(--ds-color-location);
+  box-shadow: 0 0 0 1px var(--ds-color-location);
 }
 .map-state {
   position: absolute;
@@ -4478,7 +4478,7 @@ td .text-button {
   top: 1px;
   width: 22px;
   height: 23px;
-  background: #365638;
+  background: var(--ds-color-location);
   clip-path: polygon(50% 0, 100% 100%, 50% 75%, 0 100%);
 }
 .live-map-status {
@@ -4716,11 +4716,11 @@ td .text-button {
 .placement-location-dot {
   width: 18px;
   height: 18px;
-  border: 3px solid white;
-  background: #2777c8;
+  border: 3px solid var(--ds-color-surface);
+  background: var(--ds-color-location);
   border-radius: 50%;
   box-shadow:
-    0 0 0 6px #2777c830,
+    0 0 0 6px var(--ds-color-location-halo),
     0 1px 5px #0004;
 }
 .registration-editor {

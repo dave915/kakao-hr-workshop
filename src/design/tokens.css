@@ -23,6 +23,12 @@
 
   /* Accent is decorative; action blue supports small white labels (5.57:1). */
   --ds-color-accent: #007aff;
+  --ds-color-location: var(--ds-color-accent);
+  --ds-color-location-halo: color-mix(
+    in srgb,
+    var(--ds-color-location) 18%,
+    transparent
+  );
   --ds-color-action: #0066cc;
   --ds-color-action-hover: #005bb8;
   --ds-color-action-pressed: #004f9f;
