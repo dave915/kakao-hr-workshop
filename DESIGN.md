@@ -9,9 +9,9 @@ description: 기존 워크샵 화면 구성을 유지하는 밝은 Apple 스타�
 
 **디자인 기준: 콘텐츠는 선명하게, 탐색 컨트롤은 가볍게 떠 있도록.**
 
-워크샵 참가자가 일정, 보물찾기, 팀, 사진, 소식을 빠르게 확인하는 모바일 우선 PWA다. 최종 모바일 시안의 원형 메뉴 버튼, 알림·프로필 캡슐, 떠 있는 하단 탭을 앱 전체의 공통 탐색 언어로 사용한다. 본문은 밝은 회색 바탕, 불투명 흰색 표면, 또렷한 제목, 단색 파란 버튼으로 구성한다.
+워크샵 참가자가 일정, 보물찾기, 팀, 사진, 소식을 빠르게 확인하는 모바일 우선 PWA다. 최종 모바일 시안의 원형 메뉴 버튼, 알림·프로필 캡슐, 떠 있는 하단 탭을 앱 전체의 공통 탐색 언어로 사용한다. 본문은 밝은 회색 바탕, 불투명 흰색 표면, 또렷한 제목, 옐로우 바탕과 차콜 글자의 버튼으로 구성한다.
 
-이 문서는 **합의된 시안을 실제 앱에 적용한 디자인 기준**이다. `src/main.tsx`에서 토큰·앱 스타일·공통 컴포넌트 스타일을 연결한다. 홈, 일정, 보물찾기, 팀, 사진첩, 소식, 프로필, 관리자 화면에 같은 색상과 UI 글꼴을 적용했다. 런타임 값의 단일 원본은 [tokens.css](src/design/tokens.css)다. 문서의 frontmatter는 식별 정보만 가진다.
+이 문서는 **합의된 시안을 실제 앱에 적용한 디자인 기준**이다. `src/main.tsx`에서 토큰·앱 스타일·공통 컴포넌트 스타일을 연결한다. 홈, 일정, 보물찾기, 팀, 사진첩, 소식, 프로필, 관리자 화면에 같은 색상과 UI 글꼴을 적용했다. 현재 포인트색은 **웜 옐로우 `#F5D547` + 차콜 `#1D1D1F`**이며, 기존 모바일 시안은 형태·배치의 기준으로 유지한다. 색상은 이 문서와 런타임 토큰이 시안보다 우선한다. 런타임 값의 단일 원본은 [tokens.css](src/design/tokens.css)다. 문서의 frontmatter는 식별 정보만 가진다.
 
 | 파일                                                   | 역할                                                    |
 | ------------------------------------------------------ | ------------------------------------------------------- |
@@ -38,7 +38,7 @@ description: 기존 워크샵 화면 구성을 유지하는 밝은 Apple 스타�
 
 ## Colors
 
-새 컴포넌트는 `--ds-*` 의미 토큰을 사용한다. 색상 값의 복사나 `--green`을 새 파란색으로 일괄 치환하는 방식은 피한다.
+새 컴포넌트는 `--ds-*` 의미 토큰을 사용한다. 색상 값의 복사나 상태·위치 색을 브랜드색으로 일괄 치환하는 방식은 피한다.
 
 | 용도                              | 토큰                                                              | 값                                |
 | --------------------------------- | ----------------------------------------------------------------- | --------------------------------- |
@@ -48,24 +48,28 @@ description: 기존 워크샵 화면 구성을 유지하는 밝은 Apple 스타�
 | 제목·본문                         | `--ds-color-text`                                                 | `#1D1D1F`                         |
 | 설명·시간·장소                    | `--ds-color-text-secondary`                                       | `#6E6E73`                         |
 | 유리 위 비선택 탐색 아이콘·라벨   | `--ds-glass-text`                                                 | `#14141B`                         |
-| 주요 버튼·링크·선택 아이콘        | `--ds-color-action`                                               | `#0066CC`                         |
-| 장식 강조·큰 그래픽               | `--ds-color-accent`                                               | `#007AFF`                         |
-| 선택된 탭의 배경                  | `--ds-glass-selected-bg`                                          | `rgb(222 237 255 / 82%)`          |
-| 선택된 탭의 글자·아이콘           | `--ds-glass-selected-text`                                        | `#0058B5`                         |
-| 불투명 선택 표면 / 유리 대체 표면 | `--ds-color-selected`                                             | `#E5F0FF`                         |
+| 주요 버튼 배경                    | `--ds-color-action`                                               | `#F5D547`                         |
+| 주요 버튼 글자 / 링크·선택 아이콘 | `--ds-color-on-action` / `--ds-color-action-text`                   | `#1D1D1F`                         |
+| 버튼 hover / pressed             | `--ds-color-action-hover` / `--ds-color-action-pressed`            | `#E8C632` / `#D8B624`              |
+| 키보드 포커스 / 작은 선택 컨트롤 | `--ds-color-focus`                                                | `#756000`                         |
+| 지도 내 위치·나침반 방향          | `--ds-color-location`                                             | `#007AFF`                         |
+| 보물·보상 강조                    | `--ds-color-accent`                                               | `#F5D547`                         |
+| 선택된 탭의 배경                  | `--ds-glass-selected-bg`                                          | `rgb(250 226 133 / 82%)`          |
+| 선택된 탭의 글자·아이콘           | `--ds-glass-selected-text`                                        | `#1D1D1F`                         |
+| 불투명 선택 표면 / 유리 대체 표면 | `--ds-color-selected`                                             | `#FFF3BF`                         |
 | 구분선 / 카드 테두리              | `--ds-color-separator` / `--ds-color-border`                      | `#DEDEE3` / `#D9D9DF`             |
 | 입력 경계                         | `--ds-color-border-input`                                         | `#86868B`                         |
 | 성공 / 경고 / 오류                | `--ds-color-success` / `--ds-color-warning` / `--ds-color-danger` | `#237647` / `#805500` / `#B42318` |
 | 프로필 아바타                     | `--ds-color-avatar-bg` / `--ds-color-avatar-text`                 | `#FBF0BF` / `#745B17`             |
 | 홈 보물찾기 배너                  | `--ds-color-feature-bg`                                           | `#242426`                         |
 
-### 파란색의 두 역할
+### 브랜드·위치·상태 색의 역할
 
 지도에서 내 위치 점·방향 화살표·GPS 오차 반경·내 위치 범례는 `--ds-color-location`(`#007AFF`)으로 통일한다. 관리자 배치 지도의 내 위치도 같은 토큰을 사용한다. SDK에 그리는 GPS 오차 원에는 CSS 변수의 계산된 색상을 전달한다. 초록색은 방향 일치·성공 등 상태 의미로 구분한다.
 
-시안의 밝은 파랑 `#007AFF` 위 작은 흰 글자는 대비가 부족할 수 있다. 실제 텍스트 버튼은 `action` 색상을 사용한다. 흰 글자와 `#0066CC`의 대비는 **5.57:1**, 선택 배경과 `action` 글자는 **4.83:1**, 앱 바탕과 보조 글자는 **4.66:1**이다. 계산은 불투명 sRGB 색 조합 기준이며 유리 위 글자는 실제 합성 배경에서도 별도로 확인한다.
+주요 버튼은 옐로우 배경과 차콜 라벨을 짝지어 사용한다. 링크·선택 아이콘·입력 커서는 `action-text`로 분리해 밝은 노란 글자가 흰 바탕에 놓이지 않도록 한다. 차콜과 기본 버튼의 대비는 **11.61:1**, 누른 버튼은 **8.52:1**, 불투명 선택 배경은 **15.09:1**이다. 키보드 포커스와 작은 선택 컨트롤에는 짙은 골드 `#756000`을 사용한다. 삭제 버튼과 방향 일치 체크는 각각 `on-danger`, `on-success`의 흰 글자를 유지한다. 계산은 불투명 sRGB 색 조합 기준이며 유리 위 글자는 실제 합성 배경에서도 별도로 확인한다.
 
-초록·노랑은 기존 일러스트와 아바타의 정체성으로 남긴다. 성공 상태, 팀 색, 현금 보물, 경고의 의미를 서로 바꾸지 않는다. 상태는 색과 함께 아이콘·문구로 표시한다. `[aria-invalid]`, 선택 표시, 비활성 상태를 색상 하나로만 구분하지 않는다.
+기존 일러스트·아바타의 색은 보존한다. 옐로우는 주요 동작과 보물 아이콘에, 옅은 노랑은 선택 표면에 사용한다. 내 위치 파랑은 브랜드 토큰과 독립적으로 유지한다. 성공 상태, 팀 색, 현금 보물, 경고의 의미를 서로 바꾸지 않는다. 상태는 색과 함께 아이콘·문구로 표시한다. `[aria-invalid]`, 선택 표시, 비활성 상태를 색상 하나로만 구분하지 않는다.
 
 ## Typography
 
@@ -121,7 +125,7 @@ font-family: var(--ds-font-ui);
 - 화면 전체 폭의 배경 띠와 위쪽 구분선을 제거한다. 캡슐 주변으로 페이지 바탕이 보여야 한다.
 - 본문 하단 여유 공간은 `--ds-nav-reserved-space`를 사용한다. 탭이 확대 글꼴로 높아지면 `ResizeObserver`로 실제 높이를 `document.documentElement`의 `--ds-measured-tabbar-height`에 기록한다.
 - 모바일에서 `scroll-padding-bottom`과 마지막 입력·일정·버튼의 가림을 확인한다. 가로 화면은 좌우 safe area도 반영한다.
-- 데스크톱은 기존 사이드바를 유지하며 선택 항목에 연한 파란 표면을 쓴다. 메뉴 수를 줄이거나 하단 탭을 중복 노출하지 않는다.
+- 데스크톱은 기존 사이드바를 유지하며 선택 항목에 연한 노란 표면을 쓴다. 메뉴 수를 줄이거나 하단 탭을 중복 노출하지 않는다.
 
 ## Elevation & Depth
 
@@ -158,7 +162,7 @@ font-family: var(--ds-font-ui);
 
 상태 전환은 120ms, 일반 전환은 180ms, 패널은 240ms. 하단 선택 캡슐은 320ms와 `--ds-ease-selection`으로 약하게 탄성을 주며 이동한다. 원형 조작 버튼은 누르는 동안 0.96배로 반응한다. `background-color`, `color`, `border-color`, 선택 캡슐·패널의 `transform`·`opacity`만 전환한다. `transition: all`, 반복 펄스, 모든 카드의 등장 애니메이션을 추가하지 않는다. `prefers-reduced-motion`에서는 전환 시간과 누름 크기 변화를 제거한다. [Apple의 소재·상호작용 설명](https://developer.apple.com/videos/play/wwdc2025/219/)을 참고한 웹 근사 구현이며, 실제 배경 굴절을 재현하는 셰이더는 포함하지 않는다.
 
-일반 글자 대비 목표는 4.5:1, 큰 글자는 3:1이다. 본 프로젝트의 터치 목표는 **44×44 CSS px 이상**이다. 이는 WCAG 2.2 AA의 24px 최소 규칙보다 여유 있는 제품 기준이다. focus-visible은 3px 파란 outline과 3px offset을 사용하며 잘라내지 않는다. [WCAG contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [WCAG target size](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
+일반 글자 대비 목표는 4.5:1, 큰 글자는 3:1이다. 본 프로젝트의 터치 목표는 **44×44 CSS px 이상**이다. 이는 WCAG 2.2 AA의 24px 최소 규칙보다 여유 있는 제품 기준이다. focus-visible은 3px 짙은 골드 outline과 3px offset을 사용하며 잘라내지 않는다. [WCAG contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [WCAG target size](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
 
 레이어는 본문 0, 상단 40, 탭 60, 백드롭 70, 드로어 80, 모달 100, 토스트 110을 기본으로 한다. 기존 `<dialog>`의 top layer와 focus trap을 유지한다. CSS z-index만으로 네이티브 dialog 위에 알림이 표시된다고 가정하지 않는다.
 
@@ -179,7 +183,7 @@ font-family: var(--ds-font-ui);
 
 ### Buttons
 
-`.ds-button`은 44px 이상, 10px radius, 단색 action 배경, 흰 라벨이다. `.ds-button--secondary`, `--ghost`, `--danger`를 지원한다. 본문 버튼에는 `.ds-glass`를 붙이지 않는다.
+`.ds-button`은 44px 이상, 10px radius, 단색 action 옐로우 배경, 차콜 라벨이다. `.ds-button--secondary`, `--ghost`, `--danger`를 지원한다. 본문 버튼에는 `.ds-glass`를 붙이지 않는다.
 
 | 상태        | 규칙                                                                    |
 | ----------- | ----------------------------------------------------------------------- |

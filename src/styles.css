@@ -4,7 +4,7 @@
   --ink: var(--ds-color-text);
   --muted: var(--ds-color-text-secondary);
   --line: var(--ds-color-separator);
-  --yellow: oklch(90% 0.17 99);
+  --yellow: var(--ds-color-accent);
   --green: oklch(40% 0.063 139);
   --soft-green: oklch(93% 0.035 123);
   --orange: oklch(73% 0.13 57);
@@ -127,7 +127,7 @@ textarea {
   min-height: 45px;
   color: var(--ink);
   font-size: var(--ds-font-size-input);
-  caret-color: var(--ds-color-action);
+  caret-color: var(--ds-color-action-text);
 }
 textarea {
   resize: vertical;
@@ -147,7 +147,7 @@ input[type="checkbox"] {
   width: 17px;
   min-height: 17px;
   height: 17px;
-  accent-color: var(--ds-color-action);
+  accent-color: var(--ds-color-focus);
 }
 input[type="datetime-local"] {
   min-width: 0;
@@ -260,7 +260,7 @@ input[type="number"] {
 }
 .sidebar nav button.active {
   background: var(--ds-color-selected);
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   font-weight: 700;
 }
 .sidebar nav button:not(.active):hover {
@@ -336,7 +336,7 @@ input[type="number"] {
   margin-left: auto;
 }
 .sidebar-extra.active {
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   font-weight: 700;
 }
 .sidebar-copyright {
@@ -583,7 +583,7 @@ main {
   min-height: var(--ds-size-touch);
   padding: 4px 0;
   font-weight: 500;
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 .hero {
   background: var(--ds-color-surface);
@@ -716,7 +716,7 @@ main {
   font-size: var(--ds-font-size-section);
 }
 .section-title .text-button {
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   font-size: var(--ds-font-size-caption);
   align-self: flex-end;
 }
@@ -849,7 +849,7 @@ main {
 }
 .banner-icon {
   display: flex;
-  color: var(--ds-color-feature-secondary);
+  color: var(--ds-color-accent);
   transform: rotate(-14deg);
 }
 .treasure-banner > span:nth-child(2) {
@@ -1245,7 +1245,7 @@ main {
 }
 .timeline-item.current .timeline-axis > span {
   background: var(--ds-color-selected);
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 .timeline-body {
   flex: 1;
@@ -1473,13 +1473,13 @@ main {
   color: var(--ds-color-text-secondary);
 }
 .notice-link {
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   text-decoration: underline;
   text-underline-offset: 3px;
   overflow-wrap: anywhere;
 }
 .notice-link:hover {
-  color: var(--ds-color-action-hover);
+  color: var(--ds-color-action-text-hover);
 }
 .guide-camera-search {
   display: flex;
@@ -1490,7 +1490,7 @@ main {
 }
 .guide-camera-search > svg {
   flex-shrink: 0;
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 .guide-camera-search strong {
   font-size: 18px;
@@ -1709,7 +1709,7 @@ main {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #caa844;
+  background: var(--ds-color-accent);
 }
 .map-legend i.found {
   background: #b1bba3;
@@ -1735,18 +1735,19 @@ main {
   justify-content: center;
   width: 37px;
   height: 39px;
-  background: #f6d755;
-  border: 2px solid #fcf9e3;
+  background: var(--ds-color-accent);
+  border: 2px solid var(--ds-color-selected);
   border-radius: 11px 11px 11px 0;
   transform: rotate(-45deg);
-  color: #5b6442;
+  color: var(--ds-color-on-action);
   font-size: 25px;
   box-shadow: 0 2px 5px #3d50302b;
 }
 .map-marker.selected {
-  background: #335237;
-  color: #f6e597;
-  box-shadow: 0 0 0 4px #f4de7170;
+  background: var(--ds-color-text);
+  color: var(--ds-color-accent);
+  box-shadow: 0 0 0 4px
+    color-mix(in srgb, var(--ds-color-accent) 44%, transparent);
 }
 .map-marker.found {
   background: #bcc5ab;
@@ -1810,9 +1811,9 @@ main {
   justify-content: center;
   width: 34px;
   height: 38px;
-  background: var(--ds-color-surface);
+  background: var(--ds-color-selected);
   border-radius: 7px;
-  color: var(--ds-color-text-secondary);
+  color: var(--ds-color-action-text);
 }
 .treasure-list-item > span:nth-child(2) {
   flex: 1;
@@ -2184,7 +2185,7 @@ main {
 }
 .admin-tabs .selected {
   border-bottom-color: var(--ds-color-action);
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   font-weight: 600;
 }
 .admin-section-heading {
@@ -2364,7 +2365,7 @@ td .text-button {
   line-height: 1.9;
 }
 .button.danger {
-  color: var(--ds-color-on-action);
+  color: var(--ds-color-on-danger);
   background: var(--ds-color-danger);
   border-color: var(--ds-color-danger);
 }
@@ -3471,7 +3472,7 @@ td .text-button {
   min-height: 44px;
   margin-top: 8px;
   padding: 6px 2px;
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   font-size: 13px;
   font-weight: 700;
   border-radius: 6px;
@@ -4591,7 +4592,7 @@ td .text-button {
 }
 .registration-modes > button[aria-pressed="true"] {
   background: var(--ds-color-selected);
-  border: 2px solid var(--ds-color-action);
+  border: 2px solid var(--ds-color-focus);
   padding: 15px 19px;
 }
 .registration-modes span {
@@ -4646,7 +4647,7 @@ td .text-button {
   background: var(--ds-color-surface-subtle);
 }
 .placement-map.is-placing {
-  outline: 2px solid var(--ds-color-action);
+  outline: 2px solid var(--ds-color-focus);
   outline-offset: 2px;
 }
 .placement-map-canvas {
@@ -4741,7 +4742,7 @@ td .text-button {
 }
 .draft-heading h3 span,
 .registered-heading h3 span {
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   margin-left: 6px;
 }
 .draft-heading > small {
@@ -4783,7 +4784,7 @@ td .text-button {
 .draft-tabs b {
   flex: none;
   font-size: var(--ds-font-size-caption);
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 .registration-form fieldset {
   display: flex;
@@ -4828,7 +4829,7 @@ td .text-button {
 .draft-location > svg {
   flex: none;
   margin-top: 3px;
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 .draft-location strong {
   display: block;
@@ -4897,7 +4898,7 @@ td .text-button {
   padding: 30px 4px;
 }
 .registration-empty > svg {
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 .registration-empty p {
   font-size: 13px;
@@ -5227,7 +5228,7 @@ td .text-button {
 /* One compass instrument is shared by the map hint and enlarged view. */
 
 .compass-dial {
-  --compass-accent: var(--ds-color-action);
+  --compass-accent: var(--ds-color-location);
   --compass-surface: var(--ds-color-surface);
   position: relative;
   width: 100%;
@@ -5334,7 +5335,7 @@ td .text-button {
   border: 3px solid var(--ds-color-surface);
   border-radius: 50%;
   background: var(--ds-color-success);
-  color: var(--ds-color-on-action);
+  color: var(--ds-color-on-success);
 }
 
 .compass-dial.is-compact .compass-dial-check {
@@ -5393,7 +5394,7 @@ td .text-button {
 }
 
 .compass-readings .compass-target-label strong {
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 
 .is-aligned .compass-readings .compass-target-label strong {
@@ -5444,7 +5445,7 @@ td .text-button {
   border: 0;
   border-radius: inherit;
   background: transparent;
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   cursor: pointer;
 }
 
@@ -5817,7 +5818,7 @@ td .text-button {
   height: 36px;
   font-size: 16px;
   background: var(--ds-color-selected);
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 .photo-post-author {
   min-width: 0;
@@ -6119,7 +6120,7 @@ td .text-button {
   gap: 8px;
   border: 1px dashed var(--ds-color-border);
   background: var(--ds-color-selected);
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   font-size: 12px;
 }
 .photo-add small {
@@ -6161,11 +6162,11 @@ td .text-button {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 .photo-progress progress {
   width: 100%;
-  accent-color: var(--ds-color-action);
+  accent-color: var(--ds-color-focus);
 }
 .photo-viewer .photo-image {
   aspect-ratio: auto;
@@ -6495,7 +6496,7 @@ td .text-button {
   border-radius: 50%;
   margin-top: 24px;
   background: var(--ds-color-action);
-  color: var(--paper);
+  color: var(--ds-color-on-action);
 }
 @media (max-width: 480px) {
   .photo-post-actions .photo-expand > span {
@@ -6645,7 +6646,7 @@ td .text-button {
   font-weight: 600;
 }
 .photo-reply-mention {
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   font-weight: 500;
 }
 .photo-thread {
@@ -6689,7 +6690,7 @@ td .text-button {
   margin-top: 12px;
   border-radius: 8px;
   background: var(--ds-color-selected);
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   font-size: 0.85rem;
 }
 .photo-reply-target .icon-button {
@@ -6757,13 +6758,13 @@ td .text-button {
   font-weight: 700;
 }
 .placement-steps [aria-current="step"] {
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   font-weight: 700;
 }
 .placement-steps [aria-current="step"] > span {
   background: var(--ds-color-action);
   border-color: var(--ds-color-action);
-  color: var(--surface);
+  color: var(--ds-color-on-action);
 }
 .prize-stock-summary {
   display: flex;
@@ -6776,7 +6777,7 @@ td .text-button {
   font-size: 18px;
 }
 .prize-stock-summary h3 strong {
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   margin-left: 6px;
 }
 .prize-stock-summary > span {
@@ -6830,7 +6831,7 @@ td .text-button {
   color: var(--muted);
 }
 .prize-stock-item b {
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 .prize-stock-item small {
   color: var(--muted);
@@ -6873,7 +6874,7 @@ button.prize-stock-item:not(:disabled):focus-visible {
 }
 .quick-prize-selected strong {
   font-size: 32px;
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 .quick-location-status {
   display: flex;

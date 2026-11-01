@@ -54,12 +54,12 @@
 
 .ds-button--danger {
   background: var(--ds-color-danger);
-  color: var(--ds-color-on-action);
+  color: var(--ds-color-on-danger);
 }
 
 .ds-button--ghost {
   background: transparent;
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
 }
 
 @media (hover: hover) {
@@ -299,7 +299,7 @@
   border-radius: var(--ds-radius-control);
   font-size: var(--ds-font-size-input);
   line-height: var(--ds-line-height-ui);
-  caret-color: var(--ds-color-action);
+  caret-color: var(--ds-color-action-text);
   transition: border-color var(--ds-duration-fast) var(--ds-ease-standard);
 }
 .ds-input::placeholder {
@@ -320,7 +320,7 @@
 }
 .ds-link {
   font-family: var(--ds-font-ui);
-  color: var(--ds-color-action);
+  color: var(--ds-color-action-text);
   text-underline-offset: 0.2em;
 }
 

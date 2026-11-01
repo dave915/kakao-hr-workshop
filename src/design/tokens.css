@@ -16,33 +16,37 @@
   --ds-color-text-secondary: #6e6e73;
   --ds-color-text-nav: #50505a;
   --ds-color-text-disabled: #86868b;
-  --ds-color-on-action: #ffffff;
+  --ds-color-on-action: #1d1d1f;
   --ds-color-separator: #dedee3;
   --ds-color-border: #d9d9df;
   --ds-color-border-input: #86868b;
 
-  /* Accent is decorative; action blue supports small white labels (5.57:1). */
-  --ds-color-accent: #007aff;
-  --ds-color-location: var(--ds-color-accent);
+  /* Warm yellow owns actions/rewards; text and wayfinding have separate roles. */
+  --ds-color-accent: #f5d547;
+  --ds-color-location: #007aff;
   --ds-color-location-halo: color-mix(
     in srgb,
     var(--ds-color-location) 18%,
     transparent
   );
-  --ds-color-action: #0066cc;
-  --ds-color-action-hover: #005bb8;
-  --ds-color-action-pressed: #004f9f;
-  --ds-color-selected: #e5f0ff;
-  --ds-color-focus: #005fcc;
-  --ds-color-selection-bg: #d9eaff;
+  --ds-color-action: var(--ds-color-accent);
+  --ds-color-action-hover: #e8c632;
+  --ds-color-action-pressed: #d8b624;
+  --ds-color-action-text: var(--ds-color-text);
+  --ds-color-action-text-hover: #51420f;
+  --ds-color-selected: #fff3bf;
+  --ds-color-focus: #756000;
+  --ds-color-selection-bg: #f9e99c;
   --ds-color-selection-text: #1d1d1f;
 
   /* Status is independent of brand/artwork and never color-only. */
   --ds-color-success: #237647;
+  --ds-color-on-success: #ffffff;
   --ds-color-success-bg: #eaf5ed;
   --ds-color-warning: #805500;
   --ds-color-warning-bg: #fff4d6;
   --ds-color-danger: #b42318;
+  --ds-color-on-danger: #ffffff;
   --ds-color-danger-hover: #961d14;
   --ds-color-danger-pressed: #7c180f;
   --ds-color-danger-bg: #fff1f0;
@@ -138,11 +142,11 @@
   /* Glass is ONLY for navigation islands / floating map or photo controls. */
   --ds-glass-bg: rgb(255 255 255 / 50%);
   --ds-glass-bg-hover: rgb(255 255 255 / 64%);
-  --ds-glass-bg-pressed: rgb(231 239 250 / 72%);
+  --ds-glass-bg-pressed: rgb(245 232 178 / 72%);
   --ds-glass-bg-opaque: #ffffff;
   --ds-glass-text: #14141b;
-  --ds-glass-selected-bg: rgb(222 237 255 / 82%);
-  --ds-glass-selected-text: #0058b5;
+  --ds-glass-selected-bg: rgb(250 226 133 / 82%);
+  --ds-glass-selected-text: #1d1d1f;
   --ds-glass-border: rgb(255 255 255 / 42%);
   --ds-glass-filter: blur(10px) saturate(1.65);
   --ds-glass-sheen: linear-gradient(
@@ -257,7 +261,11 @@
     --ds-color-action: Highlight;
     --ds-color-action-hover: Highlight;
     --ds-color-action-pressed: Highlight;
+    --ds-color-action-text: LinkText;
+    --ds-color-action-text-hover: LinkText;
     --ds-color-on-action: HighlightText;
+    --ds-color-on-danger: HighlightText;
+    --ds-color-on-success: HighlightText;
     --ds-color-selected: Canvas;
     --ds-color-focus: Highlight;
     --ds-color-disabled-bg: Canvas;
