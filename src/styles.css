@@ -6379,20 +6379,20 @@ td .text-button {
   padding: 0;
 }
 .photo-comments-list > li {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 0;
+  display: block;
+  padding: 4px 0;
 }
 .photo-comment-content {
-  min-width: 0;
-  flex: 1;
+  display: contents;
 }
 .photo-comment-content > p {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
   color: var(--ds-color-photo-content);
   margin: 0;
   font-size: 1rem;
-  line-height: 1.7;
+  line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: keep-all;
@@ -6401,12 +6401,15 @@ td .text-button {
   margin-right: 4px;
 }
 .photo-comment-meta {
+  grid-column: 2 / -1;
+  grid-row: 2;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 0 6px;
   color: var(--muted);
   font-size: 12px;
-  margin-top: 3px;
+  margin-top: 0;
 }
 .photo-comment-delete {
   font-size: 12px;
@@ -6415,6 +6418,8 @@ td .text-button {
   padding: 4px;
 }
 .photo-comment-confirm {
+  grid-column: 2 / -1;
+  grid-row: 3;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -6527,15 +6532,15 @@ td .text-button {
 .photo-comment-preview {
   list-style: none;
   padding: 0;
-  margin: 2px 0 0;
+  margin: 0;
 }
 .photo-comment-preview > li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .photo-comment-preview > li.is-reply {
-  margin-left: 24px;
+  margin-left: 16px;
 }
 .photo-preview-body .photo-deleted-copy {
   color: var(--muted);
@@ -6544,7 +6549,7 @@ td .text-button {
   color: var(--ds-color-photo-content);
   flex: 1;
   min-width: 0;
-  padding: 5px 0;
+  padding: 0;
   min-height: 44px;
   text-align: left;
   font-size: 0.93rem;
@@ -6577,16 +6582,25 @@ td .text-button {
 .photo-comment-heart.is-liked {
   color: var(--ds-color-danger);
 }
-.photo-comments-list > li {
-  display: block;
-}
 .photo-comment-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 6px;
+}
+.photo-comment-row > .avatar,
+.photo-comment-row > .photo-deleted-avatar {
+  grid-column: 1;
+  grid-row: 1;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  font-size: 12px;
 }
 .photo-comment-row > .photo-comment-reactions {
-  margin-top: -5px;
+  grid-column: 3;
+  grid-row: 1;
+  margin: 0;
 }
 .photo-comment-reactions {
   display: flex;
@@ -6643,10 +6657,6 @@ td .text-button {
   color: var(--muted);
   overflow-wrap: anywhere;
 }
-.photo-comment-meta {
-  flex-wrap: wrap;
-  gap: 3px 12px;
-}
 .photo-comment-reply {
   min-height: 44px;
   padding: 4px 0;
@@ -6659,7 +6669,7 @@ td .text-button {
   font-weight: 500;
 }
 .photo-thread {
-  margin-left: 28px;
+  margin-left: 20px;
 }
 .photo-thread-toggle,
 .photo-replies-more {
@@ -6677,7 +6687,7 @@ td .text-button {
   padding: 0;
 }
 .photo-replies-list > li {
-  padding: 10px 0;
+  padding: 4px 0;
 }
 .photo-replies-list .avatar {
   width: 28px;
@@ -7295,8 +7305,8 @@ button.prize-stock-item:not(:disabled):is(
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  padding: 16px 20px;
-  scroll-padding: 16px;
+  padding: 8px 16px;
+  scroll-padding: 8px;
 }
 .photo-conversation-scroll:is(
   :focus-visible,
@@ -7306,7 +7316,7 @@ button.prize-stock-item:not(:disabled):is(
   outline-offset: -3px;
 }
 .photo-comments-drawer .photo-comment-context {
-  padding-bottom: 12px;
+  padding-bottom: 8px;
 }
 .photo-comments-drawer .photo-comment-context p {
   -webkit-line-clamp: 2;
@@ -7316,7 +7326,7 @@ button.prize-stock-item:not(:disabled):is(
   margin: 0;
 }
 .photo-comments-drawer .photo-comment-meta time {
-  flex-basis: 100%;
+  flex: 0 0 auto;
 }
 .photo-comment-composer {
   position: relative;
@@ -7364,9 +7374,6 @@ button.prize-stock-item:not(:disabled):is(
   }
   .photo-comment-composer {
     padding-inline: 16px;
-  }
-  .photo-comment-row {
-    gap: 8px;
   }
   .photo-thread {
     margin-left: 16px;
