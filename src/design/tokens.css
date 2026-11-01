@@ -60,6 +60,12 @@
   --ds-color-feature-text: #ffffff;
   --ds-color-feature-secondary: #d2d2d7;
 
+  /* Photo viewer is an isolated dark media surface inside the light app. */
+  --ds-photo-viewer-bg: #1d1d1f;
+  --ds-photo-viewer-text: #ffffff;
+  --ds-photo-viewer-text-secondary: #d2d2d7;
+  --ds-photo-viewer-control-bg: rgb(36 36 38 / 64%);
+
   /* Native fonts on Apple, existing local Noto Sans KR elsewhere. */
   --ds-font-ui:
     -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",

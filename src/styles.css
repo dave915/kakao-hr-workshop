@@ -5777,7 +5777,7 @@ td .text-button {
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 12px;
 }
 .photo-board-toolbar > span {
   display: flex;
@@ -5831,7 +5831,7 @@ td .text-button {
 }
 .photo-post-author > span {
   display: block;
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -5943,7 +5943,7 @@ td .text-button {
   border-radius: 20px;
   color: var(--paper);
   background: var(--ds-color-feature-bg);
-  font-size: 0.78rem;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
@@ -5973,10 +5973,18 @@ td .text-button {
   pointer-events: none;
 }
 .photo-post-actions {
-  position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(88px, 1fr) auto minmax(44px, 1fr);
   align-items: center;
   min-height: 50px;
+}
+.photo-post-actions .photo-reactions {
+  grid-column: 1;
+  grid-row: 1;
+}
+.photo-post-actions .photo-expand {
+  grid-column: 3;
+  grid-row: 1;
 }
 .photo-expand {
   display: flex;
@@ -5985,32 +5993,32 @@ td .text-button {
   min-height: 44px;
   padding: 4px 0;
   color: var(--ink);
-  font-size: 0.78rem;
+  font-size: 12px;
 }
 .photo-pagination {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
   display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  justify-content: center;
 }
 .photo-pagination button {
   display: grid;
   place-items: center;
-  width: 28px;
+  width: 44px;
   height: 44px;
 }
 .photo-pagination button > span {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--ds-color-surface);
+  background: var(--ds-color-text-secondary);
   transition:
     background-color 150ms,
     transform 150ms;
 }
 .photo-pagination button[aria-current="true"] > span {
   background: var(--ds-color-action);
+  box-shadow: 0 0 0 1.5px var(--ds-color-text);
   transform: scale(1.35);
 }
 .photo-caption {
@@ -6038,12 +6046,12 @@ td .text-button {
   color: var(--muted);
   font-size: 0.86rem;
   padding: 4px 0;
-  min-height: 32px;
+  min-height: 44px;
 }
 .photo-post-time {
   display: block;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 12px;
   margin-top: 10px;
 }
 .photo-load-more {
@@ -6053,7 +6061,7 @@ td .text-button {
 .photo-board-footnote {
   text-align: center;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 12px;
   margin: 24px 0;
   word-break: keep-all;
 }
@@ -6083,7 +6091,10 @@ td .text-button {
 .photo-file-input {
   position: absolute;
   width: 1px;
+  min-height: 0;
   height: 1px;
+  padding: 0;
+  border: 0;
   opacity: 0;
   overflow: hidden;
 }
@@ -6167,27 +6178,6 @@ td .text-button {
 .photo-progress progress {
   width: 100%;
   accent-color: var(--ds-color-focus);
-}
-.photo-viewer .photo-image {
-  aspect-ratio: auto;
-  min-height: 220px;
-  height: min(58dvh, 600px);
-  background: var(--ds-color-surface-subtle);
-  border-radius: 8px;
-}
-.photo-viewer img {
-  object-fit: contain;
-}
-.photo-viewer-controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  margin-top: 12px;
-}
-.photo-viewer-controls .icon-button {
-  width: 44px;
-  height: 44px;
 }
 .photo-delete-confirm p {
   font-size: 14px;
@@ -6309,7 +6299,7 @@ td .text-button {
 }
 .photo-comments-link {
   display: block;
-  min-height: 36px;
+  min-height: 44px;
   padding: 4px 0;
   font-size: 0.86rem;
   color: var(--muted);
@@ -6355,7 +6345,7 @@ td .text-button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 0.8rem;
+  font-size: 12px;
   color: var(--muted);
   margin: 8px 0;
 }
@@ -6367,9 +6357,6 @@ td .text-button {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: min(42dvh, 420px);
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
 }
 .photo-comments-list > li {
   display: flex;
@@ -6397,13 +6384,13 @@ td .text-button {
   align-items: center;
   gap: 12px;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 12px;
   margin-top: 3px;
 }
 .photo-comment-delete {
-  font-size: 0.78rem;
+  font-size: 12px;
   color: var(--muted);
-  min-height: 32px;
+  min-height: 44px;
   padding: 4px;
 }
 .photo-comment-confirm {
@@ -6415,7 +6402,7 @@ td .text-button {
   font-size: 0.86rem;
 }
 .photo-comment-confirm .text-button {
-  min-height: 36px;
+  min-height: 44px;
 }
 .danger-text {
   color: var(--ds-color-danger);
@@ -6463,7 +6450,7 @@ td .text-button {
 }
 .photo-comment-input-label {
   display: block;
-  font-size: 0.78rem;
+  font-size: 12px;
   color: var(--muted);
   margin-bottom: 5px;
 }
@@ -6484,7 +6471,7 @@ td .text-button {
   display: block;
   text-align: right;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 12px;
   margin-top: 4px;
 }
 .photo-comment-submit {
@@ -6560,7 +6547,7 @@ td .text-button {
   justify-content: center;
   flex-shrink: 0;
   gap: 2px;
-  width: 36px;
+  width: 44px;
   min-height: 44px;
   padding: 5px;
   color: var(--muted);
@@ -6639,10 +6626,10 @@ td .text-button {
   gap: 3px 12px;
 }
 .photo-comment-reply {
-  min-height: 32px;
+  min-height: 44px;
   padding: 4px 0;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 12px;
   font-weight: 600;
 }
 .photo-reply-mention {
@@ -6657,10 +6644,10 @@ td .text-button {
   display: flex;
   align-items: center;
   gap: 5px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 4px 0;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 12px;
 }
 .photo-replies-list {
   list-style: none;
@@ -6678,7 +6665,7 @@ td .text-button {
 }
 .photo-thread-status {
   padding: 8px 0;
-  font-size: 0.8rem;
+  font-size: 12px;
   color: var(--muted);
 }
 .photo-reply-target {
@@ -7221,5 +7208,328 @@ button.prize-stock-item:not(:disabled):focus-visible {
   .sidebar nav button[aria-current="page"] {
     outline: 2px solid Highlight;
     outline-offset: -3px;
+  }
+}
+
+/* The feed keeps photos first; policy copy is available on demand. */
+.photo-toolbar-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.photo-board-toolbar {
+  gap: 8px;
+}
+.photo-board-info {
+  padding: 16px 20px;
+  background: var(--ds-color-surface-subtle);
+}
+.photo-board-info[hidden] {
+  display: none;
+}
+.photo-board-info .photo-notification-policy,
+.photo-board-info .footnote {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.photo-board-info p + p {
+  margin-top: 8px;
+}
+.photo-caption-toggle,
+.photo-comment-reply,
+.photo-comment-delete {
+  min-width: 44px;
+}
+
+/* One scrollable conversation, with a persistent writing area. */
+.photo-comments-drawer {
+  top: var(--dialog-top, 0px);
+  height: var(--dialog-height, 100dvh);
+  max-height: var(--dialog-height, 100dvh);
+  overflow: hidden;
+}
+.photo-comments-drawer .drawer-content {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.photo-comments-drawer .drawer-header {
+  flex: 0 0 auto;
+  padding: max(12px, env(safe-area-inset-top)) 20px 12px;
+  margin: 0;
+}
+.photo-comments-drawer .photo-comments {
+  flex: 1;
+  overflow: hidden;
+}
+.photo-conversation-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: 16px 20px;
+  scroll-padding: 16px;
+}
+.photo-conversation-scroll:focus-visible {
+  outline: 2px solid var(--ds-color-focus);
+  outline-offset: -3px;
+}
+.photo-comments-drawer .photo-comment-context {
+  padding-bottom: 12px;
+}
+.photo-comments-drawer .photo-comment-context p {
+  -webkit-line-clamp: 2;
+  font-size: 13px;
+}
+.photo-comments-drawer .photo-comments-heading {
+  margin: 0;
+}
+.photo-comments-drawer .photo-comment-meta time {
+  flex-basis: 100%;
+}
+.photo-comment-composer {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  padding: 12px 20px max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--ds-color-border);
+  background: var(--ds-color-surface);
+}
+.photo-comment-composer .photo-comment-form {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.photo-comment-composer .photo-reply-target {
+  margin: 0 0 8px;
+}
+.photo-comment-composer .photo-comment-error {
+  margin: 0 0 8px;
+}
+.photo-comment-composer .photo-mentions .footnote {
+  display: none;
+}
+.photo-comment-composer .photo-mentions {
+  margin: 0;
+}
+.photo-comment-composer .photo-comment-form textarea {
+  resize: none;
+  min-height: 60px;
+  max-height: 100px;
+}
+.photo-comment-composer .photo-comment-form small {
+  font-size: 12px;
+}
+.photo-comment-composer .photo-comment-submit:disabled {
+  background: var(--ds-color-disabled-bg);
+  color: var(--ds-color-text-disabled);
+}
+.photo-comment-composer .photo-mention-panel {
+  box-shadow: var(--ds-shadow-popover);
+}
+@media (max-width: 360px) {
+  .photo-conversation-scroll {
+    padding-inline: 16px;
+  }
+  .photo-comment-composer {
+    padding-inline: 16px;
+  }
+  .photo-comment-row {
+    gap: 8px;
+  }
+  .photo-thread {
+    margin-left: 16px;
+  }
+}
+
+/* Photo-only full-screen viewer: content is neutral, controls float on glass. */
+.photo-lightbox {
+  --ds-glass-bg: var(--ds-photo-viewer-control-bg);
+  --ds-glass-bg-hover: rgb(60 60 64 / 82%);
+  --ds-glass-bg-pressed: rgb(80 80 84 / 90%);
+  --ds-glass-bg-opaque: #242426;
+  --ds-glass-border: rgb(255 255 255 / 30%);
+  --ds-color-text: var(--ds-photo-viewer-text);
+  --ds-color-text-secondary: var(--ds-photo-viewer-text-secondary);
+  --ds-color-text-disabled: #9c9ca3;
+  --ds-color-focus: #f5d547;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--ds-photo-viewer-bg);
+  color: var(--ds-photo-viewer-text);
+  display: none;
+  overflow: hidden;
+}
+.photo-lightbox[open] {
+  display: flex;
+  flex-direction: column;
+}
+.photo-lightbox::backdrop {
+  background: var(--ds-photo-viewer-bg);
+}
+.photo-lightbox-header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: max(12px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right)) 12px
+    max(16px, env(safe-area-inset-left));
+  pointer-events: none;
+}
+.photo-lightbox-header > * {
+  pointer-events: auto;
+}
+.photo-lightbox-header h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgb(29 29 31 / 80%);
+  font-size: 16px;
+}
+.photo-lightbox-stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  cursor: zoom-in;
+}
+.photo-lightbox-stage.is-zoomed {
+  cursor: grab;
+}
+.photo-lightbox-stage.is-zoomed:active {
+  cursor: grabbing;
+}
+.photo-lightbox-image {
+  width: 100%;
+  height: 100%;
+  transform-origin: center;
+}
+.photo-lightbox .photo-image {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  background: transparent;
+  border-radius: 0;
+}
+.photo-lightbox .photo-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+.photo-lightbox .photo-placeholder,
+.photo-lightbox .photo-image-error {
+  background: transparent;
+  color: var(--ds-photo-viewer-text-secondary);
+}
+.photo-lightbox .photo-image-error .text-button {
+  color: var(--ds-photo-viewer-text);
+}
+.photo-lightbox-footer {
+  flex: 0 0 auto;
+  padding: 8px max(16px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: var(--ds-photo-viewer-bg);
+}
+.photo-lightbox-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.photo-lightbox-caption {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 13px;
+}
+.photo-lightbox-caption summary {
+  min-height: 44px;
+  padding: 12px;
+  cursor: pointer;
+}
+.photo-lightbox-caption p {
+  max-height: 20dvh;
+  overflow-y: auto;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 0 8px 12px;
+  line-height: 1.7;
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .photo-lightbox-footer {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: min(240px, 45vw);
+    background: transparent;
+  }
+  .photo-lightbox-navigation {
+    gap: 16px;
+  }
+  .photo-lightbox-navigation > span,
+  .photo-lightbox-caption {
+    background: rgb(29 29 31 / 85%);
+    border-radius: 10px;
+  }
+  .photo-lightbox-navigation > span {
+    padding: 6px;
+    white-space: nowrap;
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .photo-lightbox {
+    --ds-glass-bg: #242426;
+  }
+}
+:root[data-reduce-transparency="true"] .photo-lightbox {
+  --ds-glass-bg: #242426;
+}
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .photo-lightbox {
+    --ds-glass-bg: #242426;
+  }
+}
+@media (forced-colors: active) {
+  .photo-lightbox {
+    background: Canvas;
+    color: CanvasText;
+    --ds-color-text: CanvasText;
+    --ds-color-focus: Highlight;
+    --ds-glass-bg: Canvas;
+  }
+  .photo-lightbox-footer,
+  .photo-lightbox-header h2 {
+    background: Canvas;
+    color: CanvasText;
+  }
+  .photo-pagination button[aria-current="true"] > span {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
   }
 }

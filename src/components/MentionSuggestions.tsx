@@ -38,6 +38,7 @@ export default function MentionSuggestions({
     top: number;
     width: number;
     maxHeight: number;
+    transform: string;
   } | null>(null);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [focused, setFocused] = useState(false);
@@ -74,6 +75,9 @@ export default function MentionSuggestions({
       const bottom = viewportTop + (viewport?.height ?? window.innerHeight);
       const width = Math.min(320, host.clientWidth);
       const top = caret.top + caret.height + 4;
+      const above = caret.top - viewportTop - 8;
+      const below = bottom - top - 8;
+      const openAbove = below < 132 && above > below;
       // The input and host share the same scrolling content. Their rectangle
       // difference stays stable when iOS pans the visual viewport for its keyboard.
       // Do not feed viewport coordinates into a fixed-position element here.
@@ -82,9 +86,10 @@ export default function MentionSuggestions({
           0,
           Math.min(caret.left - hostRect.left, host.clientWidth - width),
         ),
-        top: top - hostRect.top,
+        top: (openAbove ? caret.top - 4 : top) - hostRect.top,
         width,
-        maxHeight: Math.max(44, Math.min(220, bottom - top - 8)),
+        maxHeight: Math.max(44, Math.min(220, openAbove ? above : below)),
+        transform: openAbove ? "translateY(-100%)" : "none",
       });
     };
     let frame = 0;

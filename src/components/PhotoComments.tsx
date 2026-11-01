@@ -32,6 +32,10 @@ import {
 import { Avatar, Drawer } from "./common";
 import CommentHeart from "./CommentHeart";
 import MentionSuggestions from "./MentionSuggestions";
+import {
+  photoCommentDrafts,
+  type PhotoCommentDraft,
+} from "../lib/photo-comment-drafts";
 
 type Thread = {
   items: PhotoComment[];
@@ -195,9 +199,30 @@ export default function PhotoComments({
   const [loading, setLoading] = useState(true),
     [loadError, setLoadError] = useState(""),
     [actionError, setActionError] = useState("");
-  const [body, setBody] = useState(""),
-    [replyTo, setReplyTo] = useState<PhotoComment | null>(null),
-    [sending, setSending] = useState(false),
+  const draftKey = photoCommentDrafts.key(member.id, post.generation, post.id);
+  const [draft, setDraft] = useState<PhotoCommentDraft>(
+    () =>
+      photoCommentDrafts.read(draftKey) ?? {
+        body: "",
+        replyTo: null,
+        requestId: crypto.randomUUID(),
+      },
+  );
+  const draftRef = useRef(draft);
+  const { body, replyTo } = draft;
+  function changeDraft(
+    patch: Partial<Pick<PhotoCommentDraft, "body" | "replyTo">>,
+  ) {
+    const next = {
+      ...draftRef.current,
+      ...patch,
+      requestId: crypto.randomUUID(),
+    };
+    draftRef.current = next;
+    photoCommentDrafts.write(draftKey, next);
+    setDraft(next);
+  }
+  const [sending, setSending] = useState(false),
     [deleting, setDeleting] = useState<string | null>(null),
     [confirm, setConfirm] = useState<string | null>(null),
     [liking, setLiking] = useState<string | null>(null);
@@ -207,7 +232,6 @@ export default function PhotoComments({
     threadVersions = useRef<Record<string, number>>({}),
     threadsRef = useRef(threads),
     commentsRef = useRef(comments),
-    requestId = useRef(crypto.randomUUID()),
     writeLock = useRef(false),
     input = useRef<HTMLTextAreaElement>(null);
   threadsRef.current = threads;
@@ -360,7 +384,7 @@ export default function PhotoComments({
       const result = await addPhotoComment(
         post,
         member,
-        requestId.current,
+        draft.requestId,
         body,
         replyTo ?? undefined,
       );
@@ -370,9 +394,7 @@ export default function PhotoComments({
       if (result.parentComment) applyComment(result.parentComment);
       applyComment(result.comment);
       onUpdate(result);
-      setBody("");
-      setReplyTo(null);
-      requestId.current = crypto.randomUUID();
+      changeDraft({ body: "", replyTo: null });
       setFocusId(result.comment.id);
       if (result.comment.parentId) await loadThread(result.comment.parentId);
     } catch (error) {
@@ -396,8 +418,7 @@ export default function PhotoComments({
       onUpdate(result);
       setConfirm(null);
       if (replyTo?.id === comment.id) {
-        setReplyTo(null);
-        requestId.current = crypto.randomUUID();
+        changeDraft({ replyTo: null });
       }
     } catch (error) {
       if (mounted.current) setActionError(errorMessage(error));
@@ -442,8 +463,7 @@ export default function PhotoComments({
     }
   }
   function reply(comment: PhotoComment) {
-    setReplyTo(comment);
-    requestId.current = crypto.randomUUID();
+    changeDraft({ replyTo: comment });
     setActionError("");
     input.current?.focus();
   }
@@ -465,230 +485,240 @@ export default function PhotoComments({
   );
   return (
     <Drawer
+      className="photo-comments-drawer"
+      fitViewport
       title={`댓글 ${post.commentCount ?? 0}개`}
       onClose={() => {
         if (!busy) onClose();
       }}
     >
       <div className="photo-comments">
-        <div className="photo-comment-context">
-          <Avatar name={englishName(post.authorHandle)} />
-          <p>
-            <strong>{englishName(post.authorHandle)}</strong>
-            {post.caption || "함께 나누는 오늘의 순간"}
-          </p>
-        </div>
-        <div className="photo-comments-heading">
-          <span>따뜻한 한마디를 남겨주세요.</span>
-          <button
-            className="icon-button"
-            aria-label="댓글 새로고침"
-            disabled={disabled}
-            onClick={() => void load()}
-          >
-            <RefreshCw size={16} className={loading ? "photo-spinning" : ""} />
-          </button>
-        </div>
-        {loadError && (
-          <div className="photo-comment-error" role="alert">
-            <p>{loadError}</p>
-            <button
-              className="text-button"
-              onClick={() => void load()}
-              disabled={disabled}
-            >
-              다시 불러오기
-            </button>
+        <div
+          className="photo-conversation-scroll"
+          tabIndex={0}
+          aria-label="댓글 대화"
+        >
+          <div className="photo-comment-context">
+            <Avatar name={englishName(post.authorHandle)} />
+            <p>
+              <strong>{englishName(post.authorHandle)}</strong>
+              {post.caption || "함께 나누는 오늘의 순간"}
+            </p>
           </div>
-        )}
-        {loading && !comments.length ? (
-          <p className="photo-comments-empty" role="status">
-            <LoaderCircle className="photo-spinning" size={20} />
-            댓글을 불러오고 있어요…
-          </p>
-        ) : !comments.length && !loadError ? (
-          <div className="photo-comments-empty">
-            <MessageCircle size={28} />
-            <strong>첫 댓글을 남겨볼까요?</strong>
-            <span>이 순간을 함께 기억할 한마디.</span>
-          </div>
-        ) : null}
-        <ol className="photo-comments-list" aria-label="댓글 목록">
-          {comments.map((comment) => {
-            const thread = threads[comment.id];
-            return (
-              <li key={comment.id}>
-                {row(comment)}
-                {((comment.replyCount ?? 0) > 0 || thread?.open) && (
-                  <div className="photo-thread">
-                    <button
-                      className="photo-thread-toggle"
-                      disabled={disabled}
-                      aria-expanded={Boolean(thread?.open)}
-                      onClick={() => {
-                        if (thread?.open)
-                          setThreads((current) => ({
-                            ...current,
-                            [comment.id]: {
-                              ...current[comment.id],
-                              open: false,
-                            },
-                          }));
-                        else if (thread?.loaded)
-                          setThreads((current) => ({
-                            ...current,
-                            [comment.id]: {
-                              ...current[comment.id],
-                              open: true,
-                            },
-                          }));
-                        else void loadThread(comment.id);
-                      }}
-                    >
-                      {thread?.open ? (
-                        <ChevronUp size={14} />
-                      ) : (
-                        <ChevronDown size={14} />
-                      )}{" "}
-                      {thread?.open
-                        ? "답글 접기"
-                        : `답글 ${comment.replyCount ?? 0}개 보기`}
-                    </button>
-                    {thread?.open && (
-                      <>
-                        {thread.loading && (
-                          <p className="photo-thread-status" role="status">
-                            답글을 불러오는 중…
-                          </p>
-                        )}
-                        {thread.error && (
-                          <p className="photo-comment-error" role="alert">
-                            {thread.error}
-                            <button
-                              className="text-button"
-                              disabled={disabled}
-                              onClick={() => void loadThread(comment.id)}
-                            >
-                              다시 불러오기
-                            </button>
-                          </p>
-                        )}
-                        <ol
-                          className="photo-replies-list"
-                          aria-label="답글 목록"
-                        >
-                          {thread.items.map((item) => (
-                            <li key={item.id}>{row(item)}</li>
-                          ))}
-                        </ol>
-                        {thread.cursor && (
-                          <button
-                            className="text-button photo-replies-more"
-                            disabled={disabled}
-                            onClick={() => void loadThread(comment.id, true)}
-                          >
-                            이전 답글 더 보기
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-        {cursor && (
-          <button
-            className="text-button photo-comments-more"
-            onClick={() => void load(true)}
-            disabled={disabled}
-          >
-            이전 댓글 더 보기
-          </button>
-        )}
-        {actionError && (
-          <p className="photo-comment-error" role="alert">
-            {actionError}
-          </p>
-        )}
-        {replyTo && (
-          <div className="photo-reply-target">
-            <span>
-              <strong>{englishName(replyTo.authorHandle)}</strong>에게 답글
-              남기는 중
-            </span>
+          <div className="photo-comments-heading">
+            <span>따뜻한 한마디를 남겨주세요.</span>
             <button
               className="icon-button"
-              aria-label="답글 취소"
-              disabled={busy}
-              onClick={() => {
-                setReplyTo(null);
-                requestId.current = crypto.randomUUID();
-                input.current?.focus();
-              }}
+              aria-label="댓글 새로고침"
+              disabled={disabled}
+              onClick={() => void load()}
             >
-              <X size={16} />
+              <RefreshCw
+                size={16}
+                className={loading ? "photo-spinning" : ""}
+              />
             </button>
           </div>
-        )}
-        <form
-          className="photo-comment-form"
-          onSubmit={(event) => void submit(event)}
-        >
-          <Avatar name={englishName(member.handle)} />
-          <div>
-            <label
-              htmlFor={`comment-body-${post.id}`}
-              className="photo-comment-input-label"
+          {loadError && (
+            <div className="photo-comment-error" role="alert">
+              <p>{loadError}</p>
+              <button
+                className="text-button"
+                onClick={() => void load()}
+                disabled={disabled}
+              >
+                다시 불러오기
+              </button>
+            </div>
+          )}
+          {loading && !comments.length ? (
+            <p className="photo-comments-empty" role="status">
+              <LoaderCircle className="photo-spinning" size={20} />
+              댓글을 불러오고 있어요…
+            </p>
+          ) : !comments.length && !loadError ? (
+            <div className="photo-comments-empty">
+              <MessageCircle size={28} />
+              <strong>첫 댓글을 남겨볼까요?</strong>
+              <span>이 순간을 함께 기억할 한마디.</span>
+            </div>
+          ) : null}
+          <ol className="photo-comments-list" aria-label="댓글 목록">
+            {comments.map((comment) => {
+              const thread = threads[comment.id];
+              return (
+                <li key={comment.id}>
+                  {row(comment)}
+                  {((comment.replyCount ?? 0) > 0 || thread?.open) && (
+                    <div className="photo-thread">
+                      <button
+                        className="photo-thread-toggle"
+                        disabled={disabled}
+                        aria-expanded={Boolean(thread?.open)}
+                        onClick={() => {
+                          if (thread?.open)
+                            setThreads((current) => ({
+                              ...current,
+                              [comment.id]: {
+                                ...current[comment.id],
+                                open: false,
+                              },
+                            }));
+                          else if (thread?.loaded)
+                            setThreads((current) => ({
+                              ...current,
+                              [comment.id]: {
+                                ...current[comment.id],
+                                open: true,
+                              },
+                            }));
+                          else void loadThread(comment.id);
+                        }}
+                      >
+                        {thread?.open ? (
+                          <ChevronUp size={14} />
+                        ) : (
+                          <ChevronDown size={14} />
+                        )}{" "}
+                        {thread?.open
+                          ? "답글 접기"
+                          : `답글 ${comment.replyCount ?? 0}개 보기`}
+                      </button>
+                      {thread?.open && (
+                        <>
+                          {thread.loading && (
+                            <p className="photo-thread-status" role="status">
+                              답글을 불러오는 중…
+                            </p>
+                          )}
+                          {thread.error && (
+                            <p className="photo-comment-error" role="alert">
+                              {thread.error}
+                              <button
+                                className="text-button"
+                                disabled={disabled}
+                                onClick={() => void loadThread(comment.id)}
+                              >
+                                다시 불러오기
+                              </button>
+                            </p>
+                          )}
+                          <ol
+                            className="photo-replies-list"
+                            aria-label="답글 목록"
+                          >
+                            {thread.items.map((item) => (
+                              <li key={item.id}>{row(item)}</li>
+                            ))}
+                          </ol>
+                          {thread.cursor && (
+                            <button
+                              className="text-button photo-replies-more"
+                              disabled={disabled}
+                              onClick={() => void loadThread(comment.id, true)}
+                            >
+                              이전 답글 더 보기
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          {cursor && (
+            <button
+              className="text-button photo-comments-more"
+              onClick={() => void load(true)}
+              disabled={disabled}
             >
-              {replyTo ? "답글 남기기" : "댓글 남기기"}
-            </label>
-            <textarea
-              ref={input}
-              id={`comment-body-${post.id}`}
-              aria-label={replyTo ? "답글 내용" : "댓글 내용"}
-              rows={2}
-              maxLength={COMMENT_MAX_LENGTH}
-              placeholder={
-                replyTo
-                  ? `${englishName(replyTo.authorHandle)}에게 한마디…`
-                  : "이 순간에 한마디를 더해보세요…"
-              }
-              value={body}
-              disabled={sending}
-              onChange={(event) => {
-                setBody(event.target.value);
-                requestId.current = crypto.randomUUID();
-              }}
-            />
-            <small>
-              {body.length}/{COMMENT_MAX_LENGTH}
-            </small>
-            <MentionSuggestions
-              value={body}
-              input={input}
-              maxLength={COMMENT_MAX_LENGTH}
-              disabled={sending}
-              onChange={(value) => {
-                setBody(value);
-                requestId.current = crypto.randomUUID();
-              }}
-            />
-          </div>
-          <button
-            className="photo-comment-submit"
-            type="submit"
-            aria-label={replyTo ? "답글 게시" : "댓글 게시"}
-            disabled={disabled || !body.trim() || !navigator.onLine}
+              이전 댓글 더 보기
+            </button>
+          )}
+        </div>
+        <div className="photo-comment-composer">
+          {actionError && (
+            <p className="photo-comment-error" role="alert">
+              {actionError}
+            </p>
+          )}
+          {replyTo && (
+            <div className="photo-reply-target">
+              <span>
+                <strong>{englishName(replyTo.authorHandle)}</strong>에게 답글
+                남기는 중
+              </span>
+              <button
+                className="icon-button"
+                aria-label="답글 취소"
+                disabled={busy}
+                onClick={() => {
+                  changeDraft({ replyTo: null });
+                  input.current?.focus();
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+          <form
+            className="photo-comment-form"
+            onSubmit={(event) => void submit(event)}
           >
-            {sending ? (
-              <LoaderCircle size={20} className="photo-spinning" />
-            ) : (
-              <ArrowUp size={21} />
-            )}
-          </button>
-        </form>
+            <Avatar name={englishName(member.handle)} />
+            <div>
+              <label
+                htmlFor={`comment-body-${post.id}`}
+                className="photo-comment-input-label"
+              >
+                {replyTo ? "답글 남기기" : "댓글 남기기"}
+              </label>
+              <textarea
+                ref={input}
+                id={`comment-body-${post.id}`}
+                aria-label={replyTo ? "답글 내용" : "댓글 내용"}
+                rows={2}
+                maxLength={COMMENT_MAX_LENGTH}
+                placeholder={
+                  replyTo
+                    ? `${englishName(replyTo.authorHandle)}에게 한마디…`
+                    : "이 순간에 한마디를 더해보세요…"
+                }
+                value={body}
+                disabled={sending}
+                onChange={(event) => {
+                  changeDraft({ body: event.target.value });
+                }}
+              />
+              <small>
+                {body.length}/{COMMENT_MAX_LENGTH}
+              </small>
+              <MentionSuggestions
+                value={body}
+                input={input}
+                maxLength={COMMENT_MAX_LENGTH}
+                disabled={sending}
+                onChange={(value) => {
+                  changeDraft({ body: value });
+                }}
+              />
+            </div>
+            <button
+              className="photo-comment-submit"
+              type="submit"
+              aria-label={replyTo ? "답글 게시" : "댓글 게시"}
+              disabled={disabled || !body.trim() || !navigator.onLine}
+            >
+              {sending ? (
+                <LoaderCircle size={20} className="photo-spinning" />
+              ) : (
+                <ArrowUp size={21} />
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     </Drawer>
   );

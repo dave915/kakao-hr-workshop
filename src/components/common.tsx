@@ -49,13 +49,41 @@ export function Drawer({
   title,
   children,
   onClose,
+  className = "",
+  fitViewport = false,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  className?: string;
+  fitViewport?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  useLayoutEffect(() => {
+    if (!fitViewport) return;
+    const viewport = window.visualViewport;
+    const update = () => {
+      if (viewport && viewport.scale !== 1) return;
+      ref.current?.style.setProperty(
+        "--dialog-height",
+        `${viewport?.height ?? window.innerHeight}px`,
+      );
+      ref.current?.style.setProperty(
+        "--dialog-top",
+        `${viewport?.offsetTop ?? 0}px`,
+      );
+    };
+    update();
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [fitViewport]);
   useLayoutEffect(() => {
     const d = ref.current;
     const unlock = lockDocumentScroll();
@@ -68,7 +96,7 @@ export function Drawer({
   return (
     <dialog
       ref={ref}
-      className="drawer"
+      className={`drawer ${className}`}
       onCancel={(e) => {
         e.preventDefault();
         onClose();

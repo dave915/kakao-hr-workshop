@@ -4,8 +4,7 @@ import {
   Plus,
   RefreshCw,
   X,
-  ChevronLeft,
-  ChevronRight,
+  Info,
   ImagePlus,
   LoaderCircle,
 } from "lucide-react";
@@ -29,7 +28,7 @@ import {
   type PhotoResponse,
 } from "../../shared/photos";
 import { Drawer, Empty, type Notify } from "./common";
-import PhotoImage from "./PhotoImage";
+import PhotoViewer from "./PhotoViewer";
 import PhotoFeedPost from "./PhotoFeedPost";
 import PhotoComments from "./PhotoComments";
 import PhotoLikes from "./PhotoLikes";
@@ -78,6 +77,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
   const [commentLiking, setCommentLiking] = useState<Set<string>>(
     () => new Set(),
   );
+  const [showInfo, setShowInfo] = useState(false);
   const [compose, setCompose] = useState(false),
     [photos, setPhotos] = useState<PreparedPhoto[]>([]),
     [caption, setCaption] = useState("");
@@ -341,7 +341,6 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
     <div className="photo-board page-enter">
       <header className="photo-feed-header">
         <div>
-          <span className="eyebrow">MOMENTS TOGETHER</span>
           <h1>우리의 순간</h1>
           <p>함께한 오늘을 사진으로 나눠요.</p>
         </div>
@@ -357,33 +356,51 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
           올리기
         </button>
       </header>
-      {state.settings.photoNotifications !== false && (
-        <p className="photo-notification-policy">
-          {demo ? "예시 화면에서는 푸시가 발송되지 않아요. " : ""}
-          {photoDeliveryTime(state.settings, Date.now()).mode === "realtime"
-            ? "워크샵 기간에는 사진첩 소식을 실시간으로 알려드려요."
-            : "사진첩 소식은 매일 오전 9시에 모아 알려드려요. 워크샵 기간에는 실시간으로 보내요."}{" "}
-          알림은 나의 탐험 여권에서 켤 수 있어요.
-        </p>
-      )}
       <div className="photo-board-toolbar">
         <span>
           <LockKeyhole size={13} />
-          우리끼리 보는 워크샵 피드
+          참가자만 보는 사진첩
         </span>
-        <button
-          className="icon-button"
-          onClick={() => void load()}
-          disabled={loading || liking.size > 0 || commentLiking.size > 0}
-          aria-label="사진첩 새로고침"
-          title="새로고침"
-        >
-          <RefreshCw size={18} className={loading ? "photo-spinning" : ""} />
-        </button>
+        <div className="photo-toolbar-actions">
+          <button
+            className="icon-button"
+            aria-label="사진첩 안내"
+            aria-expanded={showInfo}
+            aria-controls="photo-board-info"
+            onClick={() => setShowInfo((value) => !value)}
+          >
+            <Info size={18} />
+          </button>
+          <button
+            className="icon-button"
+            onClick={() => void load()}
+            disabled={loading || liking.size > 0 || commentLiking.size > 0}
+            aria-label="사진첩 새로고침"
+            title="새로고침"
+          >
+            <RefreshCw size={18} className={loading ? "photo-spinning" : ""} />
+          </button>
+        </div>
       </div>
-      {demo && (
-        <p className="footnote">미리보기 사진은 이 브라우저에만 저장돼요.</p>
-      )}
+      <div
+        id="photo-board-info"
+        className="photo-board-info"
+        hidden={!showInfo}
+      >
+        {state.settings.photoNotifications !== false && (
+          <p className="photo-notification-policy">
+            {demo ? "예시 화면에서는 푸시가 발송되지 않아요. " : ""}
+            {photoDeliveryTime(state.settings, Date.now()).mode === "realtime"
+              ? "워크샵 기간에는 사진첩 소식을 실시간으로 알려드려요."
+              : "사진첩 소식은 매일 오전 9시에 모아 알려드려요. 워크샵 기간에는 실시간으로 보내요."}{" "}
+            알림은 나의 탐험 여권에서 켤 수 있어요.
+          </p>
+        )}
+        {demo && (
+          <p className="footnote">미리보기 사진은 이 브라우저에만 저장돼요.</p>
+        )}
+        <p className="footnote">사진과 댓글은 워크샵 참가자에게만 보여요.</p>
+      </div>
       {error && (
         <div className="photo-feedback" role="alert">
           <p>{error}</p>
@@ -463,7 +480,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
       </p>
       {commentPost && (
         <PhotoComments
-          key={commentPost.id}
+          key={`${me.id}:${generation}:${commentPost.id}`}
           post={commentPost}
           member={me}
           initialComment={commentsFor?.initialComment}
@@ -502,6 +519,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
               accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
               multiple
               className="photo-file-input"
+              tabIndex={-1}
               aria-label="게시할 사진 선택"
               disabled={busy}
               onChange={(e) =>
@@ -615,46 +633,12 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
         </Drawer>
       )}
       {viewing && (
-        <Drawer
-          title={`${englishName(viewing.authorHandle)}의 순간`}
+        <PhotoViewer
+          key={viewing.id}
+          post={viewing}
+          initialIndex={imageIndex}
           onClose={() => setViewing(null)}
-        >
-          <div className="photo-viewer">
-            <PhotoImage
-              post={viewing}
-              index={imageIndex}
-              full
-              eager
-              retryable
-            />
-            {viewing.photos.length > 1 && (
-              <div className="photo-viewer-controls">
-                <button
-                  className="icon-button"
-                  aria-label="이전 사진"
-                  disabled={imageIndex === 0}
-                  onClick={() => setImageIndex((i) => i - 1)}
-                >
-                  <ChevronLeft />
-                </button>
-                <span>
-                  {imageIndex + 1} / {viewing.photos.length}
-                </span>
-                <button
-                  className="icon-button"
-                  aria-label="다음 사진"
-                  disabled={imageIndex === viewing.photos.length - 1}
-                  onClick={() => setImageIndex((i) => i + 1)}
-                >
-                  <ChevronRight />
-                </button>
-              </div>
-            )}
-            {viewing.caption && (
-              <p className="photo-caption">{viewing.caption}</p>
-            )}
-          </div>
-        </Drawer>
+        />
       )}
       {deleting && (
         <Drawer
