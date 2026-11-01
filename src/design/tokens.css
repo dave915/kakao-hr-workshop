@@ -143,15 +143,16 @@
   --ds-tabbar-bottom: 10px;
   --ds-tabbar-max-width: 480px;
 
-  /* Confirmed photo-feed density. Compact controls are comment-only. */
+  /* Confirmed photo-feed density. Compact controls are counts and comments. */
   --ds-photo-feed-max-width: 600px;
   --ds-photo-title-size: 2.5rem;
   --ds-photo-title-size-mobile: 2.1rem;
   --ds-photo-feed-gap: var(--ds-space-4);
   --ds-photo-feed-gap-mobile: var(--ds-space-2);
   --ds-photo-post-padding-bottom: var(--ds-space-5);
-  --ds-photo-header-padding-block: var(--ds-space-4);
-  --ds-photo-header-padding-block-mobile: var(--ds-space-3);
+  --ds-photo-header-padding-block: var(--ds-space-5);
+  --ds-photo-header-padding-block-mobile: var(--ds-space-5);
+  --ds-photo-like-count-height: 28px;
   --ds-photo-gutter-mobile: var(--ds-space-5);
   --ds-photo-body-size: 1rem;
   --ds-photo-post-line-height: 1.6;

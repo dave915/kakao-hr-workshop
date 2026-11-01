@@ -6335,7 +6335,7 @@ td .text-button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 44px;
+  min-height: var(--ds-photo-like-count-height);
   padding: 0;
   font-size: 0.9rem;
   font-weight: 700;
