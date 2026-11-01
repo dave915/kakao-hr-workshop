@@ -13,6 +13,7 @@
   --ds-color-surface-hover: #e7e7ec;
   --ds-color-surface-pressed: #dedee5;
   --ds-color-text: #1d1d1f;
+  --ds-color-photo-content: #000000;
   --ds-color-text-secondary: #6e6e73;
   --ds-color-text-nav: #50505a;
   --ds-color-text-disabled: #86868b;
@@ -148,10 +149,14 @@
   /* Glass is ONLY for navigation islands / floating map or photo controls. */
   --ds-glass-bg: rgb(255 255 255 / 50%);
   --ds-glass-bg-hover: rgb(255 255 255 / 64%);
-  --ds-glass-bg-pressed: rgb(245 232 178 / 72%);
+  --ds-glass-bg-pressed: rgb(255 255 255 / 56%);
   --ds-glass-bg-opaque: #ffffff;
   --ds-glass-text: #14141b;
-  --ds-glass-selected-bg: rgb(250 226 133 / 82%);
+  --ds-glass-selected-bg: rgb(255 255 255 / 38%);
+  --ds-glass-selected-opaque: #ffffff;
+  --ds-glass-selected-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 95%), inset 0 -1px 0 rgb(29 29 31 / 10%),
+    0 2px 6px rgb(29 29 31 / 7%);
   --ds-glass-selected-text: #1d1d1f;
   --ds-glass-border: rgb(255 255 255 / 42%);
   --ds-glass-filter: blur(10px) saturate(1.65);
@@ -210,7 +215,8 @@
     --ds-glass-highlight: inset 0 0 0 transparent;
     --ds-glass-sheen: none;
     --ds-glass-optics-opacity: 0;
-    --ds-glass-selected-bg: var(--ds-color-selected);
+    --ds-glass-selected-bg: var(--ds-glass-selected-opaque);
+    --ds-glass-selected-shadow: inset 0 0 0 1px var(--ds-color-border-input);
   }
 }
 
@@ -225,7 +231,8 @@
     --ds-glass-highlight: inset 0 0 0 transparent;
     --ds-glass-sheen: none;
     --ds-glass-optics-opacity: 0;
-    --ds-glass-selected-bg: var(--ds-color-selected);
+    --ds-glass-selected-bg: var(--ds-glass-selected-opaque);
+    --ds-glass-selected-shadow: inset 0 0 0 1px var(--ds-color-border-input);
   }
 }
 
@@ -238,7 +245,8 @@
   --ds-glass-highlight: inset 0 0 0 transparent;
   --ds-glass-sheen: none;
   --ds-glass-optics-opacity: 0;
-  --ds-glass-selected-bg: var(--ds-color-selected);
+  --ds-glass-selected-bg: var(--ds-glass-selected-opaque);
+  --ds-glass-selected-shadow: inset 0 0 0 1px var(--ds-color-border-input);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -258,6 +266,7 @@
     --ds-color-surface-hover: Canvas;
     --ds-color-surface-pressed: Canvas;
     --ds-color-text: CanvasText;
+    --ds-color-photo-content: CanvasText;
     --ds-color-text-secondary: CanvasText;
     --ds-color-text-nav: ButtonText;
     --ds-color-text-disabled: GrayText;

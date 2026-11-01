@@ -257,6 +257,27 @@
 .ds-tabbar[data-indicator] .ds-tab[aria-current="page"] {
   background: transparent;
 }
+.ds-tabbar[data-draggable],
+.ds-tabbar[data-draggable] .ds-tab {
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ds-tabbar[data-draggable] .ds-tab[aria-current="page"] {
+  font-weight: 700;
+}
+.ds-tabbar[data-draggable] .ds-tab[aria-current="page"] svg {
+  stroke-width: 2.2;
+}
+.ds-tabbar[data-dragging] .ds-tab:active {
+  background: transparent;
+}
+.ds-tabbar[data-dragging] .ds-tab[data-preview] svg {
+  transform: translateY(-1px) scale(1.06);
+}
+.ds-tabbar[data-draggable] .ds-tab svg {
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
 .ds-tab-indicator {
   position: absolute;
   top: var(--ds-space-2);
@@ -265,10 +286,23 @@
   width: calc((100% - 2 * var(--ds-space-2)) / 5);
   border-radius: var(--ds-radius-pill);
   background: var(--ds-glass-selected-bg);
-  box-shadow: var(--ds-glass-highlight);
+  background-image: var(--ds-glass-sheen);
+  box-shadow: var(--ds-glass-selected-shadow);
   transform: translateX(calc(var(--ds-active-index, 0) * 100%));
   transition: transform var(--ds-duration-selection) var(--ds-ease-selection);
   pointer-events: none;
+}
+.ds-tabbar[data-draggable] .ds-tab-indicator {
+  transform: translate3d(
+      var(--ds-indicator-x, 0px),
+      var(--ds-indicator-y, 0px),
+      0
+    )
+    scale(var(--ds-indicator-scale-x, 1), var(--ds-indicator-scale-y, 1));
+  transition: none;
+}
+.ds-tabbar[data-animating] .ds-tab-indicator {
+  will-change: transform;
 }
 @media (hover: hover) {
   .ds-tab:hover:not([aria-current="page"]):not(:disabled) {
@@ -346,6 +380,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ds-icon-button:active:not(:disabled) {
+    transform: none;
+  }
+  .ds-tabbar[data-dragging] .ds-tab[data-preview] svg {
     transform: none;
   }
 }

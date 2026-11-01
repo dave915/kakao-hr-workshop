@@ -5,7 +5,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 import {
@@ -26,6 +25,7 @@ import {
   Images,
 } from "lucide-react";
 import Home from "./components/Home";
+import MobileTabBar from "./components/MobileTabBar";
 import Timeline from "./components/Timeline";
 import Team from "./components/Team";
 import Notices from "./components/Notices";
@@ -86,9 +86,6 @@ export default function App() {
     act,
   } = useWorkshop();
   const [page, setPage] = useState<Page>(pageFromHash);
-  const activeMobileTab = mobileNavigation.findIndex(
-    (item) => item.id === page,
-  );
   const visibleNotices =
     state?.notices.filter((n) => isNoticeRecipient(n.audience, me)) ?? [];
   const unread = useUnreadNotices(me?.id, visibleNotices, page === "notices");
@@ -516,32 +513,12 @@ export default function App() {
           </Suspense>
         </main>
       </div>
-      <nav
-        ref={bottomNavRef}
-        className="bottom-nav ds-tabbar ds-tabbar--fixed ds-glass"
-        aria-label="모바일 메뉴"
-        data-indicator="true"
-        style={
-          { "--ds-active-index": Math.max(0, activeMobileTab) } as CSSProperties
-        }
-      >
-        <span
-          className="ds-tab-indicator"
-          aria-hidden="true"
-          hidden={activeMobileTab < 0}
-        />
-        {mobileNavigation.map((n) => (
-          <button
-            key={n.id}
-            className="ds-tab"
-            onClick={() => navigate(n.id)}
-            aria-current={page === n.id ? "page" : undefined}
-          >
-            <n.icon size={22} aria-hidden="true" />
-            <span>{n.short}</span>
-          </button>
-        ))}
-      </nav>
+      <MobileTabBar
+        items={mobileNavigation}
+        page={page}
+        onNavigate={navigate}
+        navRef={bottomNavRef}
+      />
       {toast && (
         <div className="toast" role="status">
           <CheckCircle2 size={19} />
