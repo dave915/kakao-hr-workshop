@@ -7,9 +7,16 @@ import {
 } from "react";
 import type { LucideIcon } from "lucide-react";
 import type { Page } from "../../shared/types";
+import { advanceLiquidTab } from "../lib/liquid-tab-motion";
 
 type Tab = { id: Page; short: string; icon: LucideIcon };
-type Gesture = { id: number; x: number; y: number; dragging: boolean };
+type Gesture = {
+  id: number;
+  x: number;
+  y: number;
+  dragging: boolean;
+  tapIndex: number;
+};
 
 /** A single glass selection follows the finger; navigation commits on release. */
 export default function MobileTabBar({
@@ -27,6 +34,7 @@ export default function MobileTabBar({
   const activeRef = useRef(active);
   activeRef.current = active;
   const indicator = useRef<HTMLSpanElement>(null);
+  const lens = useRef<HTMLSpanElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const blockClick = useRef(false);
   const reduced = useRef(false);
@@ -37,6 +45,9 @@ export default function MobileTabBar({
     step: 0,
     padding: 4,
     max: 0,
+    height: 54,
+    center: 0,
+    viewportWidth: 0,
   });
   const motion = useRef({
     x: 0,
@@ -44,78 +55,66 @@ export default function MobileTabBar({
     velocity: 0,
     sx: 1,
     sy: 1,
-    y: 0,
+    lift: 0,
+    liftVelocity: 0,
     frame: 0,
     time: 0,
   });
 
   function paint() {
-    const node = indicator.current,
-      state = motion.current;
-    if (!node) return;
-    node.style.setProperty("--ds-indicator-x", `${state.x}px`);
-    node.style.setProperty("--ds-indicator-scale-x", `${state.sx}`);
-    node.style.setProperty("--ds-indicator-scale-y", `${state.sy}`);
-    node.style.setProperty("--ds-indicator-y", `${state.y}px`);
+    const nav = navRef.current,
+      state = motion.current,
+      bounds = geometry.current;
+    if (!nav) return;
+    const style = nav.style,
+      magnification = 1 + state.lift * 0.22;
+    style.setProperty("--ds-indicator-x", `${state.x}px`);
+    style.setProperty("--ds-indicator-scale-x", `${state.sx}`);
+    style.setProperty("--ds-indicator-scale-y", `${state.sy}`);
+    style.setProperty("--ds-lens-reveal", `${state.lift}`);
+    style.setProperty("--ds-rail-scale", `${1 + state.lift * 0.04}`);
+    style.setProperty("--ds-lens-counter-x", `${magnification / state.sx}`);
+    style.setProperty("--ds-lens-counter-y", `${magnification / state.sy}`);
+    style.setProperty(
+      "--ds-lens-left",
+      `${state.x + (bounds.step * (1 - state.sx)) / 2}px`,
+    );
+    style.setProperty(
+      "--ds-lens-top",
+      `${(bounds.height * (1 - state.sy)) / 2}px`,
+    );
+    style.setProperty("--ds-lens-width", `${bounds.step * state.sx}px`);
+    style.setProperty("--ds-lens-height", `${bounds.height * state.sy}px`);
+    style.setProperty(
+      "--ds-lens-radius-x",
+      `${(bounds.height * state.sx) / 2}px`,
+    );
+    if (state.lift > 0) nav.dataset.lensVisible = "true";
+    else delete nav.dataset.lensVisible;
+    if (lens.current && state.lift > 0) lens.current.hidden = false;
+    if (!gesture.current && state.lift === 0 && activeRef.current < 0) {
+      if (indicator.current) indicator.current.hidden = true;
+      if (lens.current) lens.current.hidden = true;
+    }
   }
   function tick(now: number) {
-    const state = motion.current,
-      bounds = geometry.current;
+    const state = motion.current;
     state.frame = 0;
-    const dt = Math.min(0.032, (now - (state.time || now - 16)) / 1000);
+    const dt = (now - (state.time || now - 16)) / 1000;
     state.time = now;
-    const dragging = gesture.current?.dragging === true;
-    if (reduced.current) {
-      state.x = state.target;
-      state.velocity = 0;
-      state.sx = state.sy = 1;
-      state.y = 0;
-    } else {
-      const steps = Math.max(1, Math.ceil(dt * 120)),
-        h = dt / steps;
-      for (let n = 0; n < steps; n++) {
-        state.velocity +=
-          ((state.target - state.x) * (dragging ? 700 : 360) -
-            state.velocity * (dragging ? 40 : 30)) *
-          h;
-        state.x += state.velocity * h;
-      }
-      if (state.x < 0 || state.x > bounds.max) {
-        state.x = Math.max(0, Math.min(bounds.max, state.x));
-        state.velocity = 0;
-      }
-      const room = Math.max(
-        0,
-        Math.min(state.x, bounds.max - state.x) + bounds.padding - 1,
-      );
-      const stretch = Math.min(
-        (dragging ? 0.045 : 0) + Math.abs(state.velocity) / 2400,
-        0.24,
-        (2 * room) / (bounds.step || 1),
-      );
-      const ease = 1 - Math.exp(-24 * dt);
-      state.sx += (1 + stretch - state.sx) * ease;
-      state.sy +=
-        (1 + (dragging ? 0.035 : 0) - stretch * 0.48 - state.sy) * ease;
-      state.y += ((dragging ? -1 : 0) - state.y) * ease;
-    }
-    const moving =
-      Math.abs(state.x - state.target) > 0.08 ||
-      Math.abs(state.velocity) > 1 ||
-      Math.abs(state.sx - 1) > 0.001 ||
-      Math.abs(state.sy - 1) > 0.001 ||
-      Math.abs(state.y) > 0.01;
-    if (!dragging && !moving) {
-      state.x = state.target;
-      state.velocity = 0;
-      state.sx = state.sy = 1;
-      state.y = 0;
+    const moving = advanceLiquidTab(
+      state,
+      geometry.current,
+      Boolean(gesture.current),
+      reduced.current,
+      dt,
+    );
+    paint();
+    if (moving) state.frame = requestAnimationFrame(tick);
+    else {
+      state.time = 0;
       delete navRef.current?.dataset.animating;
     }
-    paint();
-    if (!reduced.current && (moving || dragging))
-      state.frame = requestAnimationFrame(tick);
-    else state.time = 0;
   }
   function animate() {
     const state = motion.current;
@@ -125,29 +124,30 @@ export default function MobileTabBar({
       state.frame = requestAnimationFrame(tick);
     }
   }
-  function preview(index: number) {
-    navRef.current
-      ?.querySelectorAll<HTMLElement>(".ds-tab")
-      .forEach((tab, i) => {
-        if (i === index) tab.dataset.preview = "true";
-        else delete tab.dataset.preview;
-      });
-  }
-  function endGesture() {
+  function endGesture(restoreVisibility = true) {
     const current = gesture.current;
     gesture.current = null;
     if (current && navRef.current?.hasPointerCapture(current.id))
       navRef.current.releasePointerCapture(current.id);
-    if (navRef.current) delete navRef.current.dataset.dragging;
-    preview(-1);
-    if (indicator.current) indicator.current.hidden = activeRef.current < 0;
+    if (navRef.current) {
+      delete navRef.current.dataset.dragging;
+      delete navRef.current.dataset.pressed;
+    }
+    if (restoreVisibility) {
+      if (indicator.current) indicator.current.hidden = activeRef.current < 0;
+      if (lens.current)
+        lens.current.hidden =
+          activeRef.current < 0 && motion.current.lift === 0;
+    }
   }
   function cancel() {
     if (!gesture.current) return;
     blockClick.current = true;
     endGesture();
     motion.current.target =
-      Math.max(0, activeRef.current) * geometry.current.step;
+      activeRef.current < 0
+        ? motion.current.x
+        : activeRef.current * geometry.current.step;
     animate();
   }
   useLayoutEffect(() => {
@@ -163,21 +163,42 @@ export default function MobileTabBar({
       cancel();
       const box = nav.getBoundingClientRect(),
         css = getComputedStyle(nav);
+      const scale =
+        css.transform === "none" ? 1 : new DOMMatrixReadOnly(css.transform).a;
+      const border = parseFloat(css.borderLeftWidth) || 0;
       const padding = parseFloat(css.paddingLeft) || 4;
+      const left = box.left + (box.width - box.width / scale) / 2;
+      const top = box.top + (box.height - box.height / scale) / 2;
       const step = Math.max(0, (nav.clientWidth - 2 * padding) / items.length);
       geometry.current = {
-        left: box.left + (parseFloat(css.borderLeftWidth) || 0) + padding,
-        top: box.top,
-        bottom: box.bottom,
+        left: left + border + padding,
+        top,
+        bottom: top + box.height / scale,
         step,
         padding,
         max: step * (items.length - 1),
+        height: Math.max(0, nav.clientHeight - 2 * padding),
+        center: box.left + box.width / 2,
+        viewportWidth: window.innerWidth,
       };
       const state = motion.current;
       state.x = state.target = Math.max(0, activeRef.current) * step;
       state.velocity = 0;
       state.sx = state.sy = 1;
-      state.y = 0;
+      state.lift = state.liftVelocity = 0;
+      nav.style.setProperty("--ds-tab-step", `${step}px`);
+      const faces = nav.querySelectorAll<HTMLElement>(".ds-tab-face");
+      faces.forEach((face) => {
+        const rect = face.getBoundingClientRect();
+        face.style.setProperty(
+          "--ds-face-left",
+          `${(rect.left - box.left) / scale - border - padding}px`,
+        );
+        face.style.setProperty(
+          "--ds-face-top",
+          `${(rect.top - box.top) / scale - border - padding}px`,
+        );
+      });
       paint();
     };
     measure();
@@ -217,6 +238,13 @@ export default function MobileTabBar({
     animate();
   }, [active]);
 
+  function position(clientX: number) {
+    const bounds = geometry.current;
+    const x =
+      bounds.center +
+      (clientX - bounds.center) / (1 + motion.current.lift * 0.04);
+    return Math.max(0, Math.min(bounds.max, x - bounds.left - bounds.step / 2));
+  }
   function down(event: PointerEvent<HTMLElement>) {
     if (!event.isPrimary || event.button !== 0 || !geometry.current.step)
       return;
@@ -226,11 +254,25 @@ export default function MobileTabBar({
       x: event.clientX,
       y: event.clientY,
       dragging: false,
+      tapIndex: Number(
+        (event.target as Element).closest<HTMLElement>("button.ds-tab")?.dataset
+          .tabIndex ?? -1,
+      ),
     };
+    motion.current.target =
+      Math.round(position(event.clientX) / geometry.current.step) *
+      geometry.current.step;
+    if (activeRef.current < 0) {
+      motion.current.x = motion.current.target;
+      motion.current.velocity = 0;
+    }
+    if (indicator.current) indicator.current.hidden = false;
+    if (lens.current) lens.current.hidden = false;
+    event.currentTarget.dataset.pressed = "true";
+    animate();
   }
   function move(event: PointerEvent<HTMLElement>) {
-    const current = gesture.current,
-      bounds = geometry.current;
+    const current = gesture.current;
     if (!current || current.id !== event.pointerId) return;
     const dx = event.clientX - current.x,
       dy = event.clientY - current.y;
@@ -245,44 +287,40 @@ export default function MobileTabBar({
       event.currentTarget.setPointerCapture(event.pointerId);
       event.currentTarget.dataset.dragging = "true";
       if (indicator.current) indicator.current.hidden = false;
+      if (lens.current) lens.current.hidden = false;
     }
-    const position = Math.max(
-      0,
-      Math.min(bounds.max, event.clientX - bounds.left - bounds.step / 2),
-    );
-    motion.current.target = position;
+    const target = position(event.clientX);
+    motion.current.target = target;
     if (starting && activeRef.current < 0) {
-      motion.current.x = position;
+      motion.current.x = target;
       motion.current.velocity = 0;
     }
-    preview(Math.round(position / bounds.step));
     animate();
   }
   function up(event: PointerEvent<HTMLElement>) {
     const current = gesture.current,
       bounds = geometry.current;
     if (!current || current.id !== event.pointerId) return;
-    if (!current.dragging) {
-      gesture.current = null;
-      return;
-    }
     if (event.clientY < bounds.top - 44 || event.clientY > bounds.bottom + 44) {
       cancel();
       return;
     }
-    const index = Math.max(
-      0,
-      Math.min(
-        items.length - 1,
-        Math.round(
-          (event.clientX - bounds.left - bounds.step / 2) / bounds.step,
-        ),
-      ),
-    );
+    const index = current.dragging
+      ? Math.round(position(event.clientX) / bounds.step)
+      : current.tapIndex;
+    if (
+      index < 0 ||
+      (!current.dragging &&
+        Math.hypot(event.clientX - current.x, event.clientY - current.y) > 12)
+    ) {
+      cancel();
+      return;
+    }
     blockClick.current = true;
-    endGesture();
+    endGesture(false);
     motion.current.target = index * bounds.step;
     if (indicator.current) indicator.current.hidden = false;
+    if (lens.current) lens.current.hidden = false;
     animate();
     onNavigate(items[index].id);
   }
@@ -294,7 +332,12 @@ export default function MobileTabBar({
       aria-label="모바일 메뉴"
       data-indicator="true"
       data-draggable="true"
-      style={{ "--ds-active-index": Math.max(0, active) } as CSSProperties}
+      style={
+        {
+          "--ds-active-index": Math.max(0, active),
+          "--ds-tab-count": items.length,
+        } as CSSProperties
+      }
       onPointerDown={down}
       onPointerMove={move}
       onPointerUp={up}
@@ -321,15 +364,33 @@ export default function MobileTabBar({
         aria-hidden="true"
         hidden={active < 0}
       />
-      {items.map((tab) => (
+      <span
+        ref={lens}
+        className="ds-tab-lens"
+        aria-hidden="true"
+        hidden={active < 0}
+      >
+        <span className="ds-tab-lens-content">
+          {items.map((tab) => (
+            <span key={tab.id} className="ds-tab-lens-item">
+              <tab.icon size={22} aria-hidden="true" />
+              <span>{tab.short}</span>
+            </span>
+          ))}
+        </span>
+      </span>
+      {items.map((tab, index) => (
         <button
           key={tab.id}
           className="ds-tab"
+          data-tab-index={index}
           onClick={() => onNavigate(tab.id)}
           aria-current={page === tab.id ? "page" : undefined}
         >
-          <tab.icon size={22} aria-hidden="true" />
-          <span>{tab.short}</span>
+          <span className="ds-tab-face">
+            <tab.icon size={22} aria-hidden="true" />
+            <span>{tab.short}</span>
+          </span>
         </button>
       ))}
     </nav>

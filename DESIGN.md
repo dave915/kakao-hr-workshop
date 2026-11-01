@@ -149,7 +149,7 @@ font-family: var(--ds-font-ui);
 
 모바일 상단 바 자체는 투명하다. 원형 메뉴와 알림·프로필 캡슐이 실제 뒤쪽 콘텐츠를 샘플링하도록, 부모에 불투명 바탕이나 blur를 겹치지 않는다. 페이지 제목에는 작은 불투명에 가까운 읽기용 배경을 둔다. 고대비·투명도 감소·필터 미지원 환경에서는 반사 레이어를 제거하고 흰색 표면으로 대체한다.
 
-하단의 선택 표시는 `.ds-tab-indicator` 하나다. `MobileTabBar.tsx`가 같은 캡슐을 이동시킨다. 터치·마우스로 가로 드래그하면 손가락 위치와 이동 속도에 따라 흰 유리 캡슐이 늘어나며 따라온다. 페이지는 손을 놓을 때 가장 가까운 탭으로 한 번만 전환한다. 세로 스크롤·취소·Escape·창 크기 변경 시에는 원래 선택으로 돌아온다. 각 버튼의 배경을 별도로 페이드해 두 항목이 선택된 것처럼 보이게 하지 않는다. 소식·프로필·관리자처럼 하단에 없는 페이지에서는 표시를 숨긴다. 여기서 드래그를 시작하면 캡슐을 보여 주고, 취소하면 다시 숨긴다.
+하단 선택 위치는 하나다. `MobileTabBar.tsx`가 같은 좌표의 평면 표시(`.ds-tab-indicator`)와 눌렀을 때의 렌즈(`.ds-tab-lens`)를 교차 전환한다. 누르는 순간 평평한 선택 표시가 볼록한 유리 렌즈로 커지고, 하단 바도 최대 4% 확장된다. 렌즈 안의 아이콘과 글자는 약 22% 확대되며, 가로 드래그 시 렌즈가 연속적으로 이동한다. 원래 아이콘은 렌즈 영역에서 마스크로 가려 확대본과 겹치지 않게 한다. 흰색 스타일을 유지한 웹 근사 효과이며 제공된 애플 탭 동영상의 누름·이동·복원을 기준으로 한다. 페이지는 손을 놓을 때 가장 가까운 탭으로 한 번만 전환한다. 세로 스크롤·취소·Escape·창 크기 변경 시에는 원래 선택으로 돌아온다. 각 버튼의 배경을 별도로 페이드해 두 항목이 선택된 것처럼 보이게 하지 않는다. 소식·프로필·관리자처럼 하단에 없는 페이지에서는 표시를 숨긴다. 여기서 드래그를 시작하면 캡슐을 보여 주고, 취소하면 다시 숨긴다.
 
 - 한 그룹의 바깥 표면에만 blur를 적용한다. 내부 버튼에 유리를 중첩하지 않는다.
 - 본문 카드의 그림자는 `none`; 팝오버와 모달은 각각 `--ds-shadow-popover`, `--ds-shadow-modal`을 쓴다.
@@ -161,7 +161,7 @@ font-family: var(--ds-font-ui);
 
 `prefers-reduced-transparency: reduce`, `prefers-contrast: more`, `forced-colors: active`에 대응한다. 투명도 환경설정의 브라우저 지원을 가정하지 않고, `<html data-reduce-transparency="true">`로도 불투명 표면을 선택할 수 있다. 이 속성의 저장·설정 UI는 토큰 자체가 제공하지 않는다.
 
-상태 전환은 120ms, 일반 전환은 180ms, 패널은 240ms. 하단 선택 캡슐은 requestAnimationFrame 기반 스프링으로 위치와 가로·세로 비율만 갱신한다. 드래그 중에는 빠르게 추종하고, 놓으면 해당 탭으로 감속하며 원래 형태로 복원한다. React를 매 프레임 다시 렌더링하지 않으며 blur·shadow를 매 프레임 바꾸지 않는다. 정적 CSS 예제는 320ms `--ds-ease-selection`을 대체 동작으로 사용한다. 원형 조작 버튼은 누르는 동안 0.96배로 반응한다. `background-color`, `color`, `border-color`, 선택 캡슐·패널의 `transform`·`opacity`만 전환한다. `transition: all`, 반복 펄스, 모든 카드의 등장 애니메이션을 추가하지 않는다. `prefers-reduced-motion`에서는 캡슐을 늘이거나 튕기지 않고 위치만 즉시 따라가게 하며, 놓았을 때의 탭 선택은 유지한다. [Apple의 소재·상호작용 설명](https://developer.apple.com/videos/play/wwdc2025/219/)을 참고한 웹 근사 구현이며, 실제 배경 굴절을 재현하는 셰이더는 포함하지 않는다.
+상태 전환은 120ms, 일반 전환은 180ms, 패널은 240ms. 하단 선택 렌즈는 requestAnimationFrame 기반 스프링으로 누름 높이·위치·가로·세로 비율을 갱신한다. 누르고 멈춰 있어도 렌즈가 떠 있으며, 이동 중에는 조금 넓어지고 놓으면 해당 탭으로 감속하면서 평평한 선택 표시로 복원한다. React를 매 프레임 다시 렌더링하지 않으며 blur·shadow를 매 프레임 바꾸지 않는다. 확대 효과는 작은 영역의 CSS 마스크와 장식용 아이콘 복사본으로 구현하며, 복사본은 스크린리더와 입력 대상에서 제외한다. 정적 CSS 예제는 320ms `--ds-ease-selection`을 대체 동작으로 사용한다. 원형 조작 버튼은 누르는 동안 0.96배로 반응한다. `background-color`, `color`, `border-color`, 선택 캡슐·패널의 `transform`·`opacity`만 전환한다. `transition: all`, 반복 펄스, 모든 카드의 등장 애니메이션을 추가하지 않는다. `prefers-reduced-motion`에서는 캡슐을 늘이거나 튕기지 않고 위치만 즉시 따라가게 하며, 놓았을 때의 탭 선택은 유지한다. [Apple의 소재·상호작용 설명](https://developer.apple.com/videos/play/wwdc2025/219/)을 참고한 웹 근사 구현이며, 실제 배경 굴절을 재현하는 셰이더는 포함하지 않는다.
 
 일반 글자 대비 목표는 4.5:1, 큰 글자는 3:1이다. 본 프로젝트의 터치 목표는 **44×44 CSS px 이상**이다. 이는 WCAG 2.2 AA의 24px 최소 규칙보다 여유 있는 제품 기준이다. focus-visible은 3px 짙은 골드 outline과 3px offset을 사용하며 잘라내지 않는다. [WCAG contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [WCAG target size](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
 
