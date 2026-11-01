@@ -6414,7 +6414,7 @@ td .text-button {
 .photo-comment-delete {
   font-size: 12px;
   color: var(--muted);
-  min-height: 44px;
+  min-height: 28px;
   padding: 4px;
 }
 .photo-comment-confirm {
@@ -6549,8 +6549,8 @@ td .text-button {
   color: var(--ds-color-photo-content);
   flex: 1;
   min-width: 0;
-  padding: 0;
-  min-height: 44px;
+  padding: 2px 0;
+  min-height: 28px;
   text-align: left;
   font-size: 0.93rem;
   line-height: 1.5;
@@ -6581,6 +6581,14 @@ td .text-button {
 }
 .photo-comment-heart.is-liked {
   color: var(--ds-color-danger);
+}
+/* Compact comments: text, reactions and secondary actions share a 28px row. */
+.photo-comment-preview .photo-comment-heart,
+.photo-comment-preview .photo-comment-like-count,
+.photo-comment-row .photo-comment-heart,
+.photo-comment-row .photo-comment-like-count {
+  min-height: 28px;
+  padding-block: 2px;
 }
 .photo-comment-row {
   display: grid;
@@ -6658,7 +6666,7 @@ td .text-button {
   overflow-wrap: anywhere;
 }
 .photo-comment-reply {
-  min-height: 44px;
+  min-height: 28px;
   padding: 4px 0;
   color: var(--muted);
   font-size: 12px;
@@ -6676,7 +6684,7 @@ td .text-button {
   display: flex;
   align-items: center;
   gap: 5px;
-  min-height: 44px;
+  min-height: 28px;
   padding: 4px 0;
   color: var(--muted);
   font-size: 12px;
