@@ -1,14 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  ArrowUp,
-  Camera,
-  Check,
-  Compass,
-  LocateFixed,
-  Map,
-} from "lucide-react";
-import { continuousRotation, directionMatch } from "../../shared/ar";
+import { useEffect, useRef } from "react";
+import { Camera, Check, Compass, LocateFixed, Map, MapPin } from "lucide-react";
+import { directionMatch } from "../../shared/ar";
 import type { TreasureGuidance, VisibleTreasure } from "../../shared/types";
+import CompassDial from "./CompassDial";
 export default function DirectionFocus({
   treasure,
   guidance,
@@ -41,15 +35,10 @@ export default function DirectionFocus({
     current && !current.cameraOnly
       ? directionMatch(current.bearing, heading)
       : null;
-  const [rotation, setRotation] = useState(match?.difference ?? 0);
   const title = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     title.current?.focus();
   }, []);
-  useEffect(() => {
-    if (match)
-      setRotation((previous) => continuousRotation(previous, match.difference));
-  }, [match?.difference]);
   const arrived = Boolean(current?.cameraOnly);
   const aligned = Boolean(match?.aligned);
   const status = !current
@@ -72,12 +61,12 @@ export default function DirectionFocus({
     : "—";
   return (
     <section
-      className={`direction-focus ${aligned || arrived ? "is-aligned" : ""}`}
+      className={`direction-focus ${aligned || arrived ? "is-aligned" : ""} ${arrived ? "is-arrived" : ""}`}
       aria-label="보물 방향 크게 보기"
     >
       <div className="direction-focus-intro">
-        <span className="eyebrow">
-          {arrived ? "YOU’RE CLOSE" : "FOLLOW YOUR COMPASS"}
+        <span className="direction-focus-mode">
+          {arrived ? "주변 탐색" : "방향 안내"}
         </span>
         <h2 ref={title} tabIndex={-1}>
           {status}
@@ -95,18 +84,15 @@ export default function DirectionFocus({
         </p>
       </div>
       <div className="direction-focus-instrument" aria-hidden="true">
-        <div className="direction-focus-north" />
-        {arrived ? (
-          <Camera className="direction-focus-arrived" />
-        ) : match ? (
-          <ArrowUp
-            className="direction-focus-arrow"
-            strokeWidth={2.4}
-            style={{ transform: `rotate(${rotation}deg)` }}
-          />
-        ) : (
-          <Compass className="direction-focus-waiting" strokeWidth={1.2} />
-        )}
+        <span className="direction-focus-forward">
+          {arrived ? "가까이 왔어요" : "휴대폰 정면"}
+        </span>
+        <CompassDial
+          heading={heading}
+          bearing={current?.bearing}
+          aligned={aligned}
+          arrived={arrived}
+        />
       </div>
       <div className="direction-focus-distance">
         <span>
@@ -116,13 +102,13 @@ export default function DirectionFocus({
               ? "보물까지 약"
               : "위치 확인 중"}
         </span>
-        <strong>
+        <strong className={arrived ? "is-label" : undefined}>
           {arrived ? "카메라 탐색" : distance}
           {current && !arrived && (
             <small>{current.distance >= 1000 ? "km" : "m"}</small>
           )}
         </strong>
-        <div className="direction-focus-signal">
+        <div className="direction-focus-signal" role="status">
           {aligned ? (
             <>
               <Check size={18} />이 방향이에요
@@ -138,7 +124,10 @@ export default function DirectionFocus({
       </div>
       <div className="direction-focus-bottom">
         {treasure.hint ? (
-          <p className="direction-focus-clue">{treasure.hint}</p>
+          <p className="direction-focus-clue">
+            <MapPin size={16} aria-hidden="true" />
+            <span>{treasure.hint}</span>
+          </p>
         ) : null}
         <div className="direction-focus-actions">
           {current && heading === null && !arrived && (

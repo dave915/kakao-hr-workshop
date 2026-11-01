@@ -470,9 +470,20 @@ export default function Treasure({ notify }: { notify: Notify }) {
                           : "위치 확인 중"}
                     </strong>
                     <small>
-                      {explore.position
-                        ? `GPS 오차 ±${Math.round(explore.position.accuracy)}m · ${explore.follow ? "내 위치 따라가는 중" : "지도 둘러보는 중"}`
-                        : "위치 접근을 허용해주세요"}
+                      {explore.position ? (
+                        <>
+                          <span>
+                            GPS 오차 ±{Math.round(explore.position.accuracy)}m
+                          </span>
+                          <span>
+                            {explore.follow
+                              ? "내 위치 따라가는 중"
+                              : "지도 둘러보는 중"}
+                          </span>
+                        </>
+                      ) : (
+                        "위치 접근을 허용해주세요"
+                      )}
                     </small>
                   </span>
                 </div>

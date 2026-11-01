@@ -3714,33 +3714,6 @@ td .text-button {
   gap: 18px;
   margin: 20px 0 18px;
 }
-.direction-beacon {
-  width: 78px;
-  height: 78px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--heat-tint);
-  border: 1px solid color-mix(in oklch, var(--heat-color), transparent 55%);
-  color: var(--heat-color);
-  flex-shrink: 0;
-  position: relative;
-}
-.direction-beacon:before {
-  content: "N";
-  position: absolute;
-  top: 5px;
-  font-size: var(--ds-font-size-caption);
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-.direction-beacon > svg {
-  transition: transform 0.5s ease-out;
-}
-.direction-beacon.waiting > svg {
-  animation: beacon-turn 3s linear infinite;
-}
 .guide-reading-copy {
   display: flex;
   flex-direction: column;
@@ -3978,11 +3951,6 @@ td .text-button {
 .focus-guide-area .empty-state > svg {
   display: none;
 }
-@keyframes beacon-turn {
-  to {
-    transform: rotate(360deg);
-  }
-}
 @media (max-width: 1100px) {
   .hunt-layout {
     grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr);
@@ -4104,14 +4072,6 @@ td .text-button {
     grid-column: 1/-1;
     margin: 0;
     gap: 14px;
-  }
-  .focus-guide-area .direction-beacon {
-    height: 61px;
-    width: 61px;
-  }
-  .focus-guide-area .direction-beacon > svg {
-    width: 33px;
-    height: 33px;
   }
   .focus-guide-area .guide-reading-copy > span {
     font-size: var(--ds-font-size-caption);
@@ -4583,154 +4543,10 @@ td .text-button {
 }
 
 /* Compare the phone and treasure directions together beside the hint. */
-.compass-content {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.direction-comparison.is-live-comparison {
-  padding: 12px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-}
-.direction-comparison.is-aligned {
-  background: #e2edd7;
-  border-color: #88a374;
-}
-.direction-comparison .direction-beacon.is-live {
-  width: 80px;
-  height: 80px;
-  color: #3d6747;
-  background: #f7f7eb;
-  border-color: #b5c3a5;
-}
-.direction-beacon.is-live::before {
-  top: 10px;
-  color: #687b58;
-}
-.direction-beacon.is-live > svg {
-  transition: none;
-}
-.compass-target {
-  position: absolute;
-  inset: -5px;
-  pointer-events: none;
-}
-.compass-target::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: calc(50% - 6px);
-  width: 12px;
-  height: 12px;
-  background: #b48325;
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-}
-.is-aligned .direction-beacon.is-live {
-  background: #c7dfae;
-  border: 2px solid #477357;
-  color: #254b32;
-}
-.is-aligned .compass-target::before {
-  background: #365d3e;
-}
-.compass-match-check {
-  display: grid;
-  place-items: center;
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #365d3e;
-  color: #f9faed;
-}
-.compass-readings {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.compass-readings > span {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-size: var(--ds-font-size-caption);
-}
-.compass-readings strong {
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.compass-me-label {
-  color: #365d3e;
-}
-.compass-target-label {
-  color: #896019;
-}
-.compass-match-status {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: #5f704d;
-  margin: 0;
-}
-.is-aligned .compass-match-status {
-  color: #254b32;
-  font-weight: 700;
-}
-.compass-reconnect {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-.compass-reconnect .text-button {
-  min-height: 44px;
-  font-size: 12px;
-}
-.compass-reconnect > p {
-  font-size: var(--ds-font-size-caption);
-  line-height: 1.7;
-  color: #7b5434;
-  margin: 0;
-}
 .live-map-readings > .text-button {
   min-height: 44px;
   font-size: 12px;
   flex-shrink: 0;
-}
-.focus-guide-area > .direction-comparison {
-  margin: 12px 16px 0;
-}
-@media (max-width: 760px) {
-  .focus-guide-area .direction-comparison {
-    gap: 12px;
-  }
-  .focus-guide-area .direction-comparison.is-live-comparison {
-    padding: 8px;
-  }
-  .focus-guide-area .direction-comparison .direction-beacon.is-live {
-    width: 76px;
-    height: 76px;
-  }
-  .focus-guide-area .direction-beacon.is-live > svg {
-    width: 38px;
-    height: 38px;
-  }
-  .compass-readings {
-    gap: 12px;
-  }
-  .compass-readings strong {
-    font-size: var(--ds-font-size-caption);
-  }
-  .compass-match-status {
-    font-size: var(--ds-font-size-caption);
-  }
 }
 
 .member-actions {
@@ -5402,10 +5218,225 @@ td .text-button {
 .map-exploration-content[hidden] {
   display: none;
 }
+@media (max-width: 600px) {
+  .invite-export-bar .button {
+    width: 100%;
+  }
+}
+
+/* One compass instrument is shared by the map hint and enlarged view. */
+
+.compass-dial {
+  --compass-accent: var(--ds-color-action);
+  --compass-surface: var(--ds-color-surface);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--compass-surface);
+  color: var(--compass-accent);
+}
+
+.compass-dial.is-compact {
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.compass-dial.is-aligned {
+  --compass-accent: var(--ds-color-success);
+  --compass-surface: var(--ds-color-success-bg);
+}
+
+.compass-dial.is-waiting {
+  --compass-accent: var(--ds-color-text-secondary);
+}
+
+.compass-dial-face {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.compass-dial-ring {
+  stroke: var(--ds-color-border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.compass-dial.is-aligned .compass-dial-ring {
+  stroke: var(--ds-color-success);
+  stroke-width: 1.5;
+}
+
+.compass-dial-rose {
+  transform-origin: 120px 120px;
+}
+
+.compass-dial-rose,
+.compass-dial-pointer,
+.compass-dial-cardinal {
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.compass-dial-rose line {
+  stroke: var(--ds-color-border-input);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.compass-dial-rose line.is-major {
+  stroke: var(--ds-color-text-secondary);
+  stroke-width: 2;
+}
+
+.compass-dial-cardinal {
+  fill: var(--ds-color-text-secondary);
+  font-family: var(--ds-font-ui);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.compass-dial.is-compact .compass-dial-cardinal {
+  font-size: 28px;
+}
+
+.compass-dial-alignment {
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.compass-dial-forward {
+  fill: currentColor;
+}
+
+.compass-dial-pointer,
+.compass-dial-symbol {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40%;
+  height: 40%;
+}
+
+.compass-dial-symbol {
+  transform: translate(-50%, -50%);
+}
+
+.compass-dial-check {
+  position: absolute;
+  right: 8%;
+  bottom: 8%;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--ds-color-surface);
+  border-radius: 50%;
+  background: var(--ds-color-success);
+  color: var(--ds-color-on-action);
+}
+
+.compass-dial.is-compact .compass-dial-check {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.compass-dial.is-compact .compass-dial-check svg {
+  width: 12px;
+  height: 12px;
+}
+
+.direction-comparison {
+  gap: var(--ds-space-6);
+}
+
+.direction-comparison.is-live-comparison {
+  padding: var(--ds-space-5);
+  border-radius: var(--ds-radius-surface);
+}
+
 .direction-comparison.is-expandable {
   position: relative;
-  padding-bottom: 26px;
+  padding-bottom: 32px;
 }
+
+.compass-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-4);
+}
+
+.compass-readings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ds-space-5);
+}
+
+.compass-readings > span {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-1);
+  color: var(--ds-color-text-secondary);
+  font-size: var(--ds-font-size-caption);
+}
+
+.compass-readings strong {
+  color: var(--ds-color-text);
+  font-size: var(--ds-font-size-caption);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.compass-readings .compass-target-label strong {
+  color: var(--ds-color-action);
+}
+
+.is-aligned .compass-readings .compass-target-label strong {
+  color: var(--ds-color-success);
+}
+
+.compass-match-status {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  margin: 0;
+  color: var(--ds-color-text-secondary);
+  font-size: var(--ds-font-size-caption);
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.is-aligned .compass-match-status {
+  color: var(--ds-color-success);
+  font-weight: 600;
+}
+
+.compass-reconnect {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ds-space-2);
+}
+
+.compass-reconnect .text-button {
+  min-height: var(--ds-size-touch);
+  font-size: var(--ds-font-size-caption);
+}
+
+.compass-reconnect > p {
+  margin: 0;
+  color: var(--ds-color-text-secondary);
+  font-size: var(--ds-font-size-caption);
+  line-height: var(--ds-line-height-body);
+}
+
 .compass-expand-hit {
   position: absolute;
   inset: 0;
@@ -5413,236 +5444,290 @@ td .text-button {
   border: 0;
   border-radius: inherit;
   background: transparent;
-  color: var(--green);
+  color: var(--ds-color-action);
   cursor: pointer;
 }
+
 .compass-expand-hit > span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   position: absolute;
   bottom: 5px;
-  right: 9px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  min-height: 24px;
   font-size: var(--ds-font-size-caption);
-  font-weight: 700;
+  font-weight: 600;
 }
-.compass-expand-hit:hover {
-  background: color-mix(in oklch, var(--green) 5%, transparent);
+
+@media (hover: hover) {
+  .compass-expand-hit:hover {
+    background: color-mix(in srgb, var(--ds-color-action) 4%, transparent);
+  }
 }
+
 .compass-expand-hit:focus-visible {
-  outline: 3px solid var(--green);
-  outline-offset: 3px;
+  outline: var(--ds-focus-width) solid var(--ds-color-focus);
+  outline-offset: var(--ds-focus-offset);
 }
-.is-expandable .compass-reconnect {
-  position: relative;
-  z-index: 2;
+
+.focus-guide-area > .direction-comparison {
+  margin: 12px 16px 0;
 }
+
+@media (max-width: 760px) {
+  .focus-guide-area .direction-comparison {
+    gap: var(--ds-space-5);
+  }
+  .focus-guide-area .direction-comparison.is-live-comparison {
+    padding: 8px 8px 32px;
+  }
+}
+
 .direction-focus {
   flex: 1;
   min-height: 0;
   overflow: auto;
   display: grid;
-  grid-template-rows: auto minmax(170px, 1fr) auto auto;
+  grid-template-rows: auto minmax(220px, 1fr) auto auto;
   justify-items: center;
-  gap: 12px;
-  padding: 28px 24px max(20px, env(safe-area-inset-bottom));
+  gap: var(--ds-space-7);
+  padding: 24px 24px max(20px, env(safe-area-inset-bottom));
   text-align: center;
-  background: var(--ds-color-surface);
-  color: var(--ds-color-action);
+  background: var(--ds-color-canvas);
+  color: var(--ds-color-text);
 }
-.direction-focus.is-aligned {
-  background: var(--green);
-  color: var(--paper);
+.is-direction-mode .focus-map-header > div > span {
+  font-size: var(--ds-font-size-micro);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
 }
+
 .direction-focus-intro {
   max-width: 38rem;
 }
-.direction-focus-intro .eyebrow {
-  color: inherit;
-  opacity: 0.75;
+
+.direction-focus-mode,
+.direction-focus-forward {
+  display: block;
+  color: var(--ds-color-text-secondary);
+  font-size: var(--ds-font-size-caption);
+  font-weight: 500;
+  line-height: 1.4;
 }
+
 .direction-focus-intro h2 {
-  font-size: 2.3rem;
-  line-height: 1.25;
-  margin: 10px 0;
+  margin: 6px 0 8px;
+  font-size: 28px;
+  line-height: var(--ds-line-height-heading);
+  letter-spacing: var(--ds-letter-spacing-heading);
+  word-break: keep-all;
   outline: none;
 }
+
 .direction-focus-intro p {
-  color: inherit;
   margin: 0;
-  line-height: 1.65;
-  font-size: 1rem;
+  color: var(--ds-color-text-secondary);
+  font-size: 14px;
+  line-height: var(--ds-line-height-body);
+  word-break: keep-all;
 }
+
 .direction-focus-instrument {
-  width: min(65vw, 290px);
-  min-height: 170px;
-  position: relative;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   align-self: center;
-  aspect-ratio: 1;
+  gap: var(--ds-space-4);
+  width: min(64vw, 264px);
 }
-.direction-focus-north {
-  position: absolute;
-  top: 0;
-  left: calc(50% - 3px);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.4;
-}
-.direction-focus-arrow {
-  width: 80%;
-  height: 80%;
-  transition: transform 140ms ease-out;
-}
-.direction-focus-waiting,
-.direction-focus-arrived {
-  width: 68%;
-  height: 68%;
-}
+
 .direction-focus-distance > span {
-  font-size: 1rem;
+  color: var(--ds-color-text-secondary);
+  font-size: 14px;
 }
+
 .direction-focus-distance > strong {
   display: block;
-  font-size: 6rem;
-  font-weight: 700;
-  line-height: 1.12;
-  letter-spacing: -0.06em;
+  margin-top: var(--ds-space-2);
+  font-size: 64px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
 }
+
+.direction-focus-distance > strong.is-label {
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: var(--ds-letter-spacing-heading);
+}
+
 .direction-focus-distance > strong small {
-  font-size: 2rem;
+  color: var(--ds-color-text-secondary);
+  font-size: 22px;
+  font-weight: 500;
   letter-spacing: 0;
   margin-left: 6px;
 }
+
 .direction-focus-signal {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 1rem;
-  margin-top: 10px;
+  gap: var(--ds-space-2);
+  margin-top: var(--ds-space-4);
+  color: var(--ds-color-text-secondary);
+  font-size: var(--ds-font-size-caption);
+  line-height: 1.5;
 }
+
+.direction-focus.is-aligned .direction-focus-signal {
+  color: var(--ds-color-success);
+  font-weight: 600;
+}
+
 .direction-focus-bottom {
   width: 100%;
-  max-width: 600px;
+  max-width: 520px;
 }
+
 .direction-focus-clue {
-  color: inherit;
-  font-size: 1rem;
-  line-height: 1.65;
-  margin: 6px 0 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--ds-space-3);
+  margin: 0 0 16px;
+  color: var(--ds-color-text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
+
+.direction-focus-clue svg {
+  margin-top: 3px;
+}
+
 .direction-focus-actions {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: var(--ds-space-5);
   flex-wrap: wrap;
 }
+
 .direction-focus-actions .button {
   min-height: 48px;
 }
-.direction-focus.is-aligned .button {
-  background: var(--paper);
-  color: var(--green);
-  border-color: var(--paper);
-}
+
 .direction-focus-bottom > small {
   display: block;
-  margin-top: 14px;
+  margin-top: var(--ds-space-5);
+  color: var(--ds-color-text-secondary);
   font-size: var(--ds-font-size-caption);
-  opacity: 0.8;
+  line-height: 1.5;
 }
+
 @media (max-width: 600px) {
-  .invite-export-bar .button {
-    width: 100%;
-  }
   .direction-focus {
     padding: 20px 20px max(18px, env(safe-area-inset-bottom));
-    gap: 8px;
+    gap: var(--ds-space-6);
   }
   .direction-focus-intro h2 {
-    font-size: 1.9rem;
-  }
-  .direction-focus-distance > strong {
-    font-size: 5.2rem;
+    font-size: 24px;
   }
 }
+
 @media (max-height: 700px) and (orientation: portrait) {
   .direction-focus {
-    grid-template-rows: auto minmax(120px, 1fr) auto auto;
-    padding-top: 14px;
-    gap: 5px;
+    grid-template-rows: auto minmax(180px, 1fr) auto auto;
+    padding-top: 12px;
+    gap: var(--ds-space-4);
   }
   .direction-focus-instrument {
-    width: 140px;
-    min-height: 120px;
+    width: 168px;
   }
   .direction-focus-intro h2 {
-    font-size: 1.6rem;
+    font-size: 22px;
   }
   .direction-focus-distance > strong {
-    font-size: 3.8rem;
+    font-size: 52px;
+  }
+  .direction-focus-distance > strong.is-label {
+    font-size: 28px;
   }
   .direction-focus-clue {
-    margin: 3px 0 10px;
+    margin-bottom: 12px;
   }
 }
+
 @media (orientation: landscape) and (max-height: 650px) {
   .direction-focus {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: auto auto auto;
-    gap: 8px 28px;
-    padding: 14px 24px;
+    gap: 8px 24px;
+    padding: 10px 24px;
   }
   .direction-focus-intro {
     grid-column: 1;
     grid-row: 1;
   }
+  .direction-focus-intro h2 {
+    font-size: 22px;
+    margin: 4px 0;
+  }
+  .direction-focus-intro p {
+    font-size: 13px;
+  }
   .direction-focus-instrument {
     grid-column: 2;
     grid-row: 1/3;
-    width: min(24vw, 175px);
+    width: min(23vw, 160px);
   }
   .direction-focus-distance {
     grid-column: 1;
     grid-row: 2;
   }
   .direction-focus-distance > strong {
-    font-size: 3.5rem;
+    font-size: 48px;
+  }
+  .direction-focus-distance > strong.is-label {
+    font-size: 28px;
   }
   .direction-focus-bottom {
     grid-column: 1/-1;
     grid-row: 3;
   }
   .direction-focus-clue {
-    margin: 0 0 8px;
-    font-size: 0.9rem;
+    margin-bottom: 8px;
+    font-size: 13px;
   }
   .direction-focus-bottom > small {
-    margin-top: 4px;
+    margin-top: 8px;
   }
   .direction-focus-actions .button {
-    min-height: 44px;
-  }
-  .direction-focus-intro h2 {
-    font-size: 1.7rem;
-    margin: 5px 0;
-  }
-  .direction-focus-intro p {
-    font-size: 0.9rem;
-  }
-  .direction-focus-signal {
-    margin-top: 3px;
+    min-height: var(--ds-size-touch);
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .direction-focus-arrow {
+  .compass-dial-rose,
+  .compass-dial-pointer,
+  .compass-dial-cardinal {
     transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .compass-dial,
+  .compass-dial.is-aligned,
+  .compass-dial.is-waiting {
+    --compass-accent: CanvasText;
+    --compass-surface: Canvas;
+  }
+  .compass-dial-check {
+    background: Highlight;
+    color: HighlightText;
   }
 }
 

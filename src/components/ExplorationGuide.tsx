@@ -77,7 +77,6 @@ export default function ExplorationGuide({
                 heading={heading}
                 bearing={current?.bearing}
                 withinRange={current?.withinRange}
-                waiting={waiting}
                 error={headingError}
                 onEnable={onEnableHeading}
                 onExpand={onExpandDirection}

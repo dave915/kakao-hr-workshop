@@ -1,12 +1,12 @@
-import { ArrowUp, Check, Compass, Sparkles, Maximize2 } from "lucide-react";
+import { Check, Compass, Maximize2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { compassDirection, directionMatch } from "../../shared/ar";
+import CompassDial from "./CompassDial";
 
 interface Props {
   heading?: number | null;
   bearing?: number | null;
   withinRange?: boolean;
-  waiting?: boolean;
   error?: string;
   onEnable?: () => void;
   onExpand?: () => void;
@@ -16,7 +16,6 @@ export default function DirectionCompass({
   heading,
   bearing,
   withinRange,
-  waiting,
   error,
   onEnable,
   onExpand,
@@ -43,32 +42,16 @@ export default function DirectionCompass({
           </span>
         </button>
       )}
-      <div
-        className={`direction-beacon ${live ? "is-live" : ""} ${!live && waiting ? "waiting" : ""}`}
-        aria-hidden="true"
-      >
-        {live && hasBearing && (
-          <span
-            className="compass-target"
-            style={{ transform: `rotate(${bearing}deg)` }}
-          />
-        )}
-        {live && hasHeading ? (
-          <ArrowUp size={40} style={{ transform: `rotate(${heading}deg)` }} />
-        ) : !live && withinRange ? (
-          <Sparkles size={38} />
-        ) : !live && hasBearing ? (
-          <ArrowUp size={40} style={{ transform: `rotate(${bearing}deg)` }} />
-        ) : (
-          <Compass size={36} />
-        )}
-        {match?.aligned && (
-          <span className="compass-match-check">
-            <Check size={13} />
-          </span>
-        )}
-      </div>
+      <CompassDial
+        heading={heading}
+        bearing={bearing}
+        relative={live}
+        aligned={match?.aligned}
+        arrived={!live && withinRange}
+        compact
+      />
       <div className="compass-content">
+        {children}
         {live && (
           <div className="compass-readings">
             <span className="compass-me-label">
@@ -89,7 +72,6 @@ export default function DirectionCompass({
             )}
           </div>
         )}
-        {children}
         {match && (
           <p className="compass-match-status" role="status">
             {match.aligned ? (
