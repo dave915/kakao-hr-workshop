@@ -1940,6 +1940,10 @@ main {
 .drawer-header h2 {
   font-size: 23px;
 }
+/* The title is the initial reading position, not an interactive control. */
+.drawer-header h2[tabindex="-1"]:focus {
+  outline: none;
+}
 .form-stack {
   display: flex;
   flex-direction: column;

@@ -59,6 +59,7 @@ export function Drawer({
   fitViewport?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   const titleId = useId();
   useLayoutEffect(() => {
     if (!fitViewport) return;
@@ -88,6 +89,9 @@ export function Drawer({
     const d = ref.current;
     const unlock = lockDocumentScroll();
     d?.showModal();
+    // Start at the static title, not the close button. This avoids an automatic
+    // focus ring on touch-open while keeping Tab navigation and focus restoration.
+    heading.current?.focus({ preventScroll: true });
     return () => {
       d?.close();
       unlock();
@@ -108,7 +112,9 @@ export function Drawer({
     >
       <div className="drawer-content">
         <div className="drawer-header">
-          <h2 id={titleId}>{title}</h2>
+          <h2 id={titleId} ref={heading} tabIndex={-1}>
+            {title}
+          </h2>
           <button
             className="ds-icon-button ds-glass"
             onClick={onClose}

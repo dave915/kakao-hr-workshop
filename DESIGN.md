@@ -164,7 +164,7 @@ font-family: var(--ds-font-ui);
 
 일반 글자 대비 목표는 4.5:1, 큰 글자는 3:1이다. 본 프로젝트의 터치 목표는 **44×44 CSS px 이상**이다. 이는 WCAG 2.2 AA의 24px 최소 규칙보다 여유 있는 제품 기준이다. focus-visible은 3px 짙은 골드 outline과 3px offset을 사용하며 잘라내지 않는다. [WCAG contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), [WCAG target size](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
 
-레이어는 본문 0, 상단 40, 탭 60, 백드롭 70, 드로어 80, 모달 100, 토스트 110을 기본으로 한다. 기존 `<dialog>`의 top layer와 focus trap을 유지한다. CSS z-index만으로 네이티브 dialog 위에 알림이 표시된다고 가정하지 않는다.
+레이어는 본문 0, 상단 40, 탭 60, 백드롭 70, 드로어 80, 모달 100, 토스트 110을 기본으로 한다. 기존 `<dialog>`의 top layer와 focus trap을 유지한다. 공통 Drawer의 초기 포커스는 `tabindex="-1"`인 정적 제목에 둔다. 터치로 열자마자 닫기 버튼에 포커스 링이 나타나지 않도록 하되, Tab으로 이동한 버튼의 포커스 표시와 닫은 뒤 호출 버튼으로의 복귀는 유지한다. CSS z-index만으로 네이티브 dialog 위에 알림이 표시된다고 가정하지 않는다.
 
 ## Shapes
 
