@@ -47,10 +47,10 @@ description: 기존 워크샵 화면 구성을 유지하는 밝은 Apple 스타�
 | 보조 버튼·메타 배경               | `--ds-color-surface-subtle`                                       | `#EEEEF1`                         |
 | 제목·본문                         | `--ds-color-text`                                                 | `#1D1D1F`                         |
 | 설명·시간·장소                    | `--ds-color-text-secondary`                                       | `#6E6E73`                         |
-| 유리 위 비선택 탐색 아이콘·라벨   | `--ds-glass-text`                                                 | `#24242B`                         |
+| 유리 위 비선택 탐색 아이콘·라벨   | `--ds-glass-text`                                                 | `#14141B`                         |
 | 주요 버튼·링크·선택 아이콘        | `--ds-color-action`                                               | `#0066CC`                         |
 | 장식 강조·큰 그래픽               | `--ds-color-accent`                                               | `#007AFF`                         |
-| 선택된 탭의 배경                  | `--ds-glass-selected-bg`                                          | `rgb(222 237 255 / 90%)`          |
+| 선택된 탭의 배경                  | `--ds-glass-selected-bg`                                          | `rgb(222 237 255 / 82%)`          |
 | 선택된 탭의 글자·아이콘           | `--ds-glass-selected-text`                                        | `#0058B5`                         |
 | 불투명 선택 표면 / 유리 대체 표면 | `--ds-color-selected`                                             | `#E5F0FF`                         |
 | 구분선 / 카드 테두리              | `--ds-color-separator` / `--ds-color-border`                      | `#DEDEE3` / `#D9D9DF`             |
@@ -138,7 +138,7 @@ font-family: var(--ds-font-ui);
 
 ### 유리 토큰
 
-`--ds-glass-bg`는 흰색 62%, filter는 `blur(10px) saturate(1.65)`다. 이전의 흰색 88% 표면은 불투명한 카드처럼 보여 낮췄다. `--ds-glass-sheen`은 약한 면 반사, `--ds-glass-edge`는 마스크로 제한한 1px 가장자리 반사다. 내용과 포커스 링은 자르지 않는다. 작은 아래 그림자와 밝고 어두운 안쪽 경계로 두께를 표현한다. 이 값은 네이티브 소재의 공식 수치가 아니라 이 앱의 구현값이다.
+`--ds-glass-bg`는 흰색 50%, filter는 `blur(10px) saturate(1.65)`다. 배경이 더 비치도록 선택 캡슐도 82%로 낮추고, 유리 위 라벨은 `#14141B`로 진하게 유지한다. `--ds-glass-sheen`은 약한 면 반사, `--ds-glass-edge`는 마스크로 제한한 1px 가장자리 반사다. 내용과 포커스 링은 자르지 않는다. 작은 아래 그림자와 밝고 어두운 안쪽 경계로 두께를 표현한다. 이 값은 네이티브 소재의 공식 수치가 아니라 이 앱의 구현값이다.
 
 모바일 상단 바 자체는 투명하다. 원형 메뉴와 알림·프로필 캡슐이 실제 뒤쪽 콘텐츠를 샘플링하도록, 부모에 불투명 바탕이나 blur를 겹치지 않는다. 페이지 제목에는 작은 불투명에 가까운 읽기용 배경을 둔다. 고대비·투명도 감소·필터 미지원 환경에서는 반사 레이어를 제거하고 흰색 표면으로 대체한다.
 

@@ -130,18 +130,18 @@
   );
 
   /* Glass is ONLY for navigation islands / floating map or photo controls. */
-  --ds-glass-bg: rgb(255 255 255 / 62%);
-  --ds-glass-bg-hover: rgb(255 255 255 / 76%);
-  --ds-glass-bg-pressed: rgb(231 239 250 / 82%);
+  --ds-glass-bg: rgb(255 255 255 / 50%);
+  --ds-glass-bg-hover: rgb(255 255 255 / 64%);
+  --ds-glass-bg-pressed: rgb(231 239 250 / 72%);
   --ds-glass-bg-opaque: #ffffff;
-  --ds-glass-text: #24242b;
-  --ds-glass-selected-bg: rgb(222 237 255 / 90%);
+  --ds-glass-text: #14141b;
+  --ds-glass-selected-bg: rgb(222 237 255 / 82%);
   --ds-glass-selected-text: #0058b5;
   --ds-glass-border: rgb(255 255 255 / 42%);
   --ds-glass-filter: blur(10px) saturate(1.65);
   --ds-glass-sheen: linear-gradient(
     135deg,
-    rgb(255 255 255 / 22%),
+    rgb(255 255 255 / 14%),
     rgb(255 255 255 / 0%) 45%,
     rgb(170 181 206 / 6%)
   );
