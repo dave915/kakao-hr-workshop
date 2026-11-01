@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LocateFixed, Plus, Minus, MapPin, RefreshCw } from "lucide-react";
-import type { Position, Treasure, TreasureSecrets } from "../../shared/types";
+import type { Position, Treasure } from "../../shared/types";
 import { compassDirection } from "../../shared/ar";
 import {
   kakaoMapConfigured,
@@ -18,16 +18,12 @@ interface Props {
   position: Position | null;
   onLocate: () => void;
   onPlace?: (lat: number, lng: number) => void;
-  secrets?: TreasureSecrets;
-  showFound?: boolean;
   locationName: string;
-  foundOnly?: boolean;
   followPosition?: boolean;
   onManualPan?: () => void;
   heading?: number | null;
   positionCurrent?: boolean;
 }
-const NO_SECRETS: TreasureSecrets = {};
 export default function TreasureMap({
   treasures,
   center,
@@ -36,10 +32,7 @@ export default function TreasureMap({
   position,
   onLocate,
   onPlace,
-  secrets = NO_SECRETS,
-  showFound = true,
   locationName,
-  foundOnly = false,
   followPosition = true,
   onManualPan,
   heading = null,
@@ -156,25 +149,26 @@ export default function TreasureMap({
     const { map, sdk } = context;
     const overlays: KakaoOverlay[] = [];
     for (const t of treasures) {
-      if ((foundOnly && !t.foundBy) || (t.foundBy && !showFound)) continue;
-      const found = Boolean(t.foundBy);
+      if (t.foundBy) continue;
       const button = document.createElement("button");
       button.type = "button";
       button.className = "map-marker-root";
-      button.setAttribute(
-        "aria-label",
-        found ? `${t.name} · 발견 완료` : t.name,
-      );
+      button.setAttribute("aria-label", t.name);
       button.setAttribute("aria-pressed", String(selected === t.id));
-      button.title = found ? `${t.name} · 발견 완료` : t.name;
+      button.title = t.name;
       const pin = document.createElement("span");
-      pin.className = `map-marker ${found ? "found" : ""} ${selected === t.id ? "selected" : ""}`;
+      pin.className = `map-marker ${selected === t.id ? "selected" : ""}`;
       pin.setAttribute("aria-hidden", "true");
-      const symbol = document.createElement("span");
-      symbol.className = "map-marker-symbol";
-      symbol.textContent = found ? "×" : secrets[t.id] === "bomb" ? "?" : "✦";
-      pin.appendChild(symbol);
+      // Static SVG geometry only; treasure names are inserted with textContent below.
+      pin.innerHTML = `<svg viewBox="0 0 48 56" width="48" height="56" fill="none" xmlns="http://www.w3.org/2000/svg"><path class="map-marker-shape" d="M24 53C20 47 4 36 4 23a20 20 0 0 1 40 0c0 13-16 24-20 30Z" stroke-width="2" stroke-linejoin="round"/><g transform="translate(12 10)" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8M12 8v13"/><path d="M12 8H7.5A2.5 2.5 0 1 1 10 5.5L12 8Zm0 0h4.5A2.5 2.5 0 1 0 14 5.5L12 8Z"/></g></svg>`;
       button.appendChild(pin);
+      if (selected === t.id) {
+        const label = document.createElement("span");
+        label.className = "map-marker-label";
+        label.textContent = t.name;
+        label.setAttribute("aria-hidden", "true");
+        button.appendChild(label);
+      }
       button.addEventListener("click", (event) => {
         event.stopPropagation();
         sdk.event.preventMap();
@@ -188,12 +182,12 @@ export default function TreasureMap({
           xAnchor: 0.5,
           yAnchor: 1,
           clickable: true,
-          zIndex: selected === t.id ? 10 : found ? 1 : 2,
+          zIndex: selected === t.id ? 10 : 2,
         }),
       );
     }
     return () => overlays.forEach((overlay) => overlay.setMap(null));
-  }, [context, treasures, selected, secrets, showFound, foundOnly]);
+  }, [context, treasures, selected]);
   useEffect(() => {
     if (!context || !position || !root.current) return;
     const { map, sdk } = context;
@@ -244,8 +238,7 @@ export default function TreasureMap({
   // Turning the phone only rotates the marker; it never rebuilds or recenters the map.
   useEffect(updateDirection, [heading, positionCurrent]);
   const selectedTreasure = treasures.find(
-    (treasure) =>
-      treasure.id === selected && (!foundOnly || Boolean(treasure.foundBy)),
+    (treasure) => treasure.id === selected && !treasure.foundBy,
   );
   useEffect(() => {
     if (!context || !selectedTreasure) return;
@@ -322,16 +315,12 @@ export default function TreasureMap({
       </div>
       {context && (
         <div className="map-legend">
-          {!foundOnly && (
+          {treasures.some((treasure) => !treasure.foundBy) && (
             <span>
               <i />
-              숨겨진 보물
+              남은 보물
             </span>
           )}
-          <span>
-            <i className="found" />
-            발견 완료
-          </span>
           <span>
             <i className="me" />내 위치
           </span>

@@ -61,6 +61,7 @@ export interface Settings {
   endsAt: string;
   center: [number, number];
   gameOpen: boolean;
+  showTreasureLocations?: boolean;
   photoNotifications?: boolean;
 }
 export interface ActivityGroup {

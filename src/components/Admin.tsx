@@ -990,6 +990,7 @@ function SettingsForm({
             endsAt: fromLocalInput(String(fd.get("endsAt"))),
             center: [Number(fd.get("lat")), Number(fd.get("lng"))],
             photoNotifications: fd.get("photoNotifications") === "on",
+            showTreasureLocations: fd.get("showTreasureLocations") === "on",
           });
         }}
       >
@@ -1070,6 +1071,20 @@ function SettingsForm({
             />
           </label>
         </div>
+        <label className="check-label treasure-location-option">
+          <input
+            type="checkbox"
+            name="showTreasureLocations"
+            defaultChecked={settings.showTreasureLocations === true}
+            aria-describedby="treasure-location-help"
+            disabled={busy}
+          />
+          전체 보물 위치 공개
+        </label>
+        <p className="footnote" id="treasure-location-help">
+          켜면 모든 참가자의 지도에 아직 찾지 않은 보물 위치가 표시돼요. 누군가
+          찾으면 지도와 탐색 목록에서 바로 사라져요.
+        </p>
         <label className="check-label">
           <input
             type="checkbox"

@@ -92,6 +92,7 @@ export const settingsInput = z
       z.number().min(-180).max(180),
     ]),
     gameOpen: z.boolean(),
+    showTreasureLocations: z.boolean().optional(),
     photoNotifications: z.boolean().optional(),
   })
   .refine(

@@ -76,6 +76,48 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     adminToken = await redeem(adminCode);
     memberToken = await redeem(memberCode);
   }, 30000);
+  it("publishes treasure locations only while an admin enables the setting", async () => {
+    const before = (
+      await db.doc("workshops/main").get()
+    ).data() as WorkshopState;
+    const settings = { ...before.settings, showTreasureLocations: true };
+    const denied = await call(
+      "workshopAction",
+      { action: "saveSettings", settings },
+      memberToken,
+    );
+    expect(denied.status).not.toBe(200);
+    try {
+      for (const enabled of [true, false]) {
+        const result = await call(
+          "workshopAction",
+          {
+            action: "saveSettings",
+            settings: { ...settings, showTreasureLocations: enabled },
+          },
+          adminToken,
+        );
+        expect(result.status).toBe(200);
+        const visible = (await db.doc("workshops/participants").get()).data();
+        expect(visible.settings.showTreasureLocations).toBe(enabled);
+        for (const treasure of visible.treasures.filter(
+          (t: Treasure) => !t.foundBy,
+        )) {
+          expect("lat" in treasure).toBe(enabled);
+          expect("lng" in treasure).toBe(enabled);
+          expect(treasure).not.toHaveProperty("prizeAmount");
+          expect(treasure).not.toHaveProperty("outcome");
+        }
+      }
+    } finally {
+      const restored = await call(
+        "workshopAction",
+        { action: "saveSettings", settings: before.settings },
+        adminToken,
+      );
+      expect(restored.status).toBe(200);
+    }
+  });
   it("allows more than 30 valid arrivals on shared Wi-Fi", async () => {
     for (let i = 0; i < 32; i++)
       expect((await call("redeemInvite", { code: memberCode })).status).toBe(

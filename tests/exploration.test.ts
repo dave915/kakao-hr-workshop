@@ -8,6 +8,8 @@ import {
   hasCoordinates,
 } from "../shared/exploration";
 import { claimTreasure, distanceMeters } from "../shared/game";
+import { mutate } from "../shared/mutate";
+import { actionInput } from "../shared/validation";
 const now = Date.parse("2026-10-16T13:10:00+09:00");
 const point = (lat = 37.5445, lng = 127.0374) => ({
   lat,
@@ -39,6 +41,59 @@ describe("hint-led exploration", () => {
       "t1",
     ]);
     expect(view.treasures[0].foundBy).toBe("dave.h");
+  });
+  it("lets the committee reveal and hide locations without exposing prizes or outcomes", () => {
+    const state = makeSeed(true);
+    state.members["june.p"].role = "admin";
+    state.treasures[0].prizeAmount = 10000;
+    for (const enabled of [true, false]) {
+      mutate(
+        state,
+        demoSecrets,
+        "june.p",
+        actionInput.parse({
+          action: "saveSettings",
+          settings: { ...state.settings, showTreasureLocations: enabled },
+        }),
+        "settings",
+        now,
+      );
+      const view = participantView(state);
+      expect(view.settings.showTreasureLocations).toBe(enabled);
+      for (const treasure of view.treasures) {
+        expect(hasCoordinates(treasure)).toBe(enabled);
+        expect(treasure).not.toHaveProperty("prizeAmount");
+        expect(treasure).not.toHaveProperty("outcome");
+        expect(treasure).not.toHaveProperty("kind");
+        if (enabled) {
+          const original = state.treasures.find((t) => t.id === treasure.id)!;
+          expect(treasure).toMatchObject({
+            lat: original.lat,
+            lng: original.lng,
+          });
+        }
+      }
+    }
+    expect(state.treasures[0].prizeAmount).toBe(10000);
+  });
+  it("keeps legacy settings private and rejects participant changes to visibility", () => {
+    const state = makeSeed(true);
+    delete state.settings.showTreasureLocations;
+    expect(participantView(state).treasures.some(hasCoordinates)).toBe(false);
+    expect(() =>
+      mutate(
+        state,
+        demoSecrets,
+        "alex.k",
+        actionInput.parse({
+          action: "saveSettings",
+          settings: { ...state.settings, showTreasureLocations: true },
+        }),
+        "settings",
+        now,
+      ),
+    ).toThrow("추진위원회");
+    expect(participantView(state).treasures.some(hasCoordinates)).toBe(false);
   });
   it("returns north-up cardinal guidance without the exact target location or kind", () => {
     const state = makeSeed(true);

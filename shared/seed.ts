@@ -43,6 +43,7 @@ export function makeSeed(demo = false): WorkshopState {
       endsAt: "2026-10-16T18:00:00+09:00",
       center: [37.5445, 127.0374],
       gameOpen: demo,
+      showTreasureLocations: false,
       photoNotifications: true,
     },
     members,
