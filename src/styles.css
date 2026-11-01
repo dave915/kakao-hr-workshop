@@ -6343,7 +6343,7 @@ td .text-button {
 }
 .photo-comments-link {
   display: block;
-  min-height: 44px;
+  min-height: var(--ds-photo-comment-control-height);
   padding: 4px 0;
   font-size: 0.86rem;
   color: var(--muted);
@@ -6575,7 +6575,7 @@ td .text-button {
   flex: 1;
   min-width: 0;
   padding: var(--ds-photo-comment-preview-padding) 0;
-  min-height: var(--ds-photo-comment-control-height);
+  min-height: var(--ds-photo-comment-preview-control-height);
   text-align: left;
   font-size: var(--ds-photo-comment-preview-size);
   line-height: var(--ds-photo-comment-line-height);
@@ -6607,13 +6607,16 @@ td .text-button {
 .photo-comment-heart.is-liked {
   color: var(--ds-color-danger);
 }
-/* Compact comments: text, reactions and secondary actions share a 28px row. */
+/* Feed previews use tighter rows than the conversation's secondary controls. */
 .photo-comment-preview .photo-comment-heart,
-.photo-comment-preview .photo-comment-like-count,
+.photo-comment-preview .photo-comment-like-count {
+  min-height: var(--ds-photo-comment-preview-control-height);
+  padding-block: var(--ds-photo-comment-preview-padding);
+}
 .photo-comment-row .photo-comment-heart,
 .photo-comment-row .photo-comment-like-count {
   min-height: var(--ds-photo-comment-control-height);
-  padding-block: var(--ds-photo-comment-preview-padding);
+  padding-block: var(--ds-space-1);
 }
 .photo-comment-row {
   display: grid;

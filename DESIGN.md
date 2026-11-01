@@ -132,15 +132,17 @@ CSS 변수는 일반 미디어 쿼리 조건에 직접 넣지 않는다. 실제 
 | 작성자 헤더 세로 여백 기본 / 모바일     | `--ds-photo-header-padding-block` / `--ds-photo-header-padding-block-mobile` | 12 / 12px      |
 | 게시글 좋아요 수 최소 높이              | `--ds-photo-like-count-height`                                               | 28px           |
 | 모바일 헤더·본문 좌우 여백              | `--ds-photo-gutter-mobile`                                                   | 12px           |
-| 댓글 보조 버튼 최소 높이 / 폭           | `--ds-photo-comment-control-height` / `--ds-photo-comment-control-width`     | 28 / 44px      |
+| 댓글창 보조 버튼 최소 높이 / 폭         | `--ds-photo-comment-control-height` / `--ds-photo-comment-control-width`     | 28 / 44px      |
+| 피드 댓글 미리보기 최소 높이            | `--ds-photo-comment-preview-control-height`                                  | 24px           |
+| 피드 댓글 보기 링크 최소 높이           | `--ds-photo-comment-control-height`                                          | 28px           |
 | 댓글 아바타                             | `--ds-photo-comment-avatar-size`                                             | 28px           |
 | 댓글·답글 항목 세로 여백                | `--ds-photo-comment-padding-block`                                           | 4px            |
 | 댓글 본문·메타 가로 간격                | `--ds-photo-comment-gap`                                                     | 6px            |
 | 댓글 대화 영역 좌우 여백                | `--ds-photo-comment-gutter`                                                  | 16px           |
-| 미리보기 세로 padding / 줄 수           | `--ds-photo-comment-preview-padding` / `--ds-photo-comment-preview-lines`    | 2px / 최대 2줄 |
+| 미리보기 세로 padding / 줄 수           | `--ds-photo-comment-preview-padding` / `--ds-photo-comment-preview-lines`    | 0px / 최대 2줄 |
 | 답글 들여쓰기 기본 / 좁은 화면·미리보기 | `--ds-photo-reply-indent` / `--ds-photo-reply-indent-compact`                | 20 / 16px      |
 
-**28px는 게시글 좋아요 수·댓글 보조 동작의 밀도 예외다.** 게시글 좋아요 수와 댓글 본문 미리보기·하트·좋아요 수·답글·삭제·답글 펼치기에 적용한다. 닫기·사진 이동·댓글 게시·삭제 확인 등 주요 조작은 44px을 유지한다. 짧은 미리보기는 한 행 28px이고, 긴 댓글은 내용에 맞춰 높아진다.
+**24–28px는 사진 피드·댓글 보조 동작의 밀도 예외다.** 피드 미리보기의 본문·하트·좋아요 수는 24px이며, 세로 padding 없이 한 행에 맞춘다. 게시글 좋아요 수·댓글 보기 링크와 댓글창의 하트·좋아요 수·답글·삭제·답글 펼치기는 28px이다. 닫기·사진 이동·댓글 게시·삭제 확인 등 주요 조작은 44px을 유지한다. 미리보기는 긴 내용이나 큰 글자에 맞춰 높아지고 최대 두 줄을 표시한다.
 
 ## Elevation & Depth
 
@@ -241,7 +243,7 @@ CSS 변수는 일반 미디어 쿼리 조건에 직접 넣지 않는다. 실제 
 
 작성자 헤더의 위아래 padding은 12px로 사진 위에 여유를 둔다. 사진 아래 하트·댓글·확대 조작은 44px, 이어지는 좋아요 개수 줄은 28px로 구분해 개수 표시 위아래의 빈 공간을 줄인다.
 
-피드 댓글은 최소 높이 28px의 촘촘한 미리보기다. 댓글창은 본문·아바타·반응을 그리드로 배치하고, 시간·답글·삭제를 바로 아래 한 줄로 묶는다. 날짜를 매번 별도 줄로 밀어내거나 하트의 44px 높이로 모든 짧은 댓글을 벌리지 않는다. 좁은 화면에서는 필요한 경우만 줄바꿈한다.
+피드 댓글은 최소 높이 24px, 세로 padding 0px의 촘촘한 미리보기다. 바로 아래 댓글 보기 링크는 28px로 이어진다. 댓글창은 본문·아바타·반응을 그리드로 배치하고, 시간·답글·삭제를 바로 아래 한 줄로 묶는다. 날짜를 매번 별도 줄로 밀어내거나 하트의 44px 높이로 모든 짧은 댓글을 벌리지 않는다. 좁은 화면에서는 필요한 경우만 줄바꿈한다.
 
 댓글 목록 하나만 스크롤하고 입력창·답글 대상은 하단에 고정한다. visual viewport의 높이와 위치 변화에 대응하며, 공간이 부족하면 멘션 목록은 입력창 위에 열린다. 댓글·답글 초안과 답글 대상, 재시도 식별자는 참가자·워크샵 세대·게시글별로 현재 탭 세션에 저장한다. 전송 성공 후 지우고 저장소가 막힌 경우 실행 중 메모리를 사용한다.
 

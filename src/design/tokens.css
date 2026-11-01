@@ -162,7 +162,8 @@
   --ds-photo-comment-padding-block: var(--ds-space-2);
   --ds-photo-comment-gap: var(--ds-space-3);
   --ds-photo-comment-gutter: var(--ds-space-6);
-  --ds-photo-comment-preview-padding: var(--ds-space-1);
+  --ds-photo-comment-preview-control-height: 24px;
+  --ds-photo-comment-preview-padding: 0px;
   --ds-photo-comment-preview-size: 0.93rem;
   --ds-photo-comment-preview-lines: 2;
   --ds-photo-comment-line-height: 1.5;
