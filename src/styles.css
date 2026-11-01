@@ -2705,16 +2705,26 @@ td .text-button {
     font-size: 14px;
   }
   .sidebar {
-    display: none;
-  }
-  .sidebar.mobile-open {
-    display: flex;
     width: 240px;
     inset: var(--ds-measured-topbar-height, var(--ds-size-topbar)) auto
       calc(var(--ds-nav-reserved-space) - var(--ds-space-8)) 12px;
     padding: 25px 18px;
     box-shadow: var(--ds-shadow-modal);
     border-radius: var(--ds-radius-surface);
+    transform: translateX(calc(-100% - var(--ds-space-9)));
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      transform var(--ds-duration-sidebar-exit) var(--ds-ease-exit),
+      visibility 0s linear var(--ds-duration-sidebar-exit);
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+      transform var(--ds-duration-sidebar-enter) var(--ds-ease-sidebar-enter),
+      visibility 0s;
   }
   .sidebar-backdrop {
     display: block;
@@ -2723,6 +2733,20 @@ td .text-button {
     z-index: var(--ds-z-backdrop);
     background: var(--ds-color-scrim);
     touch-action: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity var(--ds-duration-sidebar-exit) var(--ds-ease-standard),
+      visibility 0s linear var(--ds-duration-sidebar-exit);
+  }
+  .mobile-menu-open .sidebar-backdrop {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+      opacity var(--ds-duration-sidebar-enter) var(--ds-ease-standard),
+      visibility 0s;
   }
   .sidebar-backdrop:active:not(:disabled) {
     transform: none;
@@ -2734,13 +2758,13 @@ td .text-button {
     position: fixed;
     inset: 0 0 auto;
   }
-  .sidebar.mobile-open .sidebar-note {
+  .sidebar .sidebar-note {
     display: none;
   }
-  .sidebar.mobile-open .sidebar-label {
+  .sidebar .sidebar-label {
     margin-top: 25px;
   }
-  .sidebar.mobile-open .sidebar-bottom {
+  .sidebar .sidebar-bottom {
     padding-top: 20px;
   }
   .main-shell {

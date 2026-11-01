@@ -232,6 +232,9 @@
   --ds-duration-fast: 120ms;
   --ds-duration-normal: 180ms;
   --ds-duration-panel: 240ms;
+  --ds-duration-sidebar-enter: 360ms;
+  --ds-duration-sidebar-exit: 240ms;
+  --ds-ease-sidebar-enter: cubic-bezier(0.22, 1, 0.36, 1);
   --ds-duration-selection: 320ms;
   --ds-ease-selection: cubic-bezier(0.22, 1.12, 0.36, 1);
   --ds-ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -304,6 +307,8 @@
     --ds-duration-fast: 0ms;
     --ds-duration-normal: 0ms;
     --ds-duration-panel: 0ms;
+    --ds-duration-sidebar-enter: 0ms;
+    --ds-duration-sidebar-exit: 0ms;
     --ds-duration-selection: 0ms;
   }
 }

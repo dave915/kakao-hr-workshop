@@ -341,14 +341,14 @@ export default function App() {
       >
         본문으로 건너뛰기
       </a>
-      {mobileMenu && (
-        <button
-          className="sidebar-backdrop"
-          aria-label="메뉴 닫기"
-          onClick={closeMobileMenu}
-          tabIndex={-1}
-        />
-      )}
+      <button
+        className="sidebar-backdrop"
+        aria-label="메뉴 닫기"
+        aria-hidden={!mobileMenu}
+        inert={!mobileMenu}
+        onClick={closeMobileMenu}
+        tabIndex={-1}
+      />
       <aside
         id="main-sidebar"
         role={mobileMenu ? "dialog" : undefined}

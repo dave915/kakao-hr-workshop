@@ -90,6 +90,16 @@
         "name": "photo-zoom",
         "value": "toggle 2x / max 4x",
         "purpose": "사진 감상 확대"
+      },
+      {
+        "name": "sidebar-enter",
+        "value": "360ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "모바일 왼쪽 사이드바 진입과 배경 scrim 표시"
+      },
+      {
+        "name": "sidebar-exit",
+        "value": "240ms cubic-bezier(0.4, 0, 1, 1)",
+        "purpose": "모바일 왼쪽 사이드바 퇴장. 닫힌 패널은 즉시 inert, 모션 감소에서는 0ms."
       }
     ],
     "breakpoints": [

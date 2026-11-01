@@ -21,6 +21,23 @@ export function useMobileMenu(enabled: boolean) {
   useOverlayHistory(close, open);
 
   useLayoutEffect(() => {
+    const sidebar = document.getElementById("main-sidebar");
+    if (!sidebar) return;
+    const mobile = window.matchMedia("(max-width: 760px)");
+    const update = () => {
+      // Keep the panel mounted for its exit animation, but immediately remove
+      // closed mobile controls from keyboard and assistive-technology access.
+      sidebar.inert = mobile.matches && !open;
+    };
+    update();
+    mobile.addEventListener("change", update);
+    return () => {
+      sidebar.inert = false;
+      mobile.removeEventListener("change", update);
+    };
+  }, [open, enabled]);
+
+  useLayoutEffect(() => {
     if (!open) return;
     const mobile = window.matchMedia("(max-width: 760px)");
     if (!enabled || !mobile.matches) {
