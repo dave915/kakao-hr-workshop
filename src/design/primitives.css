@@ -361,7 +361,6 @@
   width: calc((100% - 2 * var(--ds-space-2)) / 5);
   border-radius: var(--ds-radius-pill);
   background: var(--ds-glass-selected-bg);
-  background-image: var(--ds-glass-sheen);
   box-shadow: var(--ds-glass-selected-shadow);
   transform: translateX(calc(var(--ds-active-index, 0) * 100%));
   transition: transform var(--ds-duration-selection) var(--ds-ease-selection);
