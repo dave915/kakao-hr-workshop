@@ -28,8 +28,7 @@ import type {
   VisibleTreasure,
 } from "../../shared/types";
 import { errorMessage } from "../lib/utils";
-import { lockDocumentScroll } from "../lib/scroll-lock";
-import { openDialog } from "../lib/dialog-focus";
+import { useDialog } from "../hooks/useDialog";
 import { isCameraLive } from "../lib/camera";
 
 interface Props {
@@ -74,13 +73,11 @@ export default function Camera({
     stream.current = null;
     if (video.current) video.current.srcObject = null;
   };
+  useDialog(dialog, onClose);
   useEffect(() => {
-    const unlock = lockDocumentScroll();
-    openDialog(dialog.current);
     return () => {
       generation.current++;
       stopStream();
-      unlock();
     };
   }, []);
   useEffect(() => {

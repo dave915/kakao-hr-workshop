@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { lockDocumentScroll } from "../lib/scroll-lock";
+import { useOverlayHistory } from "./useOverlayHistory";
 
 /** Keep the document still while the mobile sidebar owns scrolling, including iOS. */
 export function useMobileMenu(enabled: boolean) {
@@ -16,6 +17,8 @@ export function useMobileMenu(enabled: boolean) {
     restoreFocus.current = false;
     close();
   }, [close]);
+
+  useOverlayHistory(close, open);
 
   useLayoutEffect(() => {
     if (!open) return;

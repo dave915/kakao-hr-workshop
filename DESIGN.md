@@ -217,7 +217,9 @@ CSS 변수는 일반 미디어 쿼리 조건에 직접 넣지 않는다. 실제 
 
 ### 포커스와 팝업
 
-`openDialog`로 모달을 열고 `data-dialog-title`, `tabIndex={-1}`인 정적 제목에 초기 포커스를 둔다. Drawer·큰 지도·보물 가이드·AR·사진 뷰어와 전체 메뉴가 이 규칙을 따른다. 키보드로 열고 닫을 때의 포커스 이동과 복귀, 배경 스크롤 잠금을 보존한다.
+`useDialog`가 `openDialog`로 모달을 열고 `data-dialog-title`, `tabIndex={-1}`인 정적 제목에 초기 포커스를 둔다. Drawer·큰 지도·보물 가이드·AR·사진 뷰어와 전체 메뉴가 이 규칙을 따른다. 키보드로 열고 닫을 때의 포커스 이동과 복귀, 배경 스크롤 잠금을 보존한다.
+
+`useOverlayHistory`로 다이얼로그·전체 메뉴·큰 나침반에 같은 URL의 방문 기록을 한 단계씩 추가한다. 아이폰 뒤로가기 제스처와 브라우저 뒤로가기는 가장 위의 창만 닫고 현재 페이지를 유지한다. 댓글 위의 좋아요 목록은 좋아요 → 댓글 → 사진첩 순서로, 큰 나침반은 나침반 → 큰 지도 → 보물 목록 순서로 돌아간다. 닫기 버튼·Escape·저장 완료로 닫을 때도 해당 기록을 정리하고, 저장 중 닫기 제한과 댓글 초안을 보존한다. 전체 메뉴에서 페이지를 선택하면 메뉴의 기록을 정리한 뒤 이동한다.
 
 `useInputModality`가 터치/마우스와 키보드를 구분한다. 터치로 열기·복귀·사진 넘기기에서 자동으로 붙는 버튼 테두리는 표시하지 않는다. 키보드 이동에는 3px outline과 3px offset을 사용하며, 편집 중인 입력 필드와 강제 색상 모드의 표시는 유지한다. 정적 제목만 outline을 생략한다. `blur()`로 포커스를 지우거나 모든 컨트롤의 outline을 전역 제거하지 않는다.
 
@@ -253,13 +255,13 @@ import "./design/primitives.css";
 
 `tokens.css`는 표면·크기, `motion-tokens.ts`는 JavaScript가 소비하는 동작 값의 원본이다. 모션 수치를 CSS에 따로 복제하지 않는다. `--ds-indicator-x`, `--ds-lens-reveal`, `--ds-face-*`, `--ds-measured-*`는 런타임 상태/측정값이므로 테마 토큰처럼 직접 설정하지 않는다.
 
-| 구현                                                                                              | 책임                                   |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `App`, `useNavigationInsets`                                                                      | 화면 구조, 탐색, 고정 영역의 실제 높이 |
-| `MobileTabBar`, `liquid-tab-motion`, `FilledNavigationIcon`                                       | 선택 상태, 렌즈·제스처, 채움형 아이콘  |
-| `openDialog`, `useInputModality`, `useMobileMenu`                                                 | 초기 포커스·입력 방식·모바일 메뉴      |
-| `TreasureMap`, `ExplorationDialog`, `DirectionCompass`, `DirectionFocus`, `CompassDial`, `Camera` | 지도·나침반·AR의 공통 디자인           |
-| `PhotoBoard`, `PhotoFeedPost`, `PhotoComments`, `PhotoViewer`                                     | 피드·댓글 밀도·초안·사진 감상          |
+| 구현                                                                                              | 책임                                       |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `App`, `useNavigationInsets`                                                                      | 화면 구조, 탐색, 고정 영역의 실제 높이     |
+| `MobileTabBar`, `liquid-tab-motion`, `FilledNavigationIcon`                                       | 선택 상태, 렌즈·제스처, 채움형 아이콘      |
+| `useDialog`, `useOverlayHistory`, `useInputModality`, `useMobileMenu`                             | 뒤로가기·초기 포커스·입력 방식·모바일 메뉴 |
+| `TreasureMap`, `ExplorationDialog`, `DirectionCompass`, `DirectionFocus`, `CompassDial`, `Camera` | 지도·나침반·AR의 공통 디자인               |
+| `PhotoBoard`, `PhotoFeedPost`, `PhotoComments`, `PhotoViewer`                                     | 피드·댓글 밀도·초안·사진 감상              |
 
 확인할 항목은 정지/누름/드래그/취소/복원, 터치·키보드, 짧고 긴 댓글, 로딩·빈 상태·오류, 큰 글자, 320px 화면, 가로 화면, 모션/투명도 감소·강제 색상이다. 스프링·확대 값 변경 시 `liquid-tab-motion`과 `photo-viewer-geometry` 테스트 및 실제 브라우저 흐름을 확인한다. 브라우저 에뮬레이션과 실기기 검증을 구분해 기록한다.
 

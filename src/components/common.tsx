@@ -1,7 +1,6 @@
 import { ArrowUpRight, Sparkles, X } from "lucide-react";
 import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
-import { lockDocumentScroll } from "../lib/scroll-lock";
-import { openDialog } from "../lib/dialog-focus";
+import { useDialog } from "../hooks/useDialog";
 export function SectionTitle({
   eyebrow,
   title,
@@ -85,15 +84,7 @@ export function Drawer({
       window.removeEventListener("resize", update);
     };
   }, [fitViewport]);
-  useLayoutEffect(() => {
-    const d = ref.current;
-    const unlock = lockDocumentScroll();
-    openDialog(d);
-    return () => {
-      d?.close();
-      unlock();
-    };
-  }, []);
+  useDialog(ref, onClose);
   return (
     <dialog
       ref={ref}

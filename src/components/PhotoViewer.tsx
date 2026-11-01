@@ -8,8 +8,7 @@ import {
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from "lucide-react";
 import type { PhotoPost } from "../../shared/photos";
 import { englishName } from "../lib/utils";
-import { lockDocumentScroll } from "../lib/scroll-lock";
-import { openDialog } from "../lib/dialog-focus";
+import { useDialog } from "../hooks/useDialog";
 import {
   PHOTO_FIT,
   clampPhotoTransform,
@@ -43,15 +42,7 @@ export default function PhotoViewer({
   });
   const lastTap = useRef(0);
 
-  useLayoutEffect(() => {
-    const node = dialog.current;
-    const unlock = lockDocumentScroll();
-    openDialog(node);
-    return () => {
-      node?.close();
-      unlock();
-    };
-  }, []);
+  useDialog(dialog, onClose);
 
   function update(value: PhotoTransform) {
     const box = stage.current?.getBoundingClientRect();

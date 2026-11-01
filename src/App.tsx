@@ -46,6 +46,7 @@ import type { Page } from "../shared/types";
 import { useMobileMenu } from "./hooks/useMobileMenu";
 import { useNavigationInsets } from "./hooks/useNavigationInsets";
 import { useInputModality } from "./hooks/useInputModality";
+import { overlayHistory } from "./lib/overlay-history";
 const Treasure = lazy(() => import("./components/Treasure"));
 const Admin = lazy(() => import("./components/Admin"));
 const PhotoBoard = lazy(() => import("./components/PhotoBoard"));
@@ -118,12 +119,14 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(""), 6000);
   };
   const navigate = (target: Page, eventId?: string) => {
-    location.hash = `/${target}${target === "timeline" && eventId ? `?event=${encodeURIComponent(eventId)}` : ""}`;
     closeMenuForNavigation();
-    requestAnimationFrame(() =>
-      document.getElementById("main-content")?.focus({ preventScroll: true }),
-    );
-    window.scrollTo({ top: 0, behavior: "instant" });
+    overlayHistory().afterClose(() => {
+      location.hash = `/${target}${target === "timeline" && eventId ? `?event=${encodeURIComponent(eventId)}` : ""}`;
+      requestAnimationFrame(() =>
+        document.getElementById("main-content")?.focus({ preventScroll: true }),
+      );
+      window.scrollTo({ top: 0, behavior: "instant" });
+    });
   };
   useEffect(() => {
     const change = () => setOnline(navigator.onLine);

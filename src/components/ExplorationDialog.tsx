@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
-import { lockDocumentScroll } from "../lib/scroll-lock";
-import { openDialog } from "../lib/dialog-focus";
+import { useRef, type ReactNode } from "react";
+import { useDialog } from "../hooks/useDialog";
+import { useOverlayHistory } from "../hooks/useOverlayHistory";
 import { ArrowLeft, NotebookPen } from "lucide-react";
 export default function ExplorationDialog({
   children,
@@ -16,15 +16,8 @@ export default function ExplorationDialog({
   onMap?: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  useLayoutEffect(() => {
-    const d = ref.current;
-    const unlock = lockDocumentScroll();
-    openDialog(d);
-    return () => {
-      d?.close();
-      unlock();
-    };
-  }, []);
+  useDialog(ref, onClose);
+  useOverlayHistory(onMap ?? onClose, directionMode);
   return (
     <dialog
       ref={ref}

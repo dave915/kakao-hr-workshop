@@ -1,7 +1,6 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUpRight, X } from "lucide-react";
-import { lockDocumentScroll } from "../lib/scroll-lock";
-import { openDialog } from "../lib/dialog-focus";
+import { useDialog } from "../hooks/useDialog";
 
 const videoUrl = `${import.meta.env.BASE_URL}guides/treasure-hunt-v1.mp4`;
 const posterUrl = `${import.meta.env.BASE_URL}guides/treasure-hunt-v1.webp`;
@@ -13,18 +12,14 @@ export default function TreasureTutorial({ onClose }: { onClose: () => void }) {
   const summaryId = useId();
   const [failed, setFailed] = useState(false);
 
+  useDialog(dialog, onClose);
   useLayoutEffect(() => {
-    const element = dialog.current;
     const player = video.current;
-    const unlock = lockDocumentScroll();
-    openDialog(element);
     void player?.play().catch(() => {
       // Native playback controls remain available if autoplay is blocked.
     });
     return () => {
       player?.pause();
-      element?.close();
-      unlock();
     };
   }, []);
 
