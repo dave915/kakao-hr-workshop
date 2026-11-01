@@ -45,6 +45,7 @@ import { useUnreadNotices } from "./lib/notice-read";
 import type { Page } from "../shared/types";
 import { useMobileMenu } from "./hooks/useMobileMenu";
 import { useNavigationInsets } from "./hooks/useNavigationInsets";
+import { useInputModality } from "./hooks/useInputModality";
 const Treasure = lazy(() => import("./components/Treasure"));
 const Admin = lazy(() => import("./components/Admin"));
 const PhotoBoard = lazy(() => import("./components/PhotoBoard"));
@@ -72,6 +73,7 @@ const pageFromHash = (): Page => {
   return p in pageNames ? p : "home";
 };
 export default function App() {
+  useInputModality();
   const {
     state,
     me,
@@ -354,6 +356,11 @@ export default function App() {
         aria-label={mobileMenu ? "전체 메뉴" : undefined}
         className={`sidebar ${mobileMenu ? "mobile-open" : ""}`}
       >
+        {mobileMenu && (
+          <span className="sr-only" data-dialog-title tabIndex={-1}>
+            전체 메뉴
+          </span>
+        )}
         <a
           className="wordmark"
           href="#/home"

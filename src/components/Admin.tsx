@@ -718,7 +718,6 @@ export default function Admin({ notify }: { notify: Notify }) {
                 pattern="[a-z0-9._\-]+"
                 placeholder="예: dave.h"
                 autoCapitalize="off"
-                autoFocus
               />
             </label>
             <label>

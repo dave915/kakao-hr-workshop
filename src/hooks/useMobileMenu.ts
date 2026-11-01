@@ -46,7 +46,9 @@ export function useMobileMenu(enabled: boolean) {
           'a[href], button:not(:disabled), [tabindex="0"]',
         ) ?? [],
       ).filter((element) => element.getClientRects().length > 0);
-    items()[0]?.focus();
+    sidebar
+      ?.querySelector<HTMLElement>("[data-dialog-title]")
+      ?.focus({ preventScroll: true });
     const resize = () => {
       if (!mobile.matches) close();
     };
@@ -64,7 +66,7 @@ export function useMobileMenu(enabled: boolean) {
           return;
         }
         if (
-          !sidebar?.contains(document.activeElement) ||
+          !focusable.includes(document.activeElement as HTMLElement) ||
           (event.shiftKey
             ? document.activeElement === first
             : document.activeElement === last)

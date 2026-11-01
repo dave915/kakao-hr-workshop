@@ -1,6 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUpRight, X } from "lucide-react";
 import { lockDocumentScroll } from "../lib/scroll-lock";
+import { openDialog } from "../lib/dialog-focus";
 
 const videoUrl = `${import.meta.env.BASE_URL}guides/treasure-hunt-v1.mp4`;
 const posterUrl = `${import.meta.env.BASE_URL}guides/treasure-hunt-v1.webp`;
@@ -16,7 +17,7 @@ export default function TreasureTutorial({ onClose }: { onClose: () => void }) {
     const element = dialog.current;
     const player = video.current;
     const unlock = lockDocumentScroll();
-    element?.showModal();
+    openDialog(element);
     void player?.play().catch(() => {
       // Native playback controls remain available if autoplay is blocked.
     });
@@ -42,7 +43,9 @@ export default function TreasureTutorial({ onClose }: { onClose: () => void }) {
       }}
     >
       <header className="treasure-tutorial-header">
-        <h2 id={titleId}>보물 찾는 방법</h2>
+        <h2 id={titleId} data-dialog-title tabIndex={-1}>
+          보물 찾는 방법
+        </h2>
         <button
           className="ds-icon-button ds-glass"
           onClick={onClose}

@@ -20,11 +20,14 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.ds-button:focus-visible,
-.ds-icon-button:focus-visible,
-.ds-tab:focus-visible,
-.ds-input:focus-visible,
-.ds-link:focus-visible {
+.ds-button:is(:focus-visible, :focus:where([data-input-modality="keyboard"] *)),
+.ds-icon-button:is(
+  :focus-visible,
+  :focus:where([data-input-modality="keyboard"] *)
+),
+.ds-tab:is(:focus-visible, :focus:where([data-input-modality="keyboard"] *)),
+.ds-input:is(:focus-visible, :focus:where([data-input-modality="keyboard"] *)),
+.ds-link:is(:focus-visible, :focus:where([data-input-modality="keyboard"] *)) {
   outline: var(--ds-focus-width) solid var(--ds-color-focus);
   outline-offset: var(--ds-focus-offset);
 }
@@ -96,6 +99,23 @@
 }
 .ds-button[aria-busy="true"] {
   cursor: progress;
+}
+
+/* Scripted focus/restoration on touch browsers can match :focus-visible.
+ * Keep controls quiet for pointer input, without blurring them or hiding the
+ * active text field. Keyboard input immediately restores the normal focus ring.
+ * Forced-color users retain the browser's explicit focus and selection cues.
+ */
+@media not (forced-colors: active) {
+  :root[data-input-modality="pointer"]
+    :is(button, a, summary, [role="button"], [tabindex]):not(
+      input,
+      textarea,
+      select,
+      [contenteditable]
+    ):focus-visible {
+    outline: none;
+  }
 }
 
 /* Apply to the shared group OR its single button; never nest glass surfaces. */
@@ -306,7 +326,7 @@
   color: var(--ds-color-text-secondary);
   opacity: 1;
 }
-.ds-input:focus-visible {
+.ds-input:is(:focus-visible, :focus:where([data-input-modality="keyboard"] *)) {
   border-color: var(--ds-color-focus);
 }
 .ds-input[aria-invalid="true"] {
@@ -357,7 +377,11 @@
     outline: 2px solid Highlight;
     outline-offset: -3px;
   }
-  .ds-tabbar .ds-tab:focus-visible {
+  .ds-tabbar
+    .ds-tab:is(
+      :focus-visible,
+      :focus:where([data-input-modality="keyboard"] *)
+    ) {
     outline: var(--ds-focus-width) solid Highlight;
     outline-offset: var(--ds-focus-offset);
   }

@@ -72,11 +72,11 @@ a {
 a {
   color: inherit;
 }
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
+button:is(:focus-visible, :focus:where([data-input-modality="keyboard"] *)),
+a:is(:focus-visible, :focus:where([data-input-modality="keyboard"] *)),
+input:is(:focus-visible, :focus:where([data-input-modality="keyboard"] *)),
+select:is(:focus-visible, :focus:where([data-input-modality="keyboard"] *)),
+textarea:is(:focus-visible, :focus:where([data-input-modality="keyboard"] *)) {
   outline: var(--ds-focus-width) solid var(--ds-color-focus);
   outline-offset: var(--ds-focus-offset);
 }
@@ -1940,8 +1940,8 @@ main {
 .drawer-header h2 {
   font-size: 23px;
 }
-/* The title is the initial reading position, not an interactive control. */
-.drawer-header h2[tabindex="-1"]:focus {
+/* Static titles announce modal context and are not interactive controls. */
+[data-dialog-title]:focus {
   outline: none;
 }
 .form-stack {
@@ -2075,7 +2075,11 @@ main {
   font-size: 13px;
 }
 .prize-art-preview-grid > button:hover,
-.prize-art-preview-grid > button:focus-visible {
+.prize-art-preview-grid
+  > button:is(
+    :focus-visible,
+    :focus:where([data-input-modality="keyboard"] *)
+  ) {
   background: var(--ds-color-selected);
 }
 @media (max-width: 760px) {
@@ -4321,7 +4325,10 @@ td .text-button {
   opacity: 1;
   cursor: default;
 }
-.ar-treasure:focus-visible {
+.ar-treasure:is(
+  :focus-visible,
+  :focus:where([data-input-modality="keyboard"] *)
+) {
   outline: 3px solid #f9df38;
   outline-offset: 4px;
   border-radius: 12px;
@@ -5471,7 +5478,10 @@ td .text-button {
   }
 }
 
-.compass-expand-hit:focus-visible {
+.compass-expand-hit:is(
+  :focus-visible,
+  :focus:where([data-input-modality="keyboard"] *)
+) {
   outline: var(--ds-focus-width) solid var(--ds-color-focus);
   outline-offset: var(--ds-focus-offset);
 }
@@ -5904,7 +5914,10 @@ td .text-button {
 .photo-slide:hover:not(:disabled) {
   filter: none;
 }
-.photo-slide:focus-visible {
+.photo-slide:is(
+  :focus-visible,
+  :focus:where([data-input-modality="keyboard"] *)
+) {
   outline-offset: -4px;
 }
 .photo-image {
@@ -6829,7 +6842,10 @@ td .text-button {
   font-size: var(--ds-font-size-caption);
 }
 button.prize-stock-item:not(:disabled):hover,
-button.prize-stock-item:not(:disabled):focus-visible {
+button.prize-stock-item:not(:disabled):is(
+    :focus-visible,
+    :focus:where([data-input-modality="keyboard"] *)
+  ) {
   border-color: var(--ds-color-action);
   background: var(--ds-color-selected);
 }
@@ -7277,7 +7293,10 @@ button.prize-stock-item:not(:disabled):focus-visible {
   padding: 16px 20px;
   scroll-padding: 16px;
 }
-.photo-conversation-scroll:focus-visible {
+.photo-conversation-scroll:is(
+  :focus-visible,
+  :focus:where([data-input-modality="keyboard"] *)
+) {
   outline: 2px solid var(--ds-color-focus);
   outline-offset: -3px;
 }

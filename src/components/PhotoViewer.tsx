@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from "lucide-react";
 import type { PhotoPost } from "../../shared/photos";
 import { englishName } from "../lib/utils";
 import { lockDocumentScroll } from "../lib/scroll-lock";
+import { openDialog } from "../lib/dialog-focus";
 import {
   PHOTO_FIT,
   clampPhotoTransform,
@@ -44,7 +45,7 @@ export default function PhotoViewer({
   useLayoutEffect(() => {
     const node = dialog.current;
     const unlock = lockDocumentScroll();
-    node?.showModal();
+    openDialog(node);
     return () => {
       node?.close();
       unlock();
@@ -224,7 +225,9 @@ export default function PhotoViewer({
       }}
     >
       <header className="photo-lightbox-header">
-        <h2 id={titleId}>{englishName(post.authorHandle)}의 순간</h2>
+        <h2 id={titleId} data-dialog-title tabIndex={-1}>
+          {englishName(post.authorHandle)}의 순간
+        </h2>
         <div className="ds-control-group ds-glass">
           <button
             className="ds-icon-button"

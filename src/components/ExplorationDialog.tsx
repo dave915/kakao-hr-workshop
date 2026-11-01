@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { lockDocumentScroll } from "../lib/scroll-lock";
+import { openDialog } from "../lib/dialog-focus";
 import { ArrowLeft, NotebookPen } from "lucide-react";
 export default function ExplorationDialog({
   children,
@@ -18,7 +19,7 @@ export default function ExplorationDialog({
   useLayoutEffect(() => {
     const d = ref.current;
     const unlock = lockDocumentScroll();
-    d?.showModal();
+    openDialog(d);
     return () => {
       d?.close();
       unlock();
@@ -47,7 +48,9 @@ export default function ExplorationDialog({
         </button>
         <div>
           <span>{directionMode ? "FOLLOW THE DIRECTION" : "EXPLORE MODE"}</span>
-          <strong>{title}</strong>
+          <strong data-dialog-title tabIndex={-1}>
+            {title}
+          </strong>
         </div>
         <button
           className="text-button exploration-list-control ds-glass"

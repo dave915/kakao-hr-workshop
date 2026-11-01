@@ -1,6 +1,7 @@
 import { ArrowUpRight, Sparkles, X } from "lucide-react";
 import { useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { lockDocumentScroll } from "../lib/scroll-lock";
+import { openDialog } from "../lib/dialog-focus";
 export function SectionTitle({
   eyebrow,
   title,
@@ -59,7 +60,6 @@ export function Drawer({
   fitViewport?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const heading = useRef<HTMLHeadingElement>(null);
   const titleId = useId();
   useLayoutEffect(() => {
     if (!fitViewport) return;
@@ -88,10 +88,7 @@ export function Drawer({
   useLayoutEffect(() => {
     const d = ref.current;
     const unlock = lockDocumentScroll();
-    d?.showModal();
-    // Start at the static title, not the close button. This avoids an automatic
-    // focus ring on touch-open while keeping Tab navigation and focus restoration.
-    heading.current?.focus({ preventScroll: true });
+    openDialog(d);
     return () => {
       d?.close();
       unlock();
@@ -112,7 +109,7 @@ export function Drawer({
     >
       <div className="drawer-content">
         <div className="drawer-header">
-          <h2 id={titleId} ref={heading} tabIndex={-1}>
+          <h2 id={titleId} data-dialog-title tabIndex={-1}>
             {title}
           </h2>
           <button

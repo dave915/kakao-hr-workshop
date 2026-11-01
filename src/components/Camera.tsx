@@ -29,6 +29,7 @@ import type {
 } from "../../shared/types";
 import { errorMessage } from "../lib/utils";
 import { lockDocumentScroll } from "../lib/scroll-lock";
+import { openDialog } from "../lib/dialog-focus";
 import { isCameraLive } from "../lib/camera";
 
 interface Props {
@@ -75,7 +76,7 @@ export default function Camera({
   };
   useEffect(() => {
     const unlock = lockDocumentScroll();
-    dialog.current?.showModal();
+    openDialog(dialog.current);
     return () => {
       generation.current++;
       stopStream();
@@ -308,7 +309,9 @@ export default function Camera({
       <header className="ar-header">
         <div>
           <span>LOCATION AR</span>
-          <strong>{treasure.name}</strong>
+          <strong data-dialog-title tabIndex={-1}>
+            {treasure.name}
+          </strong>
         </div>
         <button
           className="ds-icon-button ds-glass"
