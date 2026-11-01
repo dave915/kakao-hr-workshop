@@ -2,6 +2,7 @@
 export const liquidTabMotionTokens = {
   follow: { stiffness: 1800, damping: 70 },
   settle: { stiffness: 620, damping: 42 },
+  selectionTiming: { extraScalePerTab: 0.4, maxScale: 2.2 },
   lift: { stiffness: 800, damping: 48 },
   railExpansion: 0.04,
   contentMagnification: 0.22,

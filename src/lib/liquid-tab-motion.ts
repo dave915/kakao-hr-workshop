@@ -4,6 +4,7 @@ export type LiquidTabMotion = {
   x: number;
   target: number;
   velocity: number;
+  selectionScale: number;
   lift: number;
   liftVelocity: number;
   sx: number;
@@ -18,6 +19,21 @@ export type LiquidTabBounds = {
   viewportWidth: number;
 };
 
+/** Keep one timing scale for the whole trip, including pointer release. */
+export function targetLiquidTab(
+  state: LiquidTabMotion,
+  target: number,
+  step: number,
+) {
+  if (state.target === target) return;
+  const distance = Math.abs(target - state.x) / Math.max(1, step);
+  state.selectionScale = Math.min(
+    tokens.selectionTiming.maxScale,
+    1 + Math.max(0, distance - 1) * tokens.selectionTiming.extraScalePerTab,
+  );
+  state.target = target;
+}
+
 /** Press lifts the lens; movement briefly broadens it. Release flattens it. */
 export function advanceLiquidTab(
   state: LiquidTabMotion,
@@ -25,6 +41,7 @@ export function advanceLiquidTab(
   pressed: boolean,
   reduced: boolean,
   elapsed: number,
+  dragging = false,
 ) {
   if (reduced) {
     state.x = state.target;
@@ -36,12 +53,15 @@ export function advanceLiquidTab(
   const steps = Math.max(1, Math.ceil(dt * 120)),
     h = dt / steps;
   const liftTarget = pressed ? 1 : 0;
-  const spring = pressed ? tokens.follow : tokens.settle;
+  const spring = dragging ? tokens.follow : tokens.settle;
+  const scale = dragging ? 1 : state.selectionScale;
+  // Time-scale both coefficients to preserve damping while giving longer taps
+  // more travel time. Only actual dragging uses the fast pointer-follow spring.
+  const stiffness = spring.stiffness / (scale * scale);
+  const damping = spring.damping / scale;
   for (let i = 0; i < steps; i++) {
     state.velocity +=
-      ((state.target - state.x) * spring.stiffness -
-        state.velocity * spring.damping) *
-      h;
+      ((state.target - state.x) * stiffness - state.velocity * damping) * h;
     state.x += state.velocity * h;
     state.liftVelocity +=
       ((liftTarget - state.lift) * tokens.lift.stiffness -

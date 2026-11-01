@@ -7,7 +7,7 @@ import {
 } from "react";
 import type { LucideIcon } from "lucide-react";
 import type { Page } from "../../shared/types";
-import { advanceLiquidTab } from "../lib/liquid-tab-motion";
+import { advanceLiquidTab, targetLiquidTab } from "../lib/liquid-tab-motion";
 import FilledNavigationIcon from "./FilledNavigationIcon";
 import { liquidTabMotionTokens as tabMotion } from "../design/motion-tokens";
 
@@ -55,6 +55,7 @@ export default function MobileTabBar({
     x: 0,
     target: 0,
     velocity: 0,
+    selectionScale: 1,
     sx: 1,
     sy: 1,
     lift: 0,
@@ -113,6 +114,7 @@ export default function MobileTabBar({
       Boolean(gesture.current),
       reduced.current,
       dt,
+      Boolean(gesture.current?.dragging),
     );
     paint();
     if (moving) state.frame = requestAnimationFrame(tick);
@@ -149,10 +151,13 @@ export default function MobileTabBar({
     if (!gesture.current) return;
     blockClick.current = true;
     endGesture();
-    motion.current.target =
+    targetLiquidTab(
+      motion.current,
       activeRef.current < 0
         ? motion.current.x
-        : activeRef.current * geometry.current.step;
+        : activeRef.current * geometry.current.step,
+      geometry.current.step,
+    );
     animate();
   }
   useLayoutEffect(() => {
@@ -189,6 +194,7 @@ export default function MobileTabBar({
       const state = motion.current;
       state.x = state.target = Math.max(0, activeRef.current) * step;
       state.velocity = 0;
+      state.selectionScale = 1;
       state.sx = state.sy = 1;
       state.lift = state.liftVelocity = 0;
       nav.style.setProperty("--ds-tab-step", `${step}px`);
@@ -239,7 +245,11 @@ export default function MobileTabBar({
   }, [navRef, items.length]);
   useLayoutEffect(() => {
     endGesture();
-    motion.current.target = Math.max(0, active) * geometry.current.step;
+    targetLiquidTab(
+      motion.current,
+      Math.max(0, active) * geometry.current.step,
+      geometry.current.step,
+    );
     animate();
   }, [active]);
 
@@ -265,9 +275,12 @@ export default function MobileTabBar({
           .tabIndex ?? -1,
       ),
     };
-    motion.current.target =
+    targetLiquidTab(
+      motion.current,
       Math.round(position(event.clientX) / geometry.current.step) *
-      geometry.current.step;
+        geometry.current.step,
+      geometry.current.step,
+    );
     if (activeRef.current < 0) {
       motion.current.x = motion.current.target;
       motion.current.velocity = 0;
@@ -293,6 +306,7 @@ export default function MobileTabBar({
       }
       if (Math.abs(dx) < tabMotion.gesture.dragThresholdPx) return;
       current.dragging = true;
+      motion.current.selectionScale = 1;
       event.currentTarget.setPointerCapture(event.pointerId);
       event.currentTarget.dataset.dragging = "true";
       if (indicator.current) indicator.current.hidden = false;
@@ -331,7 +345,7 @@ export default function MobileTabBar({
     }
     blockClick.current = true;
     endGesture(false);
-    motion.current.target = index * bounds.step;
+    targetLiquidTab(motion.current, index * bounds.step, bounds.step);
     if (indicator.current) indicator.current.hidden = false;
     if (lens.current) lens.current.hidden = false;
     animate();

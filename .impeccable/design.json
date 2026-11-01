@@ -64,7 +64,12 @@
       {
         "name": "tab-settle",
         "value": "stiffness 620 / damping 42",
-        "purpose": "놓은 뒤 위치 안착"
+        "purpose": "탭 선택 이동·놓은 뒤 위치 안착"
+      },
+      {
+        "name": "tab-selection-timing",
+        "value": "extra scale per tab 0.4 / max scale 2.2",
+        "purpose": "먼 탭을 누를수록 이동 시간을 늘린다. 실제 드래그는 빠른 추종을 유지한다."
       },
       {
         "name": "tab-lift",
