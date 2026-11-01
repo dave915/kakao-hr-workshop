@@ -8,6 +8,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { Page } from "../../shared/types";
 import { advanceLiquidTab } from "../lib/liquid-tab-motion";
+import FilledNavigationIcon from "./FilledNavigationIcon";
 
 type Tab = { id: Page; short: string; icon: LucideIcon };
 type Gesture = {
@@ -373,7 +374,7 @@ export default function MobileTabBar({
         <span className="ds-tab-lens-content">
           {items.map((tab) => (
             <span key={tab.id} className="ds-tab-lens-item">
-              <tab.icon size={22} aria-hidden="true" />
+              <FilledNavigationIcon page={tab.id} fallback={tab.icon} />
               <span>{tab.short}</span>
             </span>
           ))}
@@ -388,7 +389,18 @@ export default function MobileTabBar({
           aria-current={page === tab.id ? "page" : undefined}
         >
           <span className="ds-tab-face">
-            <tab.icon size={22} aria-hidden="true" />
+            <span className="ds-tab-symbol" aria-hidden="true">
+              <tab.icon
+                className="ds-tab-outline"
+                size={22}
+                aria-hidden="true"
+              />
+              <FilledNavigationIcon
+                className="ds-tab-filled"
+                page={tab.id}
+                fallback={tab.icon}
+              />
+            </span>
             <span>{tab.short}</span>
           </span>
         </button>

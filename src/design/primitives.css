@@ -341,6 +341,30 @@
 .ds-tabbar[data-draggable] .ds-tab[aria-current="page"] {
   font-weight: 700;
 }
+.ds-tab-symbol {
+  display: grid;
+  width: var(--ds-size-icon-nav);
+  height: var(--ds-size-icon-nav);
+  flex-shrink: 0;
+}
+.ds-tab-symbol svg {
+  grid-area: 1 / 1;
+}
+.ds-tab-symbol .ds-tab-filled {
+  display: none;
+}
+.ds-tab[aria-current="page"] .ds-tab-outline {
+  display: none;
+}
+.ds-tab[aria-current="page"] .ds-tab-filled {
+  display: block;
+}
+.ds-tabbar[data-pressed] .ds-tab .ds-tab-outline {
+  display: block;
+}
+.ds-tabbar[data-pressed] .ds-tab .ds-tab-filled {
+  display: none;
+}
 .ds-tabbar[data-draggable] .ds-tab[aria-current="page"] svg {
   stroke-width: 2.4;
 }
