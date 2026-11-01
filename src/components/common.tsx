@@ -81,7 +81,11 @@ export function Drawer({
       <div className="drawer-content">
         <div className="drawer-header">
           <h2 id={titleId}>{title}</h2>
-          <button className="icon-button" onClick={onClose} aria-label="닫기">
+          <button
+            className="ds-icon-button ds-glass"
+            onClick={onClose}
+            aria-label="닫기"
+          >
             <X size={22} />
           </button>
         </div>

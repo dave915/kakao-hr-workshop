@@ -44,7 +44,7 @@ export default function TreasureTutorial({ onClose }: { onClose: () => void }) {
       <header className="treasure-tutorial-header">
         <h2 id={titleId}>보물 찾는 방법</h2>
         <button
-          className="icon-button"
+          className="ds-icon-button ds-glass"
           onClick={onClose}
           aria-label="가이드 닫기"
         >

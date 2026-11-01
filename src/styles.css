@@ -1676,27 +1676,15 @@ main {
   max-width: 75%;
   overflow: hidden;
 }
-.map-tools {
+.map-container .map-tools {
   position: absolute;
   right: 15px;
   top: 17px;
   z-index: 500;
   display: flex;
   flex-direction: column;
-  background: var(--ds-color-surface);
-  border: 1px solid var(--ds-color-border);
-  border-radius: 7px;
-  overflow: hidden;
-}
-.map-tools button {
-  width: 43px;
-  height: 43px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.map-tools button + button {
-  border-top: 1px solid var(--ds-color-border);
+  padding: var(--ds-space-1);
+  border-radius: var(--ds-radius-pill);
 }
 .map-legend {
   display: flex;
@@ -3212,13 +3200,9 @@ td .text-button {
     padding: 7px 9px;
     max-width: 74%;
   }
-  .map-tools {
+  .map-container .map-tools {
     right: 10px;
     top: 11px;
-  }
-  .map-tools button {
-    width: 40px;
-    height: 42px;
   }
   .map-legend {
     left: 10px;
@@ -3903,6 +3887,17 @@ td .text-button {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.focus-map-header .exploration-list-control {
+  flex-shrink: 0;
+  padding-inline: var(--ds-space-5);
+  border-radius: var(--ds-radius-pill);
+}
+.exploration-list-control:hover:not(:disabled) {
+  background-color: var(--ds-glass-bg-hover);
+}
+.exploration-list-control:active:not(:disabled) {
+  background-color: var(--ds-glass-bg-pressed);
+}
 .focus-map-area {
   flex: 1;
   min-height: 180px;
@@ -4170,7 +4165,7 @@ td .text-button {
   }
 }
 
-/* Outdoor location AR uses the existing expedition palette and type. */
+/* Camera content keeps its own contrast; the surrounding controls use the UI system. */
 .ar-guide-button {
   width: 100%;
   margin-top: 12px;
@@ -4227,7 +4222,7 @@ td .text-button {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ar-header .icon-button {
+.ar-header .ds-icon-button {
   flex-shrink: 0;
   width: 44px;
   height: 44px;
@@ -4237,7 +4232,7 @@ td .text-button {
   flex: 1;
   min-height: 400px;
   overflow: hidden;
-  background: #e9ecd9;
+  background: var(--ds-color-surface);
 }
 .ar-scene.is-active {
   background: #243527;

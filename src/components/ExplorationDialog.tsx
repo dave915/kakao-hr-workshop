@@ -39,7 +39,7 @@ export default function ExplorationDialog({
     >
       <header className="focus-map-header">
         <button
-          className="icon-button"
+          className="ds-icon-button ds-glass"
           onClick={directionMode ? onMap : onClose}
           aria-label={directionMode ? "지도로 돌아가기" : "큰 지도 닫기"}
         >
@@ -49,7 +49,10 @@ export default function ExplorationDialog({
           <span>{directionMode ? "FOLLOW THE DIRECTION" : "EXPLORE MODE"}</span>
           <strong>{title}</strong>
         </div>
-        <button className="text-button" onClick={onClose}>
+        <button
+          className="text-button exploration-list-control ds-glass"
+          onClick={onClose}
+        >
           <NotebookPen size={16} />
           보물 목록
         </button>

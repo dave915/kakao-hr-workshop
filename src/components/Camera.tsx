@@ -310,7 +310,11 @@ export default function Camera({
           <span>LOCATION AR</span>
           <strong>{treasure.name}</strong>
         </div>
-        <button className="icon-button" aria-label="AR 닫기" onClick={onClose}>
+        <button
+          className="ds-icon-button ds-glass"
+          aria-label="AR 닫기"
+          onClick={onClose}
+        >
           <X size={24} />
         </button>
       </header>

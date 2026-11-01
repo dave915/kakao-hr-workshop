@@ -290,8 +290,9 @@ export default function TreasureMap({
         <MapPin size={14} />
         {onPlace ? "지도를 눌러 보물 위치 선택" : locationName}
       </span>
-      <div className="map-tools">
+      <div className="map-tools ds-glass">
         <button
+          className="ds-icon-button"
           aria-label="지도 확대"
           disabled={!context}
           onClick={() => zoom(-1)}
@@ -299,6 +300,7 @@ export default function TreasureMap({
           <Plus size={20} />
         </button>
         <button
+          className="ds-icon-button"
           aria-label="지도 축소"
           disabled={!context}
           onClick={() => zoom(1)}
@@ -306,6 +308,7 @@ export default function TreasureMap({
           <Minus size={20} />
         </button>
         <button
+          className="ds-icon-button"
           aria-label="내 위치로 이동"
           disabled={!context}
           onClick={onLocate}
