@@ -53,7 +53,9 @@ export default function Treasure({ notify }: { notify: Notify }) {
     () => state?.treasures.filter((t) => !t.foundBy) ?? [],
     [state?.treasures],
   );
-  const showLocations = state?.settings.showTreasureLocations === true;
+  const showLocations =
+    state?.settings.gameOpen === true &&
+    state.settings.showTreasureLocations === true;
   const mapTreasures = useMemo(
     () => (showLocations ? clues.filter(hasCoordinates) : []),
     [clues, showLocations],

@@ -76,7 +76,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     adminToken = await redeem(adminCode);
     memberToken = await redeem(memberCode);
   }, 30000);
-  it("publishes treasure locations only while an admin enables the setting", async () => {
+  it("publishes treasure locations only while an admin enables the setting and starts the game, including after login", async () => {
     const before = (
       await db.doc("workshops/main").get()
     ).data() as WorkshopState;
@@ -88,23 +88,32 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     );
     expect(denied.status).not.toBe(200);
     try {
-      for (const enabled of [true, false]) {
+      for (const [gameOpen, enabled] of [
+        [false, true],
+        [true, true],
+        [false, true],
+        [true, true],
+        [true, false],
+        [false, false],
+      ]) {
         const result = await call(
           "workshopAction",
           {
             action: "saveSettings",
-            settings: { ...settings, showTreasureLocations: enabled },
+            settings: { ...settings, gameOpen, showTreasureLocations: enabled },
           },
           adminToken,
         );
         expect(result.status).toBe(200);
+        await redeem(memberCode);
         const visible = (await db.doc("workshops/participants").get()).data();
         expect(visible.settings.showTreasureLocations).toBe(enabled);
+        expect(visible.settings.gameOpen).toBe(gameOpen);
         for (const treasure of visible.treasures.filter(
           (t: Treasure) => !t.foundBy,
         )) {
-          expect("lat" in treasure).toBe(enabled);
-          expect("lng" in treasure).toBe(enabled);
+          expect("lat" in treasure).toBe(gameOpen && enabled);
+          expect("lng" in treasure).toBe(gameOpen && enabled);
           expect(treasure).not.toHaveProperty("prizeAmount");
           expect(treasure).not.toHaveProperty("outcome");
         }

@@ -42,18 +42,29 @@ describe("hint-led exploration", () => {
     ]);
     expect(view.treasures[0].foundBy).toBe("dave.h");
   });
-  it("lets the committee reveal and hide locations without exposing prizes or outcomes", () => {
+  it("reveals locations only during an open game and hides them again on pause without exposing prizes or outcomes", () => {
     const state = makeSeed(true);
     state.members["june.p"].role = "admin";
     state.treasures[0].prizeAmount = 10000;
-    for (const enabled of [true, false]) {
+    for (const [gameOpen, enabled] of [
+      [false, true],
+      [true, true],
+      [false, true],
+      [true, true],
+      [true, false],
+      [false, false],
+    ]) {
       mutate(
         state,
         demoSecrets,
         "june.p",
         actionInput.parse({
           action: "saveSettings",
-          settings: { ...state.settings, showTreasureLocations: enabled },
+          settings: {
+            ...state.settings,
+            gameOpen,
+            showTreasureLocations: enabled,
+          },
         }),
         "settings",
         now,
@@ -61,11 +72,13 @@ describe("hint-led exploration", () => {
       const view = participantView(state);
       expect(view.settings.showTreasureLocations).toBe(enabled);
       for (const treasure of view.treasures) {
-        expect(hasCoordinates(treasure)).toBe(enabled);
+        expect(hasCoordinates(treasure)).toBe(gameOpen && enabled);
+        expect("lat" in treasure).toBe(gameOpen && enabled);
+        expect("lng" in treasure).toBe(gameOpen && enabled);
         expect(treasure).not.toHaveProperty("prizeAmount");
         expect(treasure).not.toHaveProperty("outcome");
         expect(treasure).not.toHaveProperty("kind");
-        if (enabled) {
+        if (gameOpen && enabled) {
           const original = state.treasures.find((t) => t.id === treasure.id)!;
           expect(treasure).toMatchObject({
             lat: original.lat,

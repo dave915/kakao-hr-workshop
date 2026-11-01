@@ -16,7 +16,7 @@ export const CAMERA_SEARCH_BUFFER = 20;
 export function hasCoordinates(t: VisibleTreasure): t is Treasure {
   return Number.isFinite(t.lat) && Number.isFinite(t.lng);
 }
-/** Hidden coordinates are shared only when the committee enables map visibility. */
+/** Share hidden coordinates only while the game is open and map visibility is enabled. */
 export function participantView(state: WorkshopState): WorkshopView {
   return {
     ...state,
@@ -34,7 +34,8 @@ export function participantView(state: WorkshopState): WorkshopView {
         radius: t.radius,
         foundBy: null,
         foundAt: null,
-        ...(state.settings.showTreasureLocations === true
+        ...(state.settings.gameOpen === true &&
+        state.settings.showTreasureLocations === true
           ? { lat: t.lat, lng: t.lng }
           : {}),
       };

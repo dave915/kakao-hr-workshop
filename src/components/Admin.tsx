@@ -1082,8 +1082,9 @@ function SettingsForm({
           전체 보물 위치 공개
         </label>
         <p className="footnote" id="treasure-location-help">
-          켜면 모든 참가자의 지도에 아직 찾지 않은 보물 위치가 표시돼요. 누군가
-          찾으면 지도와 탐색 목록에서 바로 사라져요.
+          켜두면 ‘탐험 시작’ 후 모든 참가자의 지도에 남은 보물 위치가 표시돼요.
+          일시 정지하면 위치가 다시 숨겨지고, 찾은 보물은 지도와 탐색 목록에서
+          사라져요.
         </p>
         <label className="check-label">
           <input
