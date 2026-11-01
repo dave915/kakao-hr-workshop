@@ -342,7 +342,7 @@
   font-weight: 700;
 }
 .ds-tabbar[data-draggable] .ds-tab[aria-current="page"] svg {
-  stroke-width: 2.2;
+  stroke-width: 2.4;
 }
 .ds-tabbar[data-pressed] .ds-tab:active {
   background: transparent;
@@ -431,14 +431,14 @@
   color: var(--ds-glass-selected-text);
   font-family: var(--ds-font-ui);
   font-size: var(--ds-font-size-tab);
-  font-weight: 600;
+  font-weight: 700;
   line-height: var(--ds-line-height-ui);
 }
 .ds-tab-lens-item svg {
   width: var(--ds-size-icon-nav);
   height: var(--ds-size-icon-nav);
   flex-shrink: 0;
-  stroke-width: 2.2;
+  stroke-width: 2.4;
 }
 @media (hover: hover) {
   .ds-tab:hover:not([aria-current="page"]):not(:disabled) {
