@@ -1,3 +1,5 @@
+import { liquidTabMotionTokens as tokens } from "../design/motion-tokens";
+
 export type LiquidTabMotion = {
   x: number;
   target: number;
@@ -34,14 +36,17 @@ export function advanceLiquidTab(
   const steps = Math.max(1, Math.ceil(dt * 120)),
     h = dt / steps;
   const liftTarget = pressed ? 1 : 0;
+  const spring = pressed ? tokens.follow : tokens.settle;
   for (let i = 0; i < steps; i++) {
     state.velocity +=
-      ((state.target - state.x) * (pressed ? 1800 : 620) -
-        state.velocity * (pressed ? 70 : 42)) *
+      ((state.target - state.x) * spring.stiffness -
+        state.velocity * spring.damping) *
       h;
     state.x += state.velocity * h;
     state.liftVelocity +=
-      ((liftTarget - state.lift) * 800 - state.liftVelocity * 48) * h;
+      ((liftTarget - state.lift) * tokens.lift.stiffness -
+        state.liftVelocity * tokens.lift.damping) *
+      h;
     state.lift += state.liftVelocity * h;
   }
   if (state.x < 0 || state.x > bounds.max) {
@@ -52,23 +57,30 @@ export function advanceLiquidTab(
     state.lift = Math.max(0, Math.min(1, state.lift));
     state.liftVelocity = 0;
   }
-  const railScale = 1 + state.lift * 0.04;
+  const railScale = 1 + state.lift * tokens.railExpansion;
   const center =
     bounds.center +
     (bounds.left + bounds.step / 2 + state.x - bounds.center) * railScale;
   const availableWidth =
     2 * Math.max(0, Math.min(center - 2, bounds.viewportWidth - 2 - center));
-  const stretch = Math.min(Math.abs(state.velocity) / 3200, 0.14) * state.lift;
+  const stretch =
+    Math.min(
+      Math.abs(state.velocity) / tokens.velocityStretchScale,
+      tokens.maxVelocityStretch,
+    ) * state.lift;
   const maxScaleX = Math.max(
     1,
     availableWidth / ((bounds.step || 1) * railScale),
   );
   const targetX = Math.max(
     1,
-    Math.min(1 + 0.16 * state.lift + stretch, maxScaleX),
+    Math.min(1 + tokens.lensWidthExpansion * state.lift + stretch, maxScaleX),
   );
-  const targetY = 1 + 0.38 * state.lift - stretch * 0.65;
-  const ease = 1 - Math.exp(-30 * dt);
+  const targetY =
+    1 +
+    tokens.lensHeightExpansion * state.lift -
+    stretch * tokens.stretchCompression;
+  const ease = 1 - Math.exp(-tokens.shapeResponse * dt);
   state.sx = Math.min(maxScaleX, state.sx + (targetX - state.sx) * ease);
   state.sy += (targetY - state.sy) * ease;
   const moving =

@@ -1,9 +1,10 @@
 /*
  * 일상 밖으로 · Apple-inspired / restrained Liquid Glass
- * Canonical runtime tokens. See /DESIGN.md and docs/design/mobile-approved.png.
+ * Canonical CSS tokens. Motion/gesture numbers live in motion-tokens.ts.
+ * See /DESIGN.md; current implementation takes precedence over concept images.
  * Imported by src/main.tsx before the app stylesheet and shared primitives.
  * --ds-* names avoid collisions with the incumbent --paper/--green palette.
- * Light appearance only; dark mode needs a separately reviewed palette.
+ * Light app with a separately scoped dark photo viewer; no global dark theme.
  */
 :root {
   /* Neutrals: content stays opaque. */
@@ -66,6 +67,14 @@
   --ds-photo-viewer-text: #ffffff;
   --ds-photo-viewer-text-secondary: #d2d2d7;
   --ds-photo-viewer-control-bg: rgb(36 36 38 / 64%);
+  --ds-photo-viewer-control-bg-hover: rgb(60 60 64 / 82%);
+  --ds-photo-viewer-control-bg-pressed: rgb(80 80 84 / 90%);
+  --ds-photo-viewer-control-bg-opaque: #242426;
+  --ds-photo-viewer-control-border: rgb(255 255 255 / 30%);
+  --ds-photo-viewer-text-disabled: #9c9ca3;
+  --ds-photo-viewer-focus: var(--ds-color-accent);
+  --ds-photo-viewer-title-bg: rgb(29 29 31 / 80%);
+  --ds-photo-viewer-caption-bg: rgb(29 29 31 / 85%);
 
   /* Native fonts on Apple, existing local Noto Sans KR elsewhere. */
   --ds-font-ui:
@@ -124,6 +133,7 @@
   --ds-size-icon: 20px;
   --ds-size-icon-nav: 22px;
   --ds-icon-stroke: 1.75;
+  --ds-icon-stroke-emphasis: 2.4;
   --ds-size-avatar: 32px;
   --ds-size-topbar: 65px;
   --ds-size-topbar-desktop: 80px;
@@ -132,6 +142,31 @@
   --ds-tabbar-inset: 12px;
   --ds-tabbar-bottom: 10px;
   --ds-tabbar-max-width: 480px;
+
+  /* Confirmed photo-feed density. Compact controls are comment-only. */
+  --ds-photo-feed-max-width: 600px;
+  --ds-photo-title-size: 2.5rem;
+  --ds-photo-title-size-mobile: 2.1rem;
+  --ds-photo-feed-gap: var(--ds-space-4);
+  --ds-photo-feed-gap-mobile: var(--ds-space-2);
+  --ds-photo-post-padding-bottom: var(--ds-space-5);
+  --ds-photo-header-padding-block: var(--ds-space-4);
+  --ds-photo-header-padding-block-mobile: var(--ds-space-3);
+  --ds-photo-gutter-mobile: var(--ds-space-5);
+  --ds-photo-body-size: 1rem;
+  --ds-photo-post-line-height: 1.6;
+  --ds-photo-comment-control-height: 28px;
+  --ds-photo-comment-control-width: var(--ds-size-touch);
+  --ds-photo-comment-avatar-size: 28px;
+  --ds-photo-comment-padding-block: var(--ds-space-2);
+  --ds-photo-comment-gap: var(--ds-space-3);
+  --ds-photo-comment-gutter: var(--ds-space-6);
+  --ds-photo-comment-preview-padding: var(--ds-space-1);
+  --ds-photo-comment-preview-size: 0.93rem;
+  --ds-photo-comment-preview-lines: 2;
+  --ds-photo-comment-line-height: 1.5;
+  --ds-photo-reply-indent: var(--ds-space-7);
+  --ds-photo-reply-indent-compact: var(--ds-space-6);
   --ds-layout-gutter-mobile: 20px;
   --ds-layout-gutter-desktop: 38px;
   --ds-layout-sidebar: 232px;

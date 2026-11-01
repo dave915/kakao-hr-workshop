@@ -16,6 +16,7 @@ import {
   type PhotoTransform,
 } from "../lib/photo-viewer-geometry";
 import PhotoImage from "./PhotoImage";
+import { photoViewerMotionTokens as photoMotion } from "../design/motion-tokens";
 
 export default function PhotoViewer({
   post,
@@ -69,7 +70,11 @@ export default function PhotoViewer({
     lastTap.current = 0;
   }
   function zoom() {
-    update(current.current.scale > 1 ? PHOTO_FIT : { scale: 2, x: 0, y: 0 });
+    update(
+      current.current.scale > 1
+        ? PHOTO_FIT
+        : { scale: photoMotion.toggleZoom, x: 0, y: 0 },
+    );
   }
   useLayoutEffect(() => {
     const node = stage.current;
@@ -122,7 +127,7 @@ export default function PhotoViewer({
       const scale = Math.max(
         1,
         Math.min(
-          4,
+          photoMotion.maxZoom,
           (start.transform.scale *
             Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y)) /
             start.distance,
@@ -168,13 +173,13 @@ export default function PhotoViewer({
       dy = event.clientY - start.y;
     if (
       current.current.scale === 1 &&
-      Math.abs(dx) > 50 &&
-      Math.abs(dx) > Math.abs(dy) * 1.4
+      Math.abs(dx) > photoMotion.swipeThresholdPx &&
+      Math.abs(dx) > Math.abs(dy) * photoMotion.swipeDirectionRatio
     )
       go(index + (dx < 0 ? 1 : -1));
-    else if (Math.hypot(dx, dy) < 8) {
+    else if (Math.hypot(dx, dy) < photoMotion.tapTolerancePx) {
       const now = Date.now();
-      if (now - lastTap.current < 300) {
+      if (now - lastTap.current < photoMotion.doubleTapDelayMs) {
         zoom();
         lastTap.current = 0;
       } else lastTap.current = now;
@@ -198,7 +203,7 @@ export default function PhotoViewer({
           )
         ) {
           event.preventDefault();
-          const delta = 48;
+          const delta = photoMotion.keyboardPanStepPx;
           update({
             ...current.current,
             x:

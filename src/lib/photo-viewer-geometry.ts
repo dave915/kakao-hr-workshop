@@ -1,3 +1,5 @@
+import { photoViewerMotionTokens } from "../design/motion-tokens";
+
 export type PhotoTransform = { scale: number; x: number; y: number };
 export const PHOTO_FIT: PhotoTransform = { scale: 1, x: 0, y: 0 };
 
@@ -7,7 +9,10 @@ export function clampPhotoTransform(
   viewport: { width: number; height: number },
   photo: { width: number; height: number },
 ): PhotoTransform {
-  const scale = Math.max(1, Math.min(4, value.scale));
+  const scale = Math.max(
+    1,
+    Math.min(photoViewerMotionTokens.maxZoom, value.scale),
+  );
   const fit = Math.min(
     viewport.width / photo.width,
     viewport.height / photo.height,

@@ -9,6 +9,7 @@ import type { LucideIcon } from "lucide-react";
 import type { Page } from "../../shared/types";
 import { advanceLiquidTab } from "../lib/liquid-tab-motion";
 import FilledNavigationIcon from "./FilledNavigationIcon";
+import { liquidTabMotionTokens as tabMotion } from "../design/motion-tokens";
 
 type Tab = { id: Page; short: string; icon: LucideIcon };
 type Gesture = {
@@ -68,12 +69,15 @@ export default function MobileTabBar({
       bounds = geometry.current;
     if (!nav) return;
     const style = nav.style,
-      magnification = 1 + state.lift * 0.22;
+      magnification = 1 + state.lift * tabMotion.contentMagnification;
     style.setProperty("--ds-indicator-x", `${state.x}px`);
     style.setProperty("--ds-indicator-scale-x", `${state.sx}`);
     style.setProperty("--ds-indicator-scale-y", `${state.sy}`);
     style.setProperty("--ds-lens-reveal", `${state.lift}`);
-    style.setProperty("--ds-rail-scale", `${1 + state.lift * 0.04}`);
+    style.setProperty(
+      "--ds-rail-scale",
+      `${1 + state.lift * tabMotion.railExpansion}`,
+    );
     style.setProperty("--ds-lens-counter-x", `${magnification / state.sx}`);
     style.setProperty("--ds-lens-counter-y", `${magnification / state.sy}`);
     style.setProperty(
@@ -243,7 +247,8 @@ export default function MobileTabBar({
     const bounds = geometry.current;
     const x =
       bounds.center +
-      (clientX - bounds.center) / (1 + motion.current.lift * 0.04);
+      (clientX - bounds.center) /
+        (1 + motion.current.lift * tabMotion.railExpansion);
     return Math.max(0, Math.min(bounds.max, x - bounds.left - bounds.step / 2));
   }
   function down(event: PointerEvent<HTMLElement>) {
@@ -279,11 +284,14 @@ export default function MobileTabBar({
       dy = event.clientY - current.y;
     const starting = !current.dragging;
     if (!current.dragging) {
-      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+      if (
+        Math.abs(dy) > tabMotion.gesture.verticalCancelThresholdPx &&
+        Math.abs(dy) > Math.abs(dx)
+      ) {
         cancel();
         return;
       }
-      if (Math.abs(dx) < 6) return;
+      if (Math.abs(dx) < tabMotion.gesture.dragThresholdPx) return;
       current.dragging = true;
       event.currentTarget.setPointerCapture(event.pointerId);
       event.currentTarget.dataset.dragging = "true";
@@ -302,7 +310,10 @@ export default function MobileTabBar({
     const current = gesture.current,
       bounds = geometry.current;
     if (!current || current.id !== event.pointerId) return;
-    if (event.clientY < bounds.top - 44 || event.clientY > bounds.bottom + 44) {
+    if (
+      event.clientY < bounds.top - tabMotion.gesture.releaseOutsetPx ||
+      event.clientY > bounds.bottom + tabMotion.gesture.releaseOutsetPx
+    ) {
       cancel();
       return;
     }
@@ -312,7 +323,8 @@ export default function MobileTabBar({
     if (
       index < 0 ||
       (!current.dragging &&
-        Math.hypot(event.clientX - current.x, event.clientY - current.y) > 12)
+        Math.hypot(event.clientX - current.x, event.clientY - current.y) >
+          tabMotion.gesture.tapTolerancePx)
     ) {
       cancel();
       return;

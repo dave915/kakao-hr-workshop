@@ -339,7 +339,7 @@
   mask-composite: exclude, add, add;
 }
 .ds-tabbar[data-draggable] .ds-tab[aria-current="page"] {
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
 }
 .ds-tab-symbol {
   display: grid;
@@ -366,7 +366,7 @@
   display: none;
 }
 .ds-tabbar[data-draggable] .ds-tab[aria-current="page"] svg {
-  stroke-width: 2.4;
+  stroke-width: var(--ds-icon-stroke-emphasis);
 }
 .ds-tabbar[data-pressed] .ds-tab:active {
   background: transparent;
@@ -454,14 +454,14 @@
   color: var(--ds-glass-selected-text);
   font-family: var(--ds-font-ui);
   font-size: var(--ds-font-size-tab);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   line-height: var(--ds-line-height-ui);
 }
 .ds-tab-lens-item svg {
   width: var(--ds-size-icon-nav);
   height: var(--ds-size-icon-nav);
   flex-shrink: 0;
-  stroke-width: 2.4;
+  stroke-width: var(--ds-icon-stroke-emphasis);
 }
 @media (hover: hover) {
   .ds-tab:hover:not([aria-current="page"]):not(:disabled) {
