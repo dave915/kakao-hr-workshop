@@ -426,6 +426,10 @@ input[type="number"] {
   width: auto;
   border-radius: var(--ds-radius-pill);
 }
+.topbar .user-menu[aria-current="page"] .avatar {
+  background: var(--ds-glass-selected-text);
+  color: var(--ds-color-surface);
+}
 .avatar {
   display: inline-flex;
   align-items: center;

@@ -444,14 +444,20 @@ export default function App() {
               <button
                 className="ds-icon-button notification-button"
                 aria-label="새로운 소식 보기"
+                aria-current={page === "notices" ? "page" : undefined}
                 onClick={() => navigate("notices")}
               >
-                <Bell size={22} aria-hidden="true" />
+                <Bell
+                  size={22}
+                  fill={page === "notices" ? "currentColor" : "none"}
+                  aria-hidden="true"
+                />
                 {unread > 0 && <i aria-label={`읽지 않은 소식 ${unread}개`} />}
               </button>
               <button
                 className="user-menu ds-icon-button"
                 aria-label="내 프로필 보기"
+                aria-current={page === "profile" ? "page" : undefined}
                 onClick={() => navigate("profile")}
               >
                 <Avatar name={englishName(me.handle)} />

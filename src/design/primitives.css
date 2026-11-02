@@ -200,6 +200,11 @@
   opacity: 1;
   cursor: not-allowed;
 }
+.ds-control-group .ds-icon-button[aria-current="page"] {
+  color: var(--ds-glass-selected-text);
+  background-color: var(--ds-glass-selected-bg);
+  box-shadow: var(--ds-glass-selected-shadow);
+}
 
 .ds-tabbar {
   position: relative;
@@ -571,10 +576,16 @@
   .ds-tab {
     border-color: ButtonText;
   }
+  .ds-control-group .ds-icon-button[aria-current="page"],
   .ds-tabbar .ds-tab[aria-current="page"] {
     outline: 2px solid Highlight;
     outline-offset: -3px;
   }
+  .ds-control-group
+    .ds-icon-button:is(
+      :focus-visible,
+      :focus:where([data-input-modality="keyboard"] *)
+    ),
   .ds-tabbar
     .ds-tab:is(
       :focus-visible,
