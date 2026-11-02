@@ -430,6 +430,11 @@ input[type="number"] {
   background: var(--ds-glass-selected-text);
   color: var(--ds-color-surface);
 }
+.topbar .user-menu .avatar {
+  transition:
+    background-color var(--ds-duration-normal) var(--ds-ease-standard),
+    color var(--ds-duration-normal) var(--ds-ease-standard);
+}
 .avatar {
   display: inline-flex;
   align-items: center;

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import Home from "./components/Home";
 import MobileTabBar from "./components/MobileTabBar";
+import TopbarControlGroup from "./components/TopbarControlGroup";
 import Timeline from "./components/Timeline";
 import Team from "./components/Team";
 import Notices from "./components/Notices";
@@ -440,7 +441,7 @@ export default function App() {
           </div>
           <div className="topbar-actions">
             {demo && <span className="demo-badge">미리보기 · 예시 데이터</span>}
-            <div className="ds-control-group ds-glass">
+            <TopbarControlGroup page={page}>
               <button
                 className="ds-icon-button notification-button"
                 aria-label="새로운 소식 보기"
@@ -464,7 +465,7 @@ export default function App() {
                 <span>{englishName(me.handle)}</span>
                 <ChevronRight size={13} aria-hidden="true" />
               </button>
-            </div>
+            </TopbarControlGroup>
           </div>
         </header>
         {!online && (

@@ -205,6 +205,28 @@
   background-color: var(--ds-glass-selected-bg);
   box-shadow: var(--ds-glass-selected-shadow);
 }
+.topbar-control-group > .ds-icon-button {
+  position: relative;
+  z-index: 1;
+}
+.topbar-selection {
+  position: absolute;
+  left: var(--ds-space-1);
+  top: var(--ds-space-1);
+  width: var(--ds-size-touch);
+  height: var(--ds-size-touch);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-glass-selected-bg);
+  box-shadow: var(--ds-glass-selected-shadow);
+  opacity: 0;
+  transform-origin: top left;
+  pointer-events: none;
+}
+.topbar-control-group[data-indicator-ready]
+  .ds-icon-button[aria-current="page"] {
+  background-color: transparent;
+  box-shadow: none;
+}
 
 .ds-tabbar {
   position: relative;
@@ -549,6 +571,7 @@
 }
 
 @media (forced-colors: active) {
+  .topbar-selection,
   .ds-tab-indicator,
   .ds-tab-lens {
     display: none;
