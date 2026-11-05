@@ -93,6 +93,9 @@ export default function Budget({ notify }: { notify: Notify }) {
   const { state, me } = useWorkshop();
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [deletingBudget, setDeletingBudget] = useState<WorkshopBudget | null>(
+    null,
+  );
   if (!state || !me) return null;
   const budgets = state.budgets ?? [];
   const selected = budgets.find((budget) => budget.id === selectedId);
@@ -122,7 +125,12 @@ export default function Budget({ notify }: { notify: Notify }) {
             {budgets.map((budget) => {
               const totals = budgetTotals([budget]);
               return (
-                <li key={budget.id}>
+                <li
+                  key={budget.id}
+                  className={
+                    admin ? "budget-list-item has-actions" : "budget-list-item"
+                  }
+                >
                   <button
                     className="budget-row"
                     onClick={() => setSelectedId(budget.id)}
@@ -150,6 +158,17 @@ export default function Budget({ notify }: { notify: Notify }) {
                     </span>
                     <ChevronRight size={19} aria-hidden="true" />
                   </button>
+                  {admin && (
+                    <button
+                      className="budget-delete-trigger"
+                      aria-label={`${budget.name} 예산 삭제`}
+                      title="예산 삭제"
+                      onClick={() => setDeletingBudget(budget)}
+                    >
+                      <Trash2 size={17} aria-hidden="true" />
+                      <span>삭제</span>
+                    </button>
+                  )}
                 </li>
               );
             })}
@@ -173,6 +192,13 @@ export default function Budget({ notify }: { notify: Notify }) {
       {creating && (
         <BudgetForm notify={notify} onClose={() => setCreating(false)} />
       )}
+      {deletingBudget && (
+        <DeleteBudget
+          budget={deletingBudget}
+          notify={notify}
+          onClose={() => setDeletingBudget(null)}
+        />
+      )}
       {selected && (
         <BudgetDetail
           budget={selected}
@@ -181,6 +207,88 @@ export default function Budget({ notify }: { notify: Notify }) {
         />
       )}
     </section>
+  );
+}
+
+function DeleteBudget({
+  budget,
+  notify,
+  onClose,
+}: {
+  budget: WorkshopBudget;
+  notify: Notify;
+  onClose: () => void;
+}) {
+  const { run, busy, error, resetGeneration } = useBudgetAction(notify);
+  const totals = budgetTotals([budget]);
+  return (
+    <Drawer
+      title="예산 삭제"
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+    >
+      <div className="budget-delete-confirm">
+        <h3>{budget.name}</h3>
+        <p>예산 {won(budget.amount)}을 삭제할까요?</p>
+        <p>
+          {budget.expenses.length ? (
+            <>
+              등록된 지출{" "}
+              <strong>
+                {budget.expenses.length}건 ·{" "}
+                {won(totals.confirmed + totals.pending)}
+              </strong>
+              도 함께 삭제돼요. 확정된 지출도 포함되며, 삭제 후에는 되돌릴 수
+              없어요.
+            </>
+          ) : (
+            "등록된 지출은 없어요. 삭제 후에는 되돌릴 수 없어요."
+          )}
+        </p>
+        {error && (
+          <p role="alert" className="form-error">
+            {error}
+          </p>
+        )}
+        <div className="form-actions">
+          <button
+            className="button secondary"
+            disabled={busy}
+            onClick={onClose}
+          >
+            취소
+          </button>
+          <button
+            className="button danger"
+            disabled={busy}
+            onClick={async () => {
+              if (
+                await run(
+                  {
+                    action: "deleteBudget",
+                    resetGeneration,
+                    budgetId: budget.id,
+                    expenses: budget.expenses.map(({ id, revision }) => ({
+                      id,
+                      revision,
+                    })),
+                  },
+                  "예산과 포함된 지출을 삭제했어요.",
+                )
+              )
+                onClose();
+            }}
+          >
+            {busy
+              ? "삭제 중…"
+              : budget.expenses.length
+                ? "예산과 지출 삭제"
+                : "예산 삭제"}
+          </button>
+        </div>
+      </div>
+    </Drawer>
   );
 }
 
@@ -272,7 +380,7 @@ function BudgetDetail({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const surface = useRef<HTMLDivElement>(null);
   const { run, busy, error, resetGeneration } = useBudgetAction(notify);
-  const { distance, ready } = usePullToAdd(
+  const { ready, phase } = usePullToAdd(
     surface,
     () => setEditor("new"),
     Boolean(editor) || busy,
@@ -299,15 +407,26 @@ function BudgetDetail({
           if (!busy) onClose();
         }}
       >
-        <div className="budget-detail-scroll" ref={surface}>
+        <div
+          className="budget-detail-scroll"
+          ref={surface}
+          data-pull-phase={phase}
+        >
           <div
             className={`budget-pull ${ready ? "ready" : ""}`}
-            style={{ height: distance }}
             aria-hidden="true"
           >
             <span>
-              <ArrowDown size={18} />
-              {ready ? "놓으면 지출 입력창이 열려요" : "아래로 당겨 지출 등록"}
+              {phase === "opening" ? (
+                <Check size={18} />
+              ) : (
+                <ArrowDown size={18} />
+              )}
+              {phase === "opening"
+                ? "지출 입력창을 열어요"
+                : ready
+                  ? "놓으면 지출 입력창이 열려요"
+                  : "아래로 당겨 지출 등록"}
             </span>
           </div>
           <div className="budget-detail-body">
@@ -320,7 +439,7 @@ function BudgetDetail({
               <h3>지출 내역</h3>
               <button
                 className="button dark"
-                disabled={busy}
+                disabled={busy || phase === "opening"}
                 onClick={() => setEditor("new")}
               >
                 <Plus size={17} />
@@ -553,9 +672,7 @@ function ExpenseForm({
     >
       <p className="budget-form-context">
         {budget.name}
-        <span>
-          작성자 {expense?.authorHandle ?? me?.handle ?? ""}
-        </span>
+        <span>작성자 {expense?.authorHandle ?? me?.handle ?? ""}</span>
       </p>
       <form className="form-stack budget-form" onSubmit={submit}>
         <fieldset disabled={busy}>

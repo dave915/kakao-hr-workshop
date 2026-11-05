@@ -225,6 +225,33 @@ describe.skipIf(!enabled)("callable backend integration", () => {
           )
         ).status,
       ).toBe(400);
+      const deletion = {
+        action: "deleteBudget",
+        resetGeneration,
+        budgetId: budget.id,
+        expenses: [{ id: expense.id, revision: confirmed.revision }],
+      };
+      expect((await call("workshopAction", deletion, memberToken)).status).toBe(
+        400,
+      );
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { ...deletion, expenses: [] },
+            committeeToken,
+          )
+        ).status,
+      ).toBe(400);
+      expect(
+        (await call("workshopAction", deletion, committeeToken)).status,
+      ).toBe(200);
+      for (const path of ["workshops/main", "workshops/participants"])
+        expect(
+          (await db.doc(path).get())
+            .data()
+            .budgets.some((item: { id: string }) => item.id === budget.id),
+        ).toBe(false);
     } finally {
       await call(
         "workshopAction",

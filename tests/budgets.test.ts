@@ -40,6 +40,62 @@ function fixture() {
 }
 
 describe("workshop budgets", () => {
+  it("allows committee to delete a reviewed budget with its expenses and preserves other budgets", () => {
+    const { state, run, create, target, budget } = fixture();
+    const other = { ...budget, id: crypto.randomUUID(), name: "교통비" };
+    run("june.p", {
+      action: "createBudget",
+      resetGeneration: 0,
+      budget: other,
+    });
+    run("alex.k", create);
+    run("june.p", { action: "confirmExpense", ...target });
+    const deletion = {
+      action: "deleteBudget" as const,
+      resetGeneration: 0,
+      budgetId: budget.id,
+      expenses: [{ id: create.expense.id, revision: 1 }],
+    };
+    expect(() => run("alex.k", deletion)).toThrow("워추위");
+    run("june.p", deletion);
+    run("june.p", deletion);
+    expect(state.budgets?.map((item) => item.id)).toEqual([other.id]);
+    expect(
+      participantView(state).budgets?.flatMap((item) => item.expenses),
+    ).toEqual([]);
+    expect(budgetTotals(state.budgets!)).toMatchObject({
+      amount: other.amount,
+      confirmed: 0,
+      pending: 0,
+    });
+  });
+  it("rejects budget deletion if expenses were added, changed or removed after confirmation opened", () => {
+    const { state, run, create, target, budget } = fixture();
+    const empty = {
+      action: "deleteBudget" as const,
+      resetGeneration: 0,
+      budgetId: budget.id,
+      expenses: [],
+    };
+    run("alex.k", create);
+    expect(() => run("dave.h", empty)).toThrow("변경");
+    const reviewed = {
+      ...empty,
+      expenses: [{ id: create.expense.id, revision: 0 }],
+    };
+    run("june.p", { action: "confirmExpense", ...target });
+    expect(() => run("dave.h", reviewed)).toThrow("변경");
+    run("june.p", { action: "reopenExpense", ...target, revision: 1 });
+    const beforeRemoval = {
+      ...empty,
+      expenses: [{ id: create.expense.id, revision: 2 }],
+    };
+    run("alex.k", { action: "deleteExpense", ...target, revision: 2 });
+    expect(() => run("dave.h", beforeRemoval)).toThrow("변경");
+    expect(state.budgets).toHaveLength(1);
+    run("dave.h", empty);
+    expect(state.budgets).toEqual([]);
+  });
   it("lets members submit pending expenses, shows the author to participants, and lets committee confirm once", () => {
     const { state, run, create, target } = fixture();
     run("alex.k", create);

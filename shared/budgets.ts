@@ -20,6 +20,7 @@ export type BudgetAction = Extract<
   {
     action:
       | "createBudget"
+      | "deleteBudget"
       | "createExpense"
       | "updateExpense"
       | "deleteExpense"
@@ -30,6 +31,7 @@ export type BudgetAction = Extract<
 export function isBudgetAction(input: ActionInput): input is BudgetAction {
   return [
     "createBudget",
+    "deleteBudget",
     "createExpense",
     "updateExpense",
     "deleteExpense",
@@ -83,6 +85,26 @@ export function mutateBudget(
       "워크샵이 초기화되었어요. 예산 목록을 다시 열어주세요.",
     );
   const budgets = structuredClone(state.budgets ?? []);
+  if (input.action === "deleteBudget") {
+    if (!isAdmin(actor))
+      throw new GameError("예산은 워추위만 삭제할 수 있어요.");
+    const budget = budgets.find((item) => item.id === input.budgetId);
+    if (!budget) return;
+    const expected = new Map(
+      input.expenses.map((expense) => [expense.id, expense.revision]),
+    );
+    if (
+      budget.expenses.length !== expected.size ||
+      budget.expenses.some(
+        (expense) => expected.get(expense.id) !== expense.revision,
+      )
+    )
+      throw new GameError(
+        "삭제 확인 중 지출이 변경되었어요. 창을 닫고 예산과 지출을 다시 확인해주세요.",
+      );
+    state.budgets = budgets.filter((item) => item.id !== input.budgetId);
+    return;
+  }
   if (input.action === "createBudget") {
     if (!isAdmin(actor))
       throw new GameError("예산은 워추위만 추가할 수 있어요.");

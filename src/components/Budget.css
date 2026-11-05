@@ -103,6 +103,39 @@
 .budget-list > li + li {
   border-top: 1px solid var(--ds-color-separator);
 }
+.budget-list-item.has-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.budget-delete-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-right: 12px;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ds-color-text-secondary);
+  font-size: var(--ds-font-size-caption);
+}
+.budget-delete-trigger:hover {
+  background: var(--ds-color-surface-subtle);
+  color: var(--ds-color-danger);
+}
+.budget-delete-confirm h3 {
+  font-size: var(--ds-font-size-title);
+  overflow-wrap: anywhere;
+}
+.budget-delete-confirm p {
+  line-height: 1.7;
+  margin-top: 16px;
+}
+.budget-delete-confirm .form-actions {
+  flex-wrap: wrap;
+}
 .budget-row {
   display: flex;
   align-items: center;
@@ -141,6 +174,7 @@
 }
 .budget-row-count {
   margin-left: 12px;
+  white-space: nowrap;
 }
 .budget-row-balance {
   text-align: right;
@@ -192,6 +226,7 @@
   flex-shrink: 0;
 }
 .budget-detail-scroll {
+  position: relative;
   overflow-y: auto;
   overscroll-behavior-y: none;
   min-height: 0;
@@ -199,6 +234,12 @@
 }
 .budget-detail-body {
   padding: 0 24px calc(32px + env(safe-area-inset-bottom));
+  transform: translate3d(0, var(--budget-pull-distance, 0px), 0);
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.budget-detail-scroll[data-pull-phase="pulling"] .budget-detail-body,
+.budget-detail-scroll[data-pull-phase="pulling"] .budget-pull {
+  transition: none;
 }
 .budget-detail .budget-summary {
   background: var(--ds-color-canvas);
@@ -214,6 +255,14 @@
   margin: 18px 0;
 }
 .budget-pull {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 112px;
+  transform: translate3d(0, calc(var(--budget-pull-distance, 0px) - 112px), 0);
+  opacity: var(--budget-pull-progress, 0);
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms ease-out;
   overflow: hidden;
   display: flex;
   align-items: flex-end;
@@ -236,6 +285,9 @@
 }
 .budget-pull.ready svg {
   transform: rotate(180deg);
+}
+.budget-detail-scroll[data-pull-phase="opening"] .budget-pull svg {
+  transform: none;
 }
 .budget-expenses-heading {
   margin-top: 28px;
@@ -376,6 +428,30 @@
   height: var(--dialog-height, 100dvh);
   top: var(--dialog-top, 0px);
 }
+.budget-expense-editor[open] {
+  animation: budget-editor-enter 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.budget-expense-editor::backdrop {
+  background: rgb(0 0 0 / 12%);
+  backdrop-filter: none;
+  animation: budget-editor-backdrop 450ms ease-out both;
+}
+@keyframes budget-editor-enter {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes budget-editor-backdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 @media (max-width: 760px) {
   .budget-heading {
     align-items: flex-start;
@@ -407,6 +483,7 @@
     order: 2;
     width: 100%;
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     justify-content: space-between;
     gap: 12px;
@@ -435,6 +512,14 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .budget-detail-body,
+  .budget-pull {
+    transition: none;
+  }
+  .budget-expense-editor[open],
+  .budget-expense-editor::backdrop {
+    animation: none;
+  }
   .budget-pull svg {
     transition: none;
   }
