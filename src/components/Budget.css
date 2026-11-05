@@ -103,27 +103,75 @@
 .budget-list > li + li {
   border-top: 1px solid var(--ds-color-separator);
 }
-.budget-list-item.has-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+.swipe-row {
+  position: relative;
+  overflow: hidden;
 }
-.budget-delete-trigger {
+.swipe-row-content {
+  position: relative;
+  z-index: 1;
+  padding-right: 44px;
+  background: var(--ds-color-surface);
+  touch-action: pan-y pinch-zoom;
+  transform: translate3d(var(--swipe-offset, 0px), 0, 0);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.swipe-row-content[data-dragging="true"] {
+  transition: none;
+  user-select: none;
+}
+.swipe-row-actions {
+  position: absolute;
+  inset: 0 0 0 auto;
   display: flex;
+  width: 152px;
+}
+.swipe-row-actions button {
+  flex: 1;
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
   min-height: 44px;
-  margin-right: 12px;
+  font-size: var(--ds-font-size-label);
+  font-weight: 600;
+}
+.swipe-action-edit {
+  background: var(--ds-color-surface-subtle);
+  color: var(--ds-color-text);
+}
+.swipe-action-delete {
+  background: var(--ds-color-danger);
+  color: var(--ds-color-on-danger);
+}
+.swipe-row-actions button:disabled {
+  background: var(--ds-color-surface-subtle);
+  color: var(--ds-color-text-secondary);
+}
+.swipe-row-menu {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  min-height: 44px;
   padding: 10px;
   border: 0;
-  border-radius: 8px;
   background: transparent;
   color: var(--ds-color-text-secondary);
-  font-size: var(--ds-font-size-caption);
 }
-.budget-delete-trigger:hover {
+.swipe-row-menu:hover {
   background: var(--ds-color-surface-subtle);
-  color: var(--ds-color-danger);
+}
+.swipe-row .budget-row {
+  padding-right: 8px;
+}
+.swipe-row .budget-row > svg {
+  display: none;
 }
 .budget-delete-confirm h3 {
   font-size: var(--ds-font-size-title);
@@ -235,7 +283,8 @@
 .budget-detail-body {
   padding: 0 24px calc(32px + env(safe-area-inset-bottom));
   transform: translate3d(0, var(--budget-pull-distance, 0px), 0);
-  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--budget-pull-settle, 300ms)
+    cubic-bezier(0.22, 1, 0.36, 1);
 }
 .budget-detail-scroll[data-pull-phase="pulling"] .budget-detail-body,
 .budget-detail-scroll[data-pull-phase="pulling"] .budget-pull {
@@ -261,7 +310,7 @@
   transform: translate3d(0, calc(var(--budget-pull-distance, 0px) - 112px), 0);
   opacity: var(--budget-pull-progress, 0);
   transition:
-    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform var(--budget-pull-settle, 300ms) cubic-bezier(0.22, 1, 0.36, 1),
     opacity 200ms ease-out;
   overflow: hidden;
   display: flex;
@@ -306,6 +355,8 @@
 }
 .expense-row {
   padding: 22px 0;
+}
+.expense-list-item {
   border-bottom: 1px solid var(--ds-color-separator);
 }
 .expense-main {
@@ -367,13 +418,11 @@
 .expense-status.confirmed {
   color: var(--ds-color-success);
 }
-.expense-edit-actions {
-  display: flex;
-  gap: 16px;
-  margin-top: 8px;
-}
-.expense-edit-actions button {
-  min-height: var(--ds-size-touch);
+.expense-locked-note {
+  color: var(--ds-color-text-secondary);
+  font-size: var(--ds-font-size-caption);
+  line-height: 1.5;
+  margin-top: 10px;
 }
 .expense-delete {
   margin-top: 12px;
@@ -425,8 +474,59 @@
   font-weight: 400;
 }
 .budget-expense-editor {
-  height: var(--dialog-height, 100dvh);
-  top: var(--dialog-top, 0px);
+  height: min(66.667dvh, var(--dialog-height, 100dvh));
+  max-height: var(--dialog-height, 100dvh);
+  top: auto;
+  bottom: calc(100dvh - var(--dialog-height, 100dvh) - var(--dialog-top, 0px));
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+.budget-expense-editor .drawer-content {
+  height: 100%;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.budget-expense-editor .drawer-header {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 14px 20px;
+}
+.budget-expense-editor .drawer-header h2 {
+  font-size: var(--ds-font-size-section);
+}
+.budget-sheet-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.budget-sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 20px;
+  scroll-padding-block: 16px;
+}
+.budget-sheet-scroll .budget-form-context {
+  margin-bottom: 18px;
+  font-size: var(--ds-font-size-label);
+}
+.budget-sheet-scroll fieldset {
+  gap: 16px;
+}
+.budget-sheet-scroll .budget-help {
+  margin-top: 16px;
+}
+.budget-sheet-footer {
+  flex-shrink: 0;
+  padding: 12px 20px max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--ds-color-separator);
+  background: var(--ds-color-surface);
+}
+.budget-sheet-footer .form-error {
+  margin-bottom: 10px;
 }
 .budget-expense-editor[open] {
   animation: budget-editor-enter 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -512,6 +612,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .swipe-row-content {
+    transition: none;
+  }
   .budget-detail-body,
   .budget-pull {
     transition: none;

@@ -20,6 +20,7 @@ export type BudgetAction = Extract<
   {
     action:
       | "createBudget"
+      | "updateBudget"
       | "deleteBudget"
       | "createExpense"
       | "updateExpense"
@@ -31,6 +32,7 @@ export type BudgetAction = Extract<
 export function isBudgetAction(input: ActionInput): input is BudgetAction {
   return [
     "createBudget",
+    "updateBudget",
     "deleteBudget",
     "createExpense",
     "updateExpense",
@@ -94,13 +96,14 @@ export function mutateBudget(
       input.expenses.map((expense) => [expense.id, expense.revision]),
     );
     if (
+      (input.revision ?? 0) !== (budget.revision ?? 0) ||
       budget.expenses.length !== expected.size ||
       budget.expenses.some(
         (expense) => expected.get(expense.id) !== expense.revision,
       )
     )
       throw new GameError(
-        "삭제 확인 중 지출이 변경되었어요. 창을 닫고 예산과 지출을 다시 확인해주세요.",
+        "삭제 확인 중 예산이나 지출이 변경되었어요. 창을 닫고 내역을 다시 확인해주세요.",
       );
     state.budgets = budgets.filter((item) => item.id !== input.budgetId);
     return;
@@ -124,8 +127,22 @@ export function mutateBudget(
       ...input.budget,
       createdBy: actorId,
       createdAt: now,
+      revision: 0,
       expenses: [],
     });
+  } else if (input.action === "updateBudget") {
+    if (!isAdmin(actor))
+      throw new GameError("예산은 워추위만 수정할 수 있어요.");
+    const budget = budgets.find((item) => item.id === input.budget.id);
+    if (!budget)
+      throw new GameError(
+        "예산을 찾을 수 없어요. 예산 목록을 다시 확인해주세요.",
+      );
+    if ((budget.revision ?? 0) !== input.revision)
+      throw new GameError(
+        "다른 사람이 예산을 변경했어요. 목록을 확인한 뒤 다시 시도해주세요.",
+      );
+    Object.assign(budget, input.budget, { revision: input.revision + 1 });
   } else {
     const budget = budgets.find((item) => item.id === input.budgetId);
     if (!budget)

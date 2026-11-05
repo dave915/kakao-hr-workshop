@@ -1,12 +1,18 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 
 export const PULL_TO_ADD_THRESHOLD = 80;
 const MAX_PULL = 112;
-const COMMIT_DELAY = 160;
 const SETTLE_DURATION = 300;
+const OPEN_DURATION = 450;
 type PullPhase = "idle" | "pulling" | "settling" | "opening";
 
-/** Track the finger with transforms; acknowledge release before opening the editor. */
+/** Release directly into the sheet transition, without resetting the finger's final position. */
 export function usePullToAdd(
   ref: RefObject<HTMLElement | null>,
   onAdd: () => void,
@@ -15,7 +21,11 @@ export function usePullToAdd(
   const [ready, setReady] = useState(false);
   const [phase, setPhase] = useState<PullPhase>("idle");
   const callback = useRef(onAdd);
-  callback.current = onAdd;
+  const disabledRef = useRef(disabled);
+  useLayoutEffect(() => {
+    callback.current = onAdd;
+    disabledRef.current = disabled;
+  });
   useEffect(() => {
     const surface = ref.current;
     if (!surface) return;
@@ -26,36 +36,53 @@ export function usePullToAdd(
         String(Math.min(1, distance / PULL_TO_ADD_THRESHOLD)),
       );
     };
+    const changePhase = (next: PullPhase) => {
+      surface.dataset.pullPhase = next;
+      setPhase(next);
+    };
     draw(0);
     setReady(false);
-    setPhase("idle");
-    if (disabled) return;
+    changePhase("idle");
     let start: { x: number; y: number } | null = null;
     let pulled = 0;
     let locked = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let frame = 0;
     const reducedMotion = () =>
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const settle = () => {
+    const settle = (opening = false) => {
       start = null;
       pulled = 0;
-      setReady(false);
-      setPhase("settling");
-      draw(0);
+      setReady(opening);
+      changePhase(opening ? "opening" : "settling");
+      surface.style.setProperty(
+        "--budget-pull-settle",
+        `${opening ? OPEN_DURATION : SETTLE_DURATION}ms`,
+      );
       locked = true;
       clearTimeout(timer);
+      cancelAnimationFrame(frame);
+      // Apply the transition phase before changing transform; the preceding frame
+      // was finger tracking with transition:none. Never reset while still tracking.
+      if (reducedMotion()) draw(0);
+      else frame = requestAnimationFrame(() => draw(0));
       timer = setTimeout(
         () => {
           locked = false;
-          setPhase("idle");
+          setReady(false);
+          changePhase("idle");
         },
-        reducedMotion() ? 0 : SETTLE_DURATION,
+        reducedMotion() ? 0 : opening ? OPEN_DURATION : SETTLE_DURATION,
       );
     };
     const begin = (event: TouchEvent) => {
+      if (event.touches.length !== 1) {
+        if (start) settle();
+        return;
+      }
       if (
+        disabledRef.current ||
         locked ||
-        event.touches.length !== 1 ||
         surface.scrollTop > 0 ||
         (event.target instanceof Element &&
           event.target.closest(
@@ -64,11 +91,15 @@ export function usePullToAdd(
       )
         return;
       start = { x: event.touches[0].clientX, y: event.touches[0].clientY };
-      setPhase("pulling");
+      changePhase("pulling");
     };
     const move = (event: TouchEvent) => {
       if (!start) return;
-      if (event.touches.length !== 1 || surface.scrollTop > 0) {
+      if (
+        disabledRef.current ||
+        event.touches.length !== 1 ||
+        surface.scrollTop > 0
+      ) {
         settle();
         return;
       }
@@ -95,28 +126,22 @@ export function usePullToAdd(
         settle();
         return;
       }
-      locked = true;
-      setPhase("opening");
-      draw(PULL_TO_ADD_THRESHOLD);
-      timer = setTimeout(
-        () => {
-          settle();
-          callback.current();
-        },
-        reducedMotion() ? 0 : COMMIT_DELAY,
-      );
+      settle(true);
+      callback.current();
     };
+    const cancel = () => settle();
     surface.addEventListener("touchstart", begin, { passive: true });
     surface.addEventListener("touchmove", move, { passive: false });
     surface.addEventListener("touchend", end);
-    surface.addEventListener("touchcancel", settle);
+    surface.addEventListener("touchcancel", cancel);
     return () => {
       clearTimeout(timer);
+      cancelAnimationFrame(frame);
       surface.removeEventListener("touchstart", begin);
       surface.removeEventListener("touchmove", move);
       surface.removeEventListener("touchend", end);
-      surface.removeEventListener("touchcancel", settle);
+      surface.removeEventListener("touchcancel", cancel);
     };
-  }, [ref, disabled]);
+  }, [ref]);
   return { ready, phase };
 }

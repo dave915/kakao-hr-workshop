@@ -102,6 +102,7 @@ export interface WorkshopBudget {
   amount: number;
   createdBy: string;
   createdAt: number;
+  revision?: number;
   expenses: BudgetExpense[];
 }
 export type VisibleTreasure = Omit<Treasure, "lat" | "lng"> & {

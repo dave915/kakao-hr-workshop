@@ -144,9 +144,16 @@ export const actionInput = z.discriminatedUnion("action", [
     budget: z.object({ id: z.string().uuid(), name: text(60), amount: won }),
   }),
   z.object({
+    action: z.literal("updateBudget"),
+    ...budgetScope,
+    budget: z.object({ id: z.string().uuid(), name: text(60), amount: won }),
+    revision: z.number().int().nonnegative(),
+  }),
+  z.object({
     action: z.literal("deleteBudget"),
     ...budgetScope,
     budgetId: z.string().uuid(),
+    revision: z.number().int().nonnegative().optional(),
     expenses: z
       .array(
         z.object({

@@ -40,6 +40,54 @@ function fixture() {
 }
 
 describe("workshop budgets", () => {
+  it("edits budget names and amounts without changing expenses, including legacy budgets", () => {
+    const { state, run, create, target, budget } = fixture();
+    run("alex.k", create);
+    run("june.p", { action: "confirmExpense", ...target });
+    delete state.budgets![0].revision;
+    const expenses = structuredClone(state.budgets![0].expenses);
+    const update = {
+      action: "updateBudget" as const,
+      resetGeneration: 0,
+      budget: { ...budget, name: "공동 식비", amount: 20_000 },
+      revision: 0,
+    };
+    expect(() => run("alex.k", update)).toThrow("워추위");
+    run("june.p", update);
+    expect(state.budgets![0]).toMatchObject({
+      name: "공동 식비",
+      amount: 20_000,
+      revision: 1,
+      expenses,
+    });
+    expect(budgetTotals(state.budgets!)).toMatchObject({
+      amount: 20_000,
+      confirmed: 30_000,
+      available: -10_000,
+    });
+    expect(participantView(state).budgets).toEqual(state.budgets);
+    expect(() => run("dave.h", update)).toThrow("다른 사람");
+  });
+  it("rejects stale deletion after a budget edit and rejects editing a deleted budget", () => {
+    const { state, run, budget } = fixture();
+    const deletion = {
+      action: "deleteBudget" as const,
+      resetGeneration: 0,
+      budgetId: budget.id,
+      expenses: [],
+    };
+    const update = {
+      action: "updateBudget" as const,
+      resetGeneration: 0,
+      budget: { ...budget, amount: 200_000 },
+      revision: 0,
+    };
+    run("june.p", update);
+    expect(() => run("dave.h", deletion)).toThrow("변경");
+    run("dave.h", { ...deletion, revision: 1 });
+    expect(state.budgets).toEqual([]);
+    expect(() => run("dave.h", update)).toThrow("예산을 찾을");
+  });
   it("allows committee to delete a reviewed budget with its expenses and preserves other budgets", () => {
     const { state, run, create, target, budget } = fixture();
     const other = { ...budget, id: crypto.randomUUID(), name: "교통비" };

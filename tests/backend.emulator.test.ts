@@ -225,15 +225,49 @@ describe.skipIf(!enabled)("callable backend integration", () => {
           )
         ).status,
       ).toBe(400);
+      const budgetUpdate = {
+        action: "updateBudget",
+        resetGeneration,
+        budget: { ...budget, name: "수정된 식비", amount: 200_000 },
+        revision: 0,
+      };
+      expect(
+        (await call("workshopAction", budgetUpdate, memberToken)).status,
+      ).toBe(400);
+      expect(
+        (await call("workshopAction", budgetUpdate, committeeToken)).status,
+      ).toBe(200);
+      expect(
+        (await call("workshopAction", budgetUpdate, adminToken)).status,
+      ).toBe(400);
+      const updatedBudget = (await db.doc("workshops/participants").get())
+        .data()
+        .budgets.find((item: { id: string }) => item.id === budget.id);
+      expect(updatedBudget).toMatchObject({
+        name: "수정된 식비",
+        amount: 200_000,
+        revision: 1,
+      });
+      expect(updatedBudget.expenses[0]).toEqual(confirmed);
       const deletion = {
         action: "deleteBudget",
         resetGeneration,
         budgetId: budget.id,
         expenses: [{ id: expense.id, revision: confirmed.revision }],
+        revision: 1,
       };
       expect((await call("workshopAction", deletion, memberToken)).status).toBe(
         400,
       );
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { ...deletion, revision: 0 },
+            committeeToken,
+          )
+        ).status,
+      ).toBe(400);
       expect(
         (
           await call(
