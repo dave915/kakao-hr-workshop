@@ -85,6 +85,7 @@ export interface BudgetExpense {
   amount: number;
   type: ExpenseType;
   spentOn: string;
+  place?: string;
   note: string;
   authorId: string;
   authorHandle: string;

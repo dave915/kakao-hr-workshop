@@ -92,6 +92,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       amount: 30_000,
       type: "meal",
       spentOn: "2026-11-05",
+      place: "회의장 식당",
       note: "",
     };
     const create = {
@@ -146,6 +147,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       expect(visible.expenses[0]).toMatchObject({
         authorId: "alex.k",
         status: "pending",
+        place: "회의장 식당",
       });
       expect(
         (

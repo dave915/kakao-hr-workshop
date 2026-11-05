@@ -69,6 +69,7 @@ function sameExpense(
     a.amount === b.amount &&
     a.type === b.type &&
     a.spentOn === b.spentOn &&
+    (a.place ?? "") === (b.place ?? "") &&
     a.note === b.note
   );
 }

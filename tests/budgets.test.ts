@@ -40,6 +40,46 @@ function fixture() {
 }
 
 describe("workshop budgets", () => {
+  it("stores optional places and preserves them when an older client omits the field", () => {
+    const { state, run, create } = fixture();
+    run("alex.k", {
+      ...create,
+      expense: { ...create.expense, place: "  회의장 식당  " },
+    });
+    expect(state.budgets![0].expenses[0].place).toBe("회의장 식당");
+    run("alex.k", {
+      ...create,
+      expense: { ...create.expense, place: "회의장 식당" },
+    });
+    expect(() =>
+      run("alex.k", {
+        ...create,
+        expense: { ...create.expense, place: "다른 장소" },
+      }),
+    ).toThrow("이미 처리");
+    run("alex.k", {
+      action: "updateExpense",
+      resetGeneration: 0,
+      budgetId: create.budgetId,
+      expense: { ...create.expense, amount: 40_000 },
+      revision: 0,
+    });
+    expect(state.budgets![0].expenses[0].place).toBe("회의장 식당");
+    run("alex.k", {
+      action: "updateExpense",
+      resetGeneration: 0,
+      budgetId: create.budgetId,
+      expense: { ...create.expense, place: "" },
+      revision: 1,
+    });
+    expect(state.budgets![0].expenses[0].place).toBe("");
+    expect(
+      actionInput.safeParse({
+        ...create,
+        expense: { ...create.expense, place: "가".repeat(101) },
+      }).success,
+    ).toBe(false);
+  });
   it("edits budget names and amounts without changing expenses, including legacy budgets", () => {
     const { state, run, create, target, budget } = fixture();
     run("alex.k", create);

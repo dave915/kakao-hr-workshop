@@ -20,6 +20,7 @@ import { useWorkshop } from "../lib/store";
 import { englishName, errorMessage } from "../lib/utils";
 import { Drawer, type Notify } from "./common";
 import SwipeActions from "./SwipeActions";
+import BudgetExpenseCopy from "./BudgetExpenseCopy";
 import "./Budget.css";
 
 const won = (value: number) => `${value.toLocaleString("ko-KR")}원`;
@@ -123,6 +124,11 @@ export default function Budget({ notify }: { notify: Notify }) {
           <div className="budget-list-heading">
             <h2>예산 목록</h2>
             <span>{budgets.length}개</span>
+            <BudgetExpenseCopy
+              expenses={budgets.flatMap((budget) => budget.expenses)}
+              scope="전체 예산"
+              notify={notify}
+            />
           </div>
           <ul className="budget-list">
             {budgets.map((budget) => {
@@ -479,6 +485,11 @@ function BudgetDetail({
             <Totals budgets={[budget]} />
             <div className="budget-expenses-heading">
               <h3>지출 내역</h3>
+              <BudgetExpenseCopy
+                expenses={expenses}
+                scope={`${budget.name} ${filter === "pending" ? "확인 대기" : filter === "confirmed" ? "확정" : "전체"}`}
+                notify={notify}
+              />
             </div>
             <label className="budget-filter">
               상태
@@ -533,6 +544,7 @@ function BudgetDetail({
                           {dateLabel(expense.spentOn)}
                         </time>
                         <span>작성 {expense.authorHandle}</span>
+                        {expense.place && <span>장소 {expense.place}</span>}
                       </p>
                       {expense.note && (
                         <p className="expense-note">{expense.note}</p>
@@ -687,13 +699,22 @@ function ExpenseForm({
   const [type, setType] = useState<ExpenseType>(expense?.type ?? "meal");
   const [spentOn, setSpentOn] = useState(expense?.spentOn ?? today());
   const [note, setNote] = useState(expense?.note ?? "");
+  const [place, setPlace] = useState(expense?.place ?? "");
   const { run, busy, error, resetGeneration } = useBudgetAction(notify);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const values = {
       resetGeneration,
       budgetId: budget.id,
-      expense: { id, title, amount: Number(amount), type, spentOn, note },
+      expense: {
+        id,
+        title,
+        amount: Number(amount),
+        type,
+        spentOn,
+        place,
+        note,
+      },
     };
     const input: ActionInput = expense
       ? { action: "updateExpense", ...values, revision: expense.revision }
@@ -775,6 +796,17 @@ function ExpenseForm({
                 />
               </label>
             </div>
+            <label>
+              <span>
+                장소 <small>(선택)</small>
+              </span>
+              <input
+                maxLength={100}
+                placeholder="예: 식당명, 매장명"
+                value={place}
+                onChange={(event) => setPlace(event.target.value)}
+              />
+            </label>
             <label>
               <span>
                 메모 <small>(선택)</small>

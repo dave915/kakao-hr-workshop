@@ -26,6 +26,11 @@ export const expenseInput = z.object({
         date.toISOString().slice(0, 10) === value
       );
     }, "올바른 지출일을 선택해주세요."),
+  place: z
+    .string()
+    .trim()
+    .max(100, "장소는 100자 이내로 입력해주세요.")
+    .optional(),
   note: z.string().trim().max(300),
 });
 const expenseTarget = {
