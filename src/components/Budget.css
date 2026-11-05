@@ -545,9 +545,33 @@
   min-inline-size: 0;
   width: 100%;
 }
-.budget-sheet-scroll input[type="date"] {
+.budget-sheet-scroll .form-pair select,
+.budget-sheet-scroll .form-pair input[type="date"] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-inline-size: 0;
   inline-size: 100%;
+  max-inline-size: 100%;
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
+  padding: 10px 12px;
+}
+.budget-sheet-scroll input[type="date"] {
+  /* iOS date controls otherwise retain native intrinsic sizing beyond the grid. */
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+}
+.budget-sheet-scroll input[type="date"]::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}
+.budget-sheet-scroll input[type="date"]::-webkit-datetime-edit {
+  min-width: 0;
+  padding: 0;
 }
 .budget-sheet-scroll .budget-help {
   margin-top: 16px;
