@@ -462,21 +462,23 @@ function BudgetDetail({
             </span>
           </div>
           <div className="budget-detail-body">
-            <p className="budget-pull-hint">
+            <button
+              type="button"
+              className="budget-pull-hint"
+              data-pull-trigger
+              aria-label="지출 입력창 열기"
+              disabled={busy || phase === "opening"}
+              onClick={() => {
+                setSwipedExpenseId(null);
+                setEditor("new");
+              }}
+            >
               <ArrowDown size={15} aria-hidden="true" />맨 위에서 아래로 당겨
               지출 등록
-            </p>
+            </button>
             <Totals budgets={[budget]} />
             <div className="budget-expenses-heading">
               <h3>지출 내역</h3>
-              <button
-                className="button dark"
-                disabled={busy || phase === "opening"}
-                onClick={() => setEditor("new")}
-              >
-                <Plus size={17} />
-                지출 등록
-              </button>
             </div>
             <label className="budget-filter">
               상태

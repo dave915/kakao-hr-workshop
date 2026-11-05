@@ -164,9 +164,6 @@
   background: transparent;
   color: var(--ds-color-text-secondary);
 }
-.swipe-row-menu:hover {
-  background: var(--ds-color-surface-subtle);
-}
 .swipe-row .budget-row {
   padding-right: 8px;
 }
@@ -195,8 +192,15 @@
   border: 0;
   color: var(--ds-color-text);
 }
-.budget-row:hover {
-  background: var(--ds-color-surface-subtle);
+@media (hover: hover) and (pointer: fine) {
+  .budget-list-item > .budget-row:hover,
+  .swipe-row[data-open="false"]:hover
+    .swipe-row-content:not([data-dragging="true"]) {
+    background: var(--ds-color-surface-subtle);
+  }
+  .swipe-row-menu:hover {
+    color: var(--ds-color-text);
+  }
 }
 .budget-row:focus-visible {
   outline-offset: -3px;
@@ -301,7 +305,12 @@
   gap: 6px;
   color: var(--ds-color-text-secondary);
   font-size: var(--ds-font-size-caption);
-  margin: 18px 0;
+  width: 100%;
+  min-height: 44px;
+  margin: 6px 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 .budget-pull {
   position: absolute;
@@ -448,6 +457,7 @@
 }
 .budget-form .form-pair {
   align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .budget-form label {
   min-width: 0;
@@ -480,9 +490,13 @@
   bottom: calc(100dvh - var(--dialog-height, 100dvh) - var(--dialog-top, 0px));
   border-radius: 20px 20px 0 0;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 .budget-expense-editor .drawer-content {
   height: 100%;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -500,12 +514,18 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
 }
 .budget-sheet-scroll {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
+  touch-action: pan-y pinch-zoom;
   padding: 16px 20px;
   scroll-padding-block: 16px;
 }
@@ -515,6 +535,12 @@
 }
 .budget-sheet-scroll fieldset {
   gap: 16px;
+  min-inline-size: 0;
+  width: 100%;
+}
+.budget-sheet-scroll input[type="date"] {
+  min-inline-size: 0;
+  inline-size: 100%;
 }
 .budget-sheet-scroll .budget-help {
   margin-top: 16px;

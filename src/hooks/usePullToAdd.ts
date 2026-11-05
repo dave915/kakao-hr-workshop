@@ -87,7 +87,8 @@ export function usePullToAdd(
         (event.target instanceof Element &&
           event.target.closest(
             "button, a, input, select, textarea, [contenteditable]",
-          ))
+          ) &&
+          !event.target.closest("[data-pull-trigger]"))
       )
         return;
       start = { x: event.touches[0].clientX, y: event.touches[0].clientY };

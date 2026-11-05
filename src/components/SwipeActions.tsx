@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -30,6 +31,24 @@ export default function SwipeActions({
   children: ReactNode;
 }) {
   const id = useId();
+  const row = useRef<HTMLDivElement>(null);
+  const changeOpen = useRef(onOpenChange);
+  useLayoutEffect(() => {
+    changeOpen.current = onOpenChange;
+  });
+  useEffect(() => {
+    if (!open) return;
+    const dismissOutside = (event: Event) => {
+      if (event.target instanceof Node && !row.current?.contains(event.target))
+        changeOpen.current(false);
+    };
+    document.addEventListener("pointerdown", dismissOutside, true);
+    document.addEventListener("focusin", dismissOutside, true);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOutside, true);
+      document.removeEventListener("focusin", dismissOutside, true);
+    };
+  }, [open]);
   const content = useRef<HTMLDivElement>(null);
   const menu = useRef<HTMLButtonElement>(null);
   const offset = useRef(0);
@@ -72,7 +91,7 @@ export default function SwipeActions({
     action();
   };
   return (
-    <div className="swipe-row" data-swipe-row>
+    <div ref={row} className="swipe-row" data-swipe-row data-open={open}>
       <div
         id={id}
         className="swipe-row-actions"
