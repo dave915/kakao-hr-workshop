@@ -376,7 +376,7 @@ function BudgetDetail({
                       <time dateTime={expense.spentOn}>
                         {dateLabel(expense.spentOn)}
                       </time>
-                      <span>작성 {englishName(expense.authorHandle)}</span>
+                      <span>작성 {expense.authorHandle}</span>
                     </p>
                     {expense.note && (
                       <p className="expense-note">{expense.note}</p>
@@ -554,7 +554,7 @@ function ExpenseForm({
       <p className="budget-form-context">
         {budget.name}
         <span>
-          작성자 {englishName(expense?.authorHandle ?? me?.handle ?? "")}
+          작성자 {expense?.authorHandle ?? me?.handle ?? ""}
         </span>
       </p>
       <form className="form-stack budget-form" onSubmit={submit}>
