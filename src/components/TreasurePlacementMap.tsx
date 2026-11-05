@@ -206,7 +206,10 @@ export default function TreasurePlacementMap(props: Props) {
   }, [context, props.focus]);
 
   return (
-    <div className={`placement-map ${props.placing ? "is-placing" : ""}`}>
+    <div
+      className={`placement-map ${props.placing ? "is-placing" : ""}`}
+      data-menu-swipe="ignore"
+    >
       <div
         ref={container}
         className="placement-map-canvas"

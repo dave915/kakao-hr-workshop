@@ -127,6 +127,7 @@ export default function PhotoFeedPost({
       </header>
       <div
         className="photo-carousel"
+        data-menu-swipe="ignore"
         role="group"
         aria-roledescription="사진 슬라이드"
         aria-label={`${name}의 사진 ${post.photos.length}장`}

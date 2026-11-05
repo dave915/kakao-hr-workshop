@@ -1,10 +1,13 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { lockDocumentScroll } from "../lib/scroll-lock";
 import { useOverlayHistory } from "./useOverlayHistory";
+import { useMobileMenuSwipe } from "./useMobileMenuSwipe";
 
 /** Keep the document still while the mobile sidebar owns scrolling, including iOS. */
 export function useMobileMenu(enabled: boolean) {
   const [open, setOpen] = useState(false);
+  const show = useCallback(() => setOpen(true), []);
+  useMobileMenuSwipe(enabled && !open, show);
   const unlock = useRef<(() => void) | null>(null);
   const restoreFocus = useRef(true);
   const close = useCallback(() => {
@@ -115,6 +118,6 @@ export function useMobileMenu(enabled: boolean) {
     open,
     close,
     closeForNavigation,
-    toggle: () => (open ? close() : setOpen(true)),
+    toggle: () => (open ? close() : show()),
   };
 }

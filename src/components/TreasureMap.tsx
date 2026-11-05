@@ -260,6 +260,7 @@ export default function TreasureMap({
   return (
     <div
       className={`map-container ${onPlace ? "map-placing" : ""}`}
+      data-menu-swipe="ignore"
       aria-busy={!context && !error}
     >
       <div
