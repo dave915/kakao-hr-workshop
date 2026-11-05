@@ -23,6 +23,7 @@ import {
   Footprints,
   Menu,
   Images,
+  Wallet,
 } from "lucide-react";
 import Home from "./components/Home";
 import MobileTabBar from "./components/MobileTabBar";
@@ -51,6 +52,7 @@ import { overlayHistory } from "./lib/overlay-history";
 const Treasure = lazy(() => import("./components/Treasure"));
 const Admin = lazy(() => import("./components/Admin"));
 const PhotoBoard = lazy(() => import("./components/PhotoBoard"));
+const Budget = lazy(() => import("./components/Budget"));
 const navigation = [
   { id: "home", name: "탐험 홈", short: "홈", icon: HomeIcon },
   { id: "timeline", name: "오늘의 여정", short: "일정", icon: CalendarDays },
@@ -58,8 +60,11 @@ const navigation = [
   { id: "team", name: "우리 탐험대", short: "우리 팀", icon: Flag },
   { id: "photos", name: "우리의 사진첩", short: "사진첩", icon: Images },
   { id: "notices", name: "베이스캠프 소식", short: "소식", icon: Bell },
+  { id: "budget", name: "워크샵 예산", short: "예산", icon: Wallet },
 ] as const;
-const mobileNavigation = navigation.filter((item) => item.id !== "notices");
+const mobileNavigation = navigation.filter(
+  (item) => item.id !== "notices" && item.id !== "budget",
+);
 const pageNames: Record<Page, string> = {
   home: "탐험 홈",
   timeline: "오늘의 여정",
@@ -67,6 +72,7 @@ const pageNames: Record<Page, string> = {
   team: "우리 탐험대",
   notices: "베이스캠프 소식",
   photos: "우리의 사진첩",
+  budget: "워크샵 예산",
   profile: "나의 탐험 여권",
   admin: "추진위원회",
 };
@@ -508,6 +514,11 @@ export default function App() {
               <Notices />
             ) : page === "photos" ? (
               <PhotoBoard
+                key={`${me.id}:${state.resetGeneration ?? 0}`}
+                notify={notify}
+              />
+            ) : page === "budget" ? (
+              <Budget
                 key={`${me.id}:${state.resetGeneration ?? 0}`}
                 notify={notify}
               />

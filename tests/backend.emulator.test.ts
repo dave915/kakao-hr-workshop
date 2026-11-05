@@ -76,6 +76,167 @@ describe.skipIf(!enabled)("callable backend integration", () => {
     adminToken = await redeem(adminCode);
     memberToken = await redeem(memberCode);
   }, 30000);
+  it("persists member expenses, enforces committee confirmation, and serializes conflicting budget changes", async () => {
+    const before = (
+      await db.doc("workshops/main").get()
+    ).data() as WorkshopState;
+    const resetGeneration = before.resetGeneration ?? 0;
+    const budget = {
+      id: randomUUID(),
+      name: "통합 검증 식비",
+      amount: 100_000,
+    };
+    const expense = {
+      id: randomUUID(),
+      title: "도시락",
+      amount: 30_000,
+      type: "meal",
+      spentOn: "2026-11-05",
+      note: "",
+    };
+    const create = {
+      action: "createExpense",
+      resetGeneration,
+      budgetId: budget.id,
+      expense,
+    };
+    const target = {
+      resetGeneration,
+      budgetId: budget.id,
+      expenseId: expense.id,
+      revision: 0,
+    };
+    try {
+      expect(
+        (
+          await call("workshopAction", {
+            action: "createBudget",
+            resetGeneration,
+            budget,
+          })
+        ).status,
+      ).toBe(401);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "createBudget", resetGeneration, budget },
+            memberToken,
+          )
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "createBudget", resetGeneration, budget },
+            adminToken,
+          )
+        ).status,
+      ).toBe(200);
+      const created = await Promise.all([
+        call("workshopAction", create, memberToken),
+        call("workshopAction", create, memberToken),
+      ]);
+      expect(created.map((result) => result.status)).toEqual([200, 200]);
+      const visible = (await db.doc("workshops/participants").get())
+        .data()
+        .budgets.find((item: { id: string }) => item.id === budget.id);
+      expect(visible.expenses).toHaveLength(1);
+      expect(visible.expenses[0]).toMatchObject({
+        authorId: "alex.k",
+        status: "pending",
+      });
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "confirmExpense", ...target },
+            memberToken,
+          )
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await call(
+            "workshopAction",
+            { action: "setRole", memberId: "june.p", role: "admin" },
+            adminToken,
+          )
+        ).status,
+      ).toBe(200);
+      const committeeToken = await redeem(committeeCode);
+      const race = await Promise.all([
+        call(
+          "workshopAction",
+          { action: "confirmExpense", ...target },
+          committeeToken,
+        ),
+        call(
+          "workshopAction",
+          {
+            action: "updateExpense",
+            resetGeneration,
+            budgetId: budget.id,
+            expense: { ...expense, amount: 40_000 },
+            revision: 0,
+          },
+          memberToken,
+        ),
+      ]);
+      expect(race.map((result) => result.status).sort()).toEqual([200, 400]);
+      const stored = (await db.doc("workshops/main").get())
+        .data()
+        .budgets.find((item: { id: string }) => item.id === budget.id)
+        .expenses[0];
+      if (stored.status === "pending")
+        expect(
+          (
+            await call(
+              "workshopAction",
+              {
+                action: "confirmExpense",
+                ...target,
+                revision: stored.revision,
+              },
+              committeeToken,
+            )
+          ).status,
+        ).toBe(200);
+      const confirmed = (await db.doc("workshops/participants").get())
+        .data()
+        .budgets.find((item: { id: string }) => item.id === budget.id)
+        .expenses[0];
+      expect(confirmed).toMatchObject({
+        status: "confirmed",
+        confirmedBy: "june.p",
+        authorHandle: "alex.k",
+      });
+      expect(
+        (
+          await call(
+            "workshopAction",
+            {
+              action: "deleteExpense",
+              ...target,
+              revision: confirmed.revision,
+            },
+            memberToken,
+          )
+        ).status,
+      ).toBe(400);
+    } finally {
+      await call(
+        "workshopAction",
+        { action: "setRole", memberId: "june.p", role: "member" },
+        adminToken,
+      );
+      await db.doc("workshops/main").update({ budgets: before.budgets ?? [] });
+      await db
+        .doc("workshops/participants")
+        .update({ budgets: before.budgets ?? [] });
+    }
+  }, 30000);
   it("publishes treasure locations only while an admin enables the setting and starts the game, including after login", async () => {
     const before = (
       await db.doc("workshops/main").get()

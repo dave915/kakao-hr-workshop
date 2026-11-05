@@ -2,6 +2,7 @@ import { arGuidance, treasureGuidance } from "./exploration";
 import { claimTreasure, GameError, isAdmin } from "./game";
 import { makeSeed } from "./seed";
 import { COMMITTEE_AUDIENCE } from "./notices";
+import { isBudgetAction, mutateBudget } from "./budgets";
 import { registrationValues, saveTreasures } from "./treasure-registration";
 import type { ActionInput } from "./validation";
 import type { ActionResponse, TreasureSecrets, WorkshopState } from "./types";
@@ -15,6 +16,10 @@ export function mutate(
 ): ActionResponse {
   const actor = state.members[actorId];
   if (!actor) throw new GameError("다시 입장해주세요.");
+  if (isBudgetAction(input)) {
+    mutateBudget(state, actorId, input, now);
+    return {};
+  }
   if (input.action === "getArTarget")
     return arGuidance(state, actorId, input.treasureId, input.position, now);
   if (input.action === "getGuidance")

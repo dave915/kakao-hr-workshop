@@ -7,6 +7,7 @@ export type Page =
   | "team"
   | "notices"
   | "photos"
+  | "budget"
   | "profile"
   | "admin";
 export interface Member {
@@ -76,6 +77,33 @@ export interface ActivityGroup {
     pendingNames?: string[];
   }>;
 }
+export type ExpenseType =
+  "meal" | "transport" | "stay" | "activity" | "supplies" | "other";
+export interface BudgetExpense {
+  id: string;
+  title: string;
+  amount: number;
+  type: ExpenseType;
+  spentOn: string;
+  note: string;
+  authorId: string;
+  authorHandle: string;
+  createdAt: number;
+  updatedAt: number;
+  revision: number;
+  status: "pending" | "confirmed";
+  confirmedBy: string | null;
+  confirmedByHandle: string | null;
+  confirmedAt: number | null;
+}
+export interface WorkshopBudget {
+  id: string;
+  name: string;
+  amount: number;
+  createdBy: string;
+  createdAt: number;
+  expenses: BudgetExpense[];
+}
 export type VisibleTreasure = Omit<Treasure, "lat" | "lng"> & {
   lat?: number;
   lng?: number;
@@ -89,6 +117,7 @@ export interface WorkshopState<T extends VisibleTreasure = Treasure> {
   treasures: T[];
   notices: Notice[];
   activityGroups?: ActivityGroup[];
+  budgets?: WorkshopBudget[];
 }
 export type WorkshopView = WorkshopState<VisibleTreasure>;
 export type Proximity = "far" | "warm" | "close" | "hot" | "within";

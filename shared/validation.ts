@@ -5,6 +5,35 @@ const text = (max: number) =>
 const iso = z
   .string()
   .refine((v) => Number.isFinite(Date.parse(v)), "올바른 일시를 입력해주세요.");
+const won = z
+  .number()
+  .int("금액은 원 단위 정수로 입력해주세요.")
+  .min(1, "금액은 1원 이상 입력해주세요.")
+  .max(1_000_000_000, "금액은 10억 원 이하로 입력해주세요.");
+const budgetScope = { resetGeneration: z.number().int().nonnegative() };
+export const expenseInput = z.object({
+  id: z.string().uuid(),
+  title: text(80),
+  amount: won,
+  type: z.enum(["meal", "transport", "stay", "activity", "supplies", "other"]),
+  spentOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "지출일을 선택해주세요.")
+    .refine((value) => {
+      const date = new Date(`${value}T00:00:00Z`);
+      return (
+        Number.isFinite(date.getTime()) &&
+        date.toISOString().slice(0, 10) === value
+      );
+    }, "올바른 지출일을 선택해주세요."),
+  note: z.string().trim().max(300),
+});
+const expenseTarget = {
+  ...budgetScope,
+  budgetId: z.string().uuid(),
+  expenseId: z.string().uuid(),
+  revision: z.number().int().nonnegative(),
+};
 export const memberInput = z.object({
   name: text(40),
   handle: text(40).regex(
@@ -109,6 +138,27 @@ export const guidanceInput = z.object({
   }),
 });
 export const actionInput = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("createBudget"),
+    ...budgetScope,
+    budget: z.object({ id: z.string().uuid(), name: text(60), amount: won }),
+  }),
+  z.object({
+    action: z.literal("createExpense"),
+    ...budgetScope,
+    budgetId: z.string().uuid(),
+    expense: expenseInput,
+  }),
+  z.object({
+    action: z.literal("updateExpense"),
+    ...budgetScope,
+    budgetId: z.string().uuid(),
+    expense: expenseInput,
+    revision: z.number().int().nonnegative(),
+  }),
+  z.object({ action: z.literal("deleteExpense"), ...expenseTarget }),
+  z.object({ action: z.literal("confirmExpense"), ...expenseTarget }),
+  z.object({ action: z.literal("reopenExpense"), ...expenseTarget }),
   z.object({
     action: z.literal("saveActivityGroup"),
     activityGroup: z
