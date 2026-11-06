@@ -7,6 +7,7 @@ import type { Treasure, WorkshopState } from "../shared/types";
 import { registrationValues } from "../shared/treasure-registration";
 import { discoveryPush } from "../shared/discovery-push";
 import { COMMITTEE_AUDIENCE } from "../shared/notices";
+import { PRIZE_PLAN } from "../shared/prizes";
 const require = createRequire(
   new URL("../functions/package.json", import.meta.url),
 );
@@ -960,8 +961,20 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       treasures: [{ ...base, id }],
     }));
     try {
-      await db.doc("workshops/main").set({ ...originalState, treasures: [] });
-      await db.doc("private/treasures").set({ kinds: {} });
+      const cashLimit = PRIZE_PLAN.find((p) => p.amount === 50000)!.quantity;
+      const existing = Array.from({ length: cashLimit - 1 }, (_, i) => ({
+        ...base,
+        id: `existing-cash-${i}`,
+        foundBy: i === 0 ? "alex.k" : null,
+        foundAt: i === 0 ? 1234 : null,
+        ...(i === 0 ? { outcome: "treasure" } : {}),
+      }));
+      await db
+        .doc("workshops/main")
+        .set({ ...originalState, treasures: existing });
+      await db.doc("private/treasures").set({
+        kinds: Object.fromEntries(existing.map((t) => [t.id, "treasure"])),
+      });
       const responses = await Promise.all(
         requests.map((input) => call("workshopAction", input, adminToken)),
       );
@@ -970,13 +983,18 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       const saved = (
         await db.doc("workshops/main").get()
       ).data() as WorkshopState;
-      expect(saved.treasures).toHaveLength(1);
-      expect(saved.treasures[0].prizeAmount).toBe(50000);
+      expect(saved.treasures).toHaveLength(cashLimit);
+      expect(saved.treasures.slice(0, existing.length)).toEqual(existing);
+      const added = saved.treasures.at(-1)!;
+      expect(added.prizeAmount).toBe(50000);
       const visible = (await db.doc("workshops/participants").get()).data();
-      expect(visible.treasures[0]).not.toHaveProperty("prizeAmount");
-      expect(visible.treasures[0]).not.toHaveProperty("lat");
+      const visibleAdded = visible.treasures.find(
+        (t: Treasure) => t.id === added.id,
+      );
+      expect(visibleAdded).not.toHaveProperty("prizeAmount");
+      expect(visibleAdded).not.toHaveProperty("lat");
       const winningRequest = requests.find(
-        (r) => r.treasures[0].id === saved.treasures[0].id,
+        (r) => r.treasures[0].id === added.id,
       )!;
       expect(
         (await call("workshopAction", winningRequest, adminToken)).status,
@@ -1406,7 +1424,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       await ref.delete();
     }
   }, 30000);
-  it("registers fifty cheers and fifty blanks separately and allows immediate play after a cheer", async () => {
+  it("registers eighty cheers and eighty blanks separately and allows immediate play after a cheer", async () => {
     const original = (await db.doc("workshops/main").get()).data();
     const originalSecrets = (await db.doc("private/treasures").get()).data();
     const originalVisible = (
@@ -1425,12 +1443,12 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       points: 100,
       prizeAmount: 0,
     };
-    const cheers = Array.from({ length: 50 }, (_, i) => ({
+    const cheers = Array.from({ length: 80 }, (_, i) => ({
       ...base,
       id: `cheer-fixture-${i}`,
       kind: "cheer",
     }));
-    const blanks = Array.from({ length: 50 }, (_, i) => ({
+    const blanks = Array.from({ length: 80 }, (_, i) => ({
       ...base,
       id: `blank-fixture-${i}`,
       kind: "bomb",
@@ -1461,10 +1479,10 @@ describe.skipIf(!enabled)("callable backend integration", () => {
         .kinds;
       expect(
         Object.values(privateKinds).filter((kind) => kind === "cheer"),
-      ).toHaveLength(50);
+      ).toHaveLength(80);
       expect(
         Object.values(privateKinds).filter((kind) => kind === "bomb"),
-      ).toHaveLength(50);
+      ).toHaveLength(80);
       const excess = await call(
         "workshopAction",
         {

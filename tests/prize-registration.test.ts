@@ -3,6 +3,7 @@ import {
   PRIZE_PLAN,
   prizeInventory,
   TOTAL_PRIZE_QUANTITY,
+  TOTAL_PRIZE_AMOUNT,
   type TreasureKind,
 } from "../shared/prizes";
 import { makeSeed } from "../shared/seed";
@@ -53,7 +54,56 @@ function setup() {
 }
 
 describe("prize inventory registration", () => {
-  it("registers 95 cash prizes, 50 blanks and 50 cheers worth 500,000 won", () => {
+  it("adds thirty slots per kind without changing existing registrations or discoveries", () => {
+    const { state, secrets, save } = setup();
+    const previousQuantities = [1, 2, 5, 10, 20, 33, 24, 50, 50];
+    save(
+      PRIZE_PLAN.flatMap((p, i) =>
+        Array.from({ length: previousQuantities[i] }, (_, index) =>
+          prize(`existing-${p.kind}-${p.amount}-${index}`, p.amount, p.kind),
+        ),
+      ),
+    );
+    const now = Date.now();
+    for (const id of [
+      "existing-treasure-50000-0",
+      "existing-cheer-0-0",
+      "existing-bomb-0-0",
+    ]) {
+      claimTreasure(
+        state,
+        secrets,
+        "alex.k",
+        id,
+        { lat: 37.3, lng: 127.1, accuracy: 5, timestamp: now },
+        now,
+      );
+    }
+    const before = structuredClone({ state, secrets });
+    expect(state.treasures).toHaveLength(195);
+    expect(
+      prizeInventory(state.treasures, secrets).map((p) => p.remaining),
+    ).toEqual(Array(9).fill(30));
+    expect({ state, secrets }).toEqual(before);
+    save(
+      PRIZE_PLAN.flatMap((p) =>
+        Array.from({ length: 30 }, (_, index) =>
+          prize(`additional-${p.kind}-${p.amount}-${index}`, p.amount, p.kind),
+        ),
+      ),
+    );
+    expect(state.treasures).toHaveLength(465);
+    expect(state.treasures.slice(0, 195)).toEqual(before.state.treasures);
+    expect({ ...state, treasures: before.state.treasures }).toEqual(
+      before.state,
+    );
+    expect(secrets).toMatchObject(before.secrets);
+    expect(
+      prizeInventory(state.treasures, secrets).every((p) => p.remaining === 0),
+    ).toBe(true);
+  });
+
+  it("registers 305 cash prizes, 80 blanks and 80 cheers worth 4,040,000 won", () => {
     const { state, secrets, save } = setup();
     save(
       PRIZE_PLAN.flatMap((p) =>
@@ -62,21 +112,22 @@ describe("prize inventory registration", () => {
         ),
       ),
     );
-    expect(state.treasures).toHaveLength(195);
-    expect(TOTAL_PRIZE_QUANTITY).toBe(195);
+    expect(state.treasures).toHaveLength(465);
+    expect(TOTAL_PRIZE_QUANTITY).toBe(465);
+    expect(TOTAL_PRIZE_AMOUNT).toBe(4040000);
     expect(
       state.treasures.filter((t) => (t.prizeAmount ?? 0) > 0),
-    ).toHaveLength(95);
+    ).toHaveLength(305);
     expect(
       state.treasures.reduce((sum, t) => sum + (t.prizeAmount ?? 0), 0),
-    ).toBe(500000);
+    ).toBe(4040000);
     expect(
       prizeInventory(state.treasures, secrets).every((p) => p.remaining === 0),
     ).toBe(true);
   });
   it("rejects oversubscribed batches and legacy single saves without partial writes", () => {
     const { state, secrets, save } = setup();
-    save([prize("first", 50000)]);
+    save(Array.from({ length: 31 }, (_, i) => prize(`first-${i}`, 50000)));
     const before = structuredClone({ state, secrets });
     expect(() => save([prize("ok", 1000), prize("excess", 50000)])).toThrow(
       "50,000원",
@@ -122,7 +173,7 @@ describe("prize inventory registration", () => {
     save([t]);
     expect(state.treasures).toHaveLength(1);
     expect(state.members["alex.k"].score).toBe(100);
-    expect(prizeInventory(state.treasures)[0].remaining).toBe(0);
+    expect(prizeInventory(state.treasures)[0].remaining).toBe(30);
     expect(participantView(state).treasures[0].prizeAmount).toBe(50000);
   });
   it("allows an atomic denomination swap and restores stock when a registration is deleted", () => {
@@ -135,7 +186,7 @@ describe("prize inventory registration", () => {
       { ...a, prizeAmount: 30000, original: a },
       { ...b, prizeAmount: 50000, original: b },
     ]);
-    expect(prizeInventory(state.treasures)[0].remaining).toBe(0);
+    expect(prizeInventory(state.treasures)[0].remaining).toBe(30);
     mutate(
       state,
       secrets,
@@ -143,16 +194,16 @@ describe("prize inventory registration", () => {
       { action: "deleteTreasure", id: "b" },
       "id",
     );
-    expect(prizeInventory(state.treasures)[0].remaining).toBe(1);
+    expect(prizeInventory(state.treasures)[0].remaining).toBe(31);
   });
   it("assigns an existing unpriced treasure without duplicating it and preserves amount in restored edit drafts", () => {
     const { state, secrets, save } = setup();
     save([prize("legacy", undefined)]);
-    expect(prizeInventory(state.treasures)[0].remaining).toBe(1);
+    expect(prizeInventory(state.treasures)[0].remaining).toBe(31);
     const original = registrationValues(state.treasures[0], "treasure");
     save([{ ...original, prizeAmount: 50000, original }]);
     expect(state.treasures).toHaveLength(1);
-    expect(prizeInventory(state.treasures)[0].remaining).toBe(0);
+    expect(prizeInventory(state.treasures)[0].remaining).toBe(30);
     const saved = registrationValues(state.treasures[0], secrets.legacy);
     const restored = parseWorkspace(
       JSON.stringify({
@@ -168,7 +219,7 @@ describe("prize inventory registration", () => {
       "원본",
     );
   });
-  it("validates denomination and kind, enforces fifty blanks and keeps them secret", () => {
+  it("validates denomination and kind, enforces eighty blanks and keeps them secret", () => {
     const { state, secrets, save } = setup();
     expect(() =>
       actionInput.parse({
@@ -181,7 +232,7 @@ describe("prize inventory registration", () => {
       "종류",
     );
     expect(state.treasures).toHaveLength(0);
-    save(Array.from({ length: 50 }, (_, i) => prize(`blank-${i}`, 0)));
+    save(Array.from({ length: 80 }, (_, i) => prize(`blank-${i}`, 0)));
     expect(() => save([prize("extra", 0)])).toThrow("꽝");
     expect(participantView(state).treasures[0]).not.toHaveProperty(
       "prizeAmount",
@@ -206,20 +257,20 @@ describe("prize inventory registration", () => {
   it("keeps zero-won cheer stock separate, rejects overbooking and supports atomic kind swaps", () => {
     const { state, secrets, save } = setup();
     save([
-      ...Array.from({ length: 50 }, (_, i) => prize(`blank-${i}`, 0)),
-      ...Array.from({ length: 50 }, (_, i) => prize(`cheer-${i}`, 0, "cheer")),
+      ...Array.from({ length: 80 }, (_, i) => prize(`blank-${i}`, 0)),
+      ...Array.from({ length: 80 }, (_, i) => prize(`cheer-${i}`, 0, "cheer")),
     ]);
     const inventory = () =>
       prizeInventory(state.treasures, secrets).filter((p) => p.amount === 0);
     expect(inventory()).toEqual([
-      expect.objectContaining({ kind: "bomb", placed: 50, remaining: 0 }),
-      expect.objectContaining({ kind: "cheer", placed: 50, remaining: 0 }),
+      expect.objectContaining({ kind: "bomb", placed: 80, remaining: 0 }),
+      expect.objectContaining({ kind: "cheer", placed: 80, remaining: 0 }),
     ]);
     const before = structuredClone({ state, secrets });
     expect(() => save([prize("extra-cheer", 0, "cheer")])).toThrow("응원");
     expect({ state, secrets }).toEqual(before);
     const blank = registrationValues(state.treasures[0], "bomb");
-    const cheer = registrationValues(state.treasures[50], "cheer");
+    const cheer = registrationValues(state.treasures[80], "cheer");
     expect(() => save([{ ...blank, kind: "cheer", original: blank }])).toThrow(
       "응원",
     );
@@ -230,7 +281,7 @@ describe("prize inventory registration", () => {
     ]);
     expect(secrets[blank.id]).toBe("cheer");
     expect(secrets[cheer.id]).toBe("bomb");
-    expect(inventory().map((p) => p.placed)).toEqual([50, 50]);
+    expect(inventory().map((p) => p.placed)).toEqual([80, 80]);
     mutate(
       state,
       secrets,
@@ -284,7 +335,7 @@ describe("prize inventory registration", () => {
     expect(
       prizeInventory(state.treasures, secrets).find((p) => p.kind === "cheer")
         ?.remaining,
-    ).toBe(49);
+    ).toBe(79);
     expect(() =>
       claimTreasure(state, secrets, "ryan.j", cheer.id, position, now),
     ).toThrow("발견");
@@ -306,7 +357,7 @@ describe("prize inventory registration", () => {
     expect(
       prizeInventory(state.treasures, secrets).find((p) => p.kind === "cheer")
         ?.remaining,
-    ).toBe(50);
+    ).toBe(80);
   });
 
   it("requires zero won for cheers and preserves their kind in stored drafts", () => {

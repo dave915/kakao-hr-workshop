@@ -1,13 +1,13 @@
 export const PRIZE_PLAN = [
-  { amount: 50000, quantity: 1, kind: "treasure" },
-  { amount: 30000, quantity: 2, kind: "treasure" },
-  { amount: 20000, quantity: 5, kind: "treasure" },
-  { amount: 10000, quantity: 10, kind: "treasure" },
-  { amount: 5000, quantity: 20, kind: "treasure" },
-  { amount: 2000, quantity: 33, kind: "treasure" },
-  { amount: 1000, quantity: 24, kind: "treasure" },
-  { amount: 0, quantity: 50, kind: "bomb" },
-  { amount: 0, quantity: 50, kind: "cheer" },
+  { amount: 50000, quantity: 31, kind: "treasure" },
+  { amount: 30000, quantity: 32, kind: "treasure" },
+  { amount: 20000, quantity: 35, kind: "treasure" },
+  { amount: 10000, quantity: 40, kind: "treasure" },
+  { amount: 5000, quantity: 50, kind: "treasure" },
+  { amount: 2000, quantity: 63, kind: "treasure" },
+  { amount: 1000, quantity: 54, kind: "treasure" },
+  { amount: 0, quantity: 80, kind: "bomb" },
+  { amount: 0, quantity: 80, kind: "cheer" },
 ] as const;
 
 export type PrizeAmount = (typeof PRIZE_PLAN)[number]["amount"];

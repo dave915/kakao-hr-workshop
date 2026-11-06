@@ -3,6 +3,7 @@ import { mutate } from "../shared/mutate";
 import { makeSeed, demoSecrets } from "../shared/seed";
 import { actionInput, type TreasureInput } from "../shared/validation";
 import { registrationValues } from "../shared/treasure-registration";
+import { TOTAL_PRIZE_QUANTITY } from "../shared/prizes";
 import {
   draftStorageKey,
   emptyWorkspace,
@@ -193,10 +194,14 @@ describe("batch treasure registration", () => {
         state,
         secrets,
         "dave.h",
-        batch(Array.from({ length: 195 }, (_, i) => treasure(`new-${i}`))),
+        batch(
+          Array.from({ length: TOTAL_PRIZE_QUANTITY }, (_, i) =>
+            treasure(`new-${i}`),
+          ),
+        ),
         "id",
       ),
-    ).toThrow("최대 195개");
+    ).toThrow(`최대 ${TOTAL_PRIZE_QUANTITY}개`);
     expect({ state, secrets }).toEqual(before);
   });
   it("rejects duplicate IDs, empty batches and invalid input", () => {
