@@ -9,17 +9,25 @@ service firebase.storage {
     }
     function matchesPost(p, generation, author, id, file) {
       return p.id == id && p.authorId == author && p.generation == int(generation)
-        && file.matches('[0-2]-(full|thumb)\\.jpg')
-        && (file.matches('0-.*') || (file.matches('1-.*') && p.photos.size() >= 2) || (file.matches('2-.*') && p.photos.size() >= 3));
+        && (matchesSlot(p, 0, file) || (p.photos.size() >= 2 && matchesSlot(p, 1, file)) || (p.photos.size() >= 3 && matchesSlot(p, 2, file)));
+    }
+    function matchesSlot(p, index, file) {
+      let media = p.photos[index];
+      let video = media.get('kind', 'image') == 'video';
+      return request.resource.size > 0 && (
+        (file == string(index) + '-thumb.jpg' && request.resource.contentType == 'image/jpeg' && request.resource.size <= 512000)
+        || (!video && file == string(index) + '-full.jpg' && request.resource.contentType == 'image/jpeg' && request.resource.size <= 512000)
+        || (video && p.photos.size() == 1
+          && file == string(index) + (media.contentType == 'video/quicktime' ? '-full.mov' : '-full.mp4')
+          && request.resource.contentType == media.contentType
+          && request.resource.size <= 104857600)
+      );
     }
     match /photo-uploads/{generation}/{author}/{id}/{file} {
       allow get: if false;
       allow create: if resource == null && request.auth != null && session(post(id)) && request.auth.uid == author
         && matchesPost(post(id), generation, author, id, file)
-        && post(id).status == 'draft' && request.time.toMillis() < post(id).expiresAt
-        && request.resource.contentType == 'image/jpeg'
-        && request.resource.size > 0
-        && request.resource.size <= (file.matches('.*-thumb\\.jpg') ? 51200 : 512000);
+        && post(id).status == 'draft' && request.time.toMillis() < post(id).expiresAt;
       allow list, update, delete: if false;
     }
   }

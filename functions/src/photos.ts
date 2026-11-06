@@ -9,8 +9,10 @@ import {
   photoMonth,
   checkPhotoQuota,
   PHOTO_DRAFT_LIFETIME,
-  PHOTO_MAX_BYTES,
-  THUMB_MAX_BYTES,
+  isVideo,
+  mediaContentType,
+  mediaByteLimit,
+  checkVideoQuota,
   PHOTO_PAGE_SIZE,
   PHOTO_MONTHLY_LIMIT,
   COMMENT_PAGE_SIZE,
@@ -102,6 +104,10 @@ async function erasePost(id: string) {
     if (!data || data.status !== "deleting") return;
     tx.set(storedRef(), {
       count: Math.max(0, (stored.data()?.count ?? 0) - data.photos.length),
+      videoCount: Math.max(
+        0,
+        (stored.data()?.videoCount ?? 0) - data.photos.filter(isVideo).length,
+      ),
     });
     tx.set(ref, {
       ...data,
@@ -793,19 +799,23 @@ export async function handlePhotoBoard(
       return post;
     });
     const path = photoPath(post, input.index, input.size);
+    const expiresAt =
+      now +
+      (isVideo(post.photos[input.index]) && input.size === "full" ? 15 : 5) *
+        60 *
+        1000;
     // The emulator's GCS endpoint is local and does not implement URL signing.
     if (process.env.FIREBASE_STORAGE_EMULATOR_HOST)
       return {
         url: `http://${process.env.FIREBASE_STORAGE_EMULATOR_HOST}/download/storage/v1/b/${bucket().name}/o/${encodeURIComponent(path)}?alt=media`,
+        expiresAt,
       };
-    const [url] = await bucket()
-      .file(path)
-      .getSignedUrl({
-        version: "v4",
-        action: "read",
-        expires: now + 5 * 60 * 1000,
-      });
-    return { url };
+    const [url] = await bucket().file(path).getSignedUrl({
+      version: "v4",
+      action: "read",
+      expires: expiresAt,
+    });
+    return { url, expiresAt };
   }
   if (input.action === "begin") {
     let resume = false;
@@ -842,6 +852,14 @@ export async function handlePhotoBoard(
         stored.data()?.count ?? 0,
       );
       if (message) throw new HttpsError("resource-exhausted", message);
+      const videoCount = input.photos.filter(isVideo).length;
+      const videoIssue = videoCount
+        ? checkVideoQuota(
+            monthly.data()?.videoCount ?? 0,
+            stored.data()?.videoCount ?? 0,
+          )
+        : null;
+      if (videoIssue) throw new HttpsError("resource-exhausted", videoIssue);
       const data: PhotoPost = {
         id: input.id,
         authorId: auth.me.id,
@@ -858,6 +876,7 @@ export async function handlePhotoBoard(
       for (const counter of [monthly, stored])
         tx.set(counter.ref, {
           count: (counter.data()?.count ?? 0) + input.photos.length,
+          videoCount: (counter.data()?.videoCount ?? 0) + videoCount,
         });
       tx.update(auth.profileRef, { photoGeneration: auth.generation });
       return data;
@@ -919,28 +938,49 @@ export async function handlePhotoBoard(
         const [hasUpload] = await source.exists();
         const file = hasUpload ? source : destination;
         const [metadata] = await file.getMetadata();
-        const limit = size === "full" ? PHOTO_MAX_BYTES : THUMB_MAX_BYTES;
+        const media = post.photos[index];
+        const limit = mediaByteLimit(media, size);
+        const contentType = mediaContentType(media, size);
         if (
-          metadata.contentType !== "image/jpeg" ||
+          metadata.contentType !== contentType ||
           Number(metadata.size) <= 0 ||
           Number(metadata.size) > limit
         )
           throw new HttpsError(
             "invalid-argument",
-            "사진 크기 또는 형식을 확인해주세요.",
+            "사진·동영상 크기 또는 형식을 확인해주세요.",
           );
-        const [header] = await file.download({ start: 0, end: 2 });
-        if (header[0] !== 0xff || header[1] !== 0xd8 || header[2] !== 0xff)
+        const [header] = await file.download({ start: 0, end: 63 });
+        const valid =
+          size === "full" && isVideo(media)
+            ? header.length >= 24 &&
+              header.toString("ascii", 4, 8) === "ftyp" &&
+              [
+                "isom",
+                "iso2",
+                "iso3",
+                "iso4",
+                "iso5",
+                "iso6",
+                "avc1",
+                "mp41",
+                "mp42",
+                "M4V ",
+                "MSNV",
+                "qt  ",
+              ].includes(header.toString("ascii", 8, 12))
+            : header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
+        if (!valid)
           throw new HttpsError(
             "invalid-argument",
-            "올바른 사진 파일을 선택해주세요.",
+            "올바른 사진·동영상 파일을 선택해주세요.",
           );
         // Publish to a separate private object without Firebase download tokens.
         // Reads use short-lived signed GCS URLs; Firebase object reads are denied.
         if (hasUpload)
           await source.copy(destination, {
             metadata: { firebaseStorageDownloadTokens: null },
-            contentType: "image/jpeg",
+            contentType,
             cacheControl: "private,max-age=300",
           });
       }

@@ -1,10 +1,33 @@
-import { PHOTO_MAX_BYTES, THUMB_MAX_BYTES } from "../../shared/photos";
-export interface PreparedPhoto {
+import {
+  PHOTO_MAX_BYTES,
+  VIDEO_MAX_BYTES,
+  VIDEO_MAX_SECONDS,
+  type PhotoMedia,
+} from "../../shared/photos";
+export type PreparedPhoto = {
   full: Blob;
   thumb: Blob;
   width: number;
   height: number;
   name: string;
+} & (
+  | { kind?: "image" }
+  | {
+      kind: "video";
+      duration: number;
+      contentType: "video/mp4" | "video/quicktime";
+    }
+);
+export function preparedMetadata(media: PreparedPhoto): PhotoMedia {
+  const dimensions = { width: media.width, height: media.height };
+  return media.kind === "video"
+    ? {
+        ...dimensions,
+        kind: "video",
+        duration: media.duration,
+        contentType: media.contentType,
+      }
+    : dimensions;
 }
 function jpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) =>
@@ -43,6 +66,8 @@ async function encode(
   throw new Error("사진 용량을 줄이지 못했어요. 다른 사진을 선택해주세요.");
 }
 export async function preparePhoto(file: File): Promise<PreparedPhoto> {
+  if (file.type.startsWith("video/") || /\.(mp4|mov)$/i.test(file.name))
+    return prepareVideo(file);
   if (!file.type.startsWith("image/") || file.type === "image/svg+xml")
     throw new Error(
       "사진 파일을 선택해주세요. JPG, PNG, WebP를 사용할 수 있어요.",
@@ -63,16 +88,9 @@ export async function preparePhoto(file: File): Promise<PreparedPhoto> {
       1600,
       PHOTO_MAX_BYTES,
     );
-    const thumb = await encode(
-      image,
-      image.naturalWidth,
-      image.naturalHeight,
-      360,
-      THUMB_MAX_BYTES,
-    );
     return {
       full: full.blob,
-      thumb: thumb.blob,
+      thumb: full.blob,
       width: full.width,
       height: full.height,
       name: file.name,
@@ -83,6 +101,77 @@ export async function preparePhoto(file: File): Promise<PreparedPhoto> {
       "이 사진 형식을 읽지 못했어요. JPG 또는 PNG로 저장해서 다시 선택해주세요.",
     );
   } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function prepareVideo(file: File): Promise<PreparedPhoto> {
+  const type =
+    file.type || (/\.mov$/i.test(file.name) ? "video/quicktime" : "video/mp4");
+  if (type !== "video/mp4" && type !== "video/quicktime")
+    throw new Error("동영상은 MP4 또는 MOV 파일로 선택해주세요.");
+  if (!file.size || file.size > VIDEO_MAX_BYTES)
+    throw new Error("동영상은 100MB 이하로 선택해주세요.");
+  const video = document.createElement("video"),
+    url = URL.createObjectURL(file);
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "auto";
+  const waitFor = (event: string, act: () => void) =>
+    new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        clearTimeout(timer);
+        video.removeEventListener(event, ready);
+        video.removeEventListener("error", failed);
+      };
+      const ready = () => {
+        cleanup();
+        resolve();
+      };
+      const failed = () => {
+        cleanup();
+        reject(
+          new Error(
+            "이 동영상을 읽지 못했어요. MP4(H.264)로 저장해서 다시 선택해주세요.",
+          ),
+        );
+      };
+      const timer = setTimeout(failed, 20000);
+      video.addEventListener(event, ready, { once: true });
+      video.addEventListener("error", failed, { once: true });
+      act();
+    });
+  try {
+    await waitFor("loadeddata", () => {
+      video.src = url;
+    });
+    const { videoWidth: width, videoHeight: height, duration } = video;
+    if (
+      !Number.isFinite(duration) ||
+      duration <= 0 ||
+      duration > VIDEO_MAX_SECONDS
+    )
+      throw new Error("동영상은 3분 이하로 선택해주세요.");
+    if (!width || !height || Math.max(width, height) > 4096)
+      throw new Error("동영상은 긴 변 4,096px 이하로 선택해주세요.");
+    await waitFor("seeked", () => {
+      video.currentTime = Math.min(1, duration / 2);
+    });
+    const poster = await encode(video, width, height, 1600, PHOTO_MAX_BYTES);
+    return {
+      kind: "video",
+      full: file,
+      thumb: poster.blob,
+      width,
+      height,
+      duration,
+      contentType: type,
+      name: file.name,
+    };
+  } finally {
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
     URL.revokeObjectURL(url);
   }
 }

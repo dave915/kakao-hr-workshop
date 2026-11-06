@@ -20,6 +20,8 @@ import {
   uploadPhotoPath,
   photoMonth,
   PHOTO_MONTHLY_LIMIT,
+  VIDEO_MONTHLY_LIMIT,
+  VIDEO_STORAGE_LIMIT,
   COMMENTS_PER_POST,
   COMMENTS_PER_MEMBER_DAY,
   type PhotoPost,
@@ -144,6 +146,145 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
           { contentType: "image/jpeg" },
         );
   }
+  async function beginVideo(contentType = "video/mp4", id = randomUUID()) {
+    const response = await call(
+      {
+        action: "begin",
+        id,
+        caption: "세로 영상",
+        photos: [
+          {
+            kind: "video",
+            width: 1080,
+            height: 1920,
+            duration: 90,
+            contentType,
+          },
+        ],
+      },
+      tokens["alex.k"],
+    );
+    expect(response.status, JSON.stringify(response)).toBe(200);
+    return response.result.post as PhotoPost;
+  }
+  const mp4 = new Uint8Array([
+    0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109, 0, 0, 0, 1, 105, 115,
+    111, 109, 109, 112, 52, 50,
+  ]);
+  it("publishes a private portrait video with a full-quality poster, resumes, authorizes playback and releases storage once", async () => {
+    const post = await beginVideo();
+    const path = uploadPhotoPath(post, 0, "full");
+    await expect(
+      uploadBytes(ref(clients["june.p"], path), mp4, {
+        contentType: "video/mp4",
+      }),
+    ).rejects.toMatchObject({ code: "storage/unauthorized" });
+    await expect(
+      uploadBytes(ref(clients["alex.k"], path.replace(".mp4", ".jpg")), jpeg, {
+        contentType: "image/jpeg",
+      }),
+    ).rejects.toMatchObject({ code: "storage/unauthorized" });
+    await expect(
+      uploadBytes(ref(clients["alex.k"], path), mp4, {
+        contentType: "text/html",
+      }),
+    ).rejects.toMatchObject({ code: "storage/unauthorized" });
+    await uploadBytes(ref(clients["alex.k"], path), mp4, {
+      contentType: "video/mp4",
+    });
+    const resumed = await call(
+      {
+        action: "begin",
+        id: post.id,
+        caption: post.caption,
+        photos: post.photos,
+      },
+      tokens["alex.k"],
+    );
+    expect(resumed.result.uploaded).toContain(path);
+    const poster = new Uint8Array(100000);
+    poster.set(jpeg);
+    await uploadBytes(
+      ref(clients["alex.k"], uploadPhotoPath(post, 0, "thumb")),
+      poster,
+      { contentType: "image/jpeg" },
+    );
+    expect(
+      (await call({ action: "publish", id: post.id }, tokens["alex.k"])).status,
+    ).toBe(200);
+    expect(
+      (await bucket.file(photoPath(post, 0, "full")).download())[0],
+    ).toEqual(Buffer.from(mp4));
+    expect(
+      (await bucket.file(photoPath(post, 0, "thumb")).getMetadata())[0].size,
+    ).toBe("100000");
+    const image = await call(
+      { action: "image", id: post.id, index: 0, size: "full" },
+      tokens["june.p"],
+    );
+    expect(image.status).toBe(200);
+    expect(decodeURIComponent(image.result.url)).toContain("0-full.mp4");
+    expect(image.result.expiresAt).toBeGreaterThan(Date.now() + 14 * 60000);
+    expect(
+      (await call({ action: "image", id: post.id, index: 0, size: "full" }))
+        .status,
+    ).toBe(401);
+    await expect(
+      getBytes(ref(clients["alex.k"], photoPath(post, 0, "full"))),
+    ).rejects.toMatchObject({ code: "storage/unauthorized" });
+    expect((await db.doc("photoLimits/storage").get()).data().videoCount).toBe(
+      1,
+    );
+    expect(
+      (await call({ action: "delete", id: post.id }, tokens["alex.k"])).status,
+    ).toBe(200);
+    expect(
+      (await call({ action: "delete", id: post.id }, tokens["alex.k"])).status,
+    ).toBe(200);
+    expect((await db.doc("photoLimits/storage").get()).data().videoCount).toBe(
+      0,
+    );
+    expect(
+      (await db.doc(`photoLimits/${photoMonth(Date.now())}`).get()).data()
+        .videoCount,
+    ).toBe(1);
+  });
+  it("rejects a forged video and honors video quota reservations without blocking images", async () => {
+    const post = await beginVideo();
+    await uploadBytes(
+      ref(clients["alex.k"], uploadPhotoPath(post, 0, "full")),
+      jpeg,
+      { contentType: "video/mp4" },
+    );
+    await uploadBytes(
+      ref(clients["alex.k"], uploadPhotoPath(post, 0, "thumb")),
+      jpeg,
+      { contentType: "image/jpeg" },
+    );
+    expect(
+      (await call({ action: "publish", id: post.id }, tokens["alex.k"])).status,
+    ).toBe(400);
+    expect((await db.doc(`photoPosts/${post.id}`).get()).data().status).toBe(
+      "draft",
+    );
+    const month = db.doc(`photoLimits/${photoMonth(Date.now())}`);
+    await month.set({ count: 1, videoCount: VIDEO_MONTHLY_LIMIT });
+    const attempt = () =>
+      call(
+        { action: "begin", id: randomUUID(), caption: "", photos: post.photos },
+        tokens["alex.k"],
+      );
+    expect((await attempt()).status).toBe(429);
+    await month.update({ videoCount: 0 });
+    await db
+      .doc("photoLimits/storage")
+      .update({ videoCount: VIDEO_STORAGE_LIMIT });
+    expect((await attempt()).status).toBe(429);
+    await begin();
+    expect((await db.doc("photoLimits/storage").get()).data().videoCount).toBe(
+      VIDEO_STORAGE_LIMIT,
+    );
+  });
   it("requires current membership for listing and beginning posts", async () => {
     expect((await call({ action: "list" })).status).toBe(401);
     await db.doc("members/alex.k").update({ sessionVersion: 2 });
@@ -188,7 +329,7 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
     await expect(
       uploadBytes(
         ref(clients["alex.k"], uploadPhotoPath(post, 0, "thumb")),
-        new Uint8Array(51201),
+        new Uint8Array(512001),
         { contentType: "image/jpeg" },
       ),
     ).rejects.toMatchObject({ code: "storage/unauthorized" });

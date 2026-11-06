@@ -10,12 +10,14 @@ import {
 } from "lucide-react";
 import {
   threadedCommentPreview,
+  isVideo,
   type PhotoPost,
   type PhotoComment,
 } from "../../shared/photos";
 import { englishName, formatDate, formatTime } from "../lib/utils";
 import { Avatar } from "./common";
 import PhotoImage from "./PhotoImage";
+import PhotoVideo from "./PhotoVideo";
 import CommentHeart from "./CommentHeart";
 
 export default function PhotoFeedPost({
@@ -56,7 +58,9 @@ export default function PhotoFeedPost({
   const longCaption =
     post.caption.length > 120 || post.caption.split("\n").length > 3;
   const first = post.photos[0];
-  const ratio = Math.max(0.8, Math.min(4 / 3, first.width / first.height));
+  const ratio = isVideo(first)
+    ? first.width / first.height
+    : Math.max(0.8, Math.min(4 / 3, first.width / first.height));
   const timestamp = new Date(post.createdAt).toISOString();
   const preview = threadedCommentPreview(post.commentPreview ?? []);
   useEffect(() => {
@@ -129,10 +133,15 @@ export default function PhotoFeedPost({
         className="photo-carousel"
         data-menu-swipe="ignore"
         role="group"
-        aria-roledescription="사진 슬라이드"
-        aria-label={`${name}의 사진 ${post.photos.length}장`}
+        aria-roledescription="사진·동영상 슬라이드"
+        aria-label={
+          isVideo(first)
+            ? `${name}의 동영상`
+            : `${name}의 사진 ${post.photos.length}장`
+        }
         style={{ "--photo-ratio": ratio } as CSSProperties}
         onKeyDown={(event) => {
+          if ((event.target as Element).closest("video")) return;
           if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
             event.preventDefault();
             go(active + (event.key === "ArrowRight" ? 1 : -1));
@@ -163,22 +172,37 @@ export default function PhotoFeedPost({
             }
           }}
         >
-          {post.photos.map((_, index) => (
-            <button
-              key={index}
-              className="photo-slide"
-              tabIndex={index === active ? 0 : -1}
-              aria-hidden={index !== active}
-              onClick={() => onOpen(post, index)}
-              aria-label={`${name}의 사진 ${index + 1} 크게 보기`}
-            >
-              <PhotoImage
-                post={post}
-                index={index}
-                enabled={index === active}
-              />
-            </button>
-          ))}
+          {post.photos.map((media, index) =>
+            isVideo(media) ? (
+              <div
+                key={index}
+                className="photo-slide photo-slide-video"
+                aria-hidden={index !== active}
+              >
+                <PhotoVideo
+                  post={post}
+                  index={index}
+                  enabled={index === active}
+                />
+              </div>
+            ) : (
+              <button
+                key={index}
+                className="photo-slide"
+                tabIndex={index === active ? 0 : -1}
+                aria-hidden={index !== active}
+                onClick={() => onOpen(post, index)}
+                aria-label={`${name}의 사진 ${index + 1} 크게 보기`}
+              >
+                <PhotoImage
+                  post={post}
+                  index={index}
+                  enabled={index === active}
+                  full
+                />
+              </button>
+            ),
+          )}
         </div>
         {multiple && (
           <>
@@ -233,7 +257,7 @@ export default function PhotoFeedPost({
           <button
             className="photo-expand"
             onClick={() => onOpen(post, active)}
-            aria-label={`${name}의 현재 사진 크게 보기`}
+            aria-label={`${name}의 현재 ${isVideo(post.photos[active]) ? "동영상" : "사진"} 크게 보기`}
           >
             <Expand size={19} />
             <span>크게 보기</span>

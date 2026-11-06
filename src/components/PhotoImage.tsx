@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Images } from "lucide-react";
-import type { PhotoPost } from "../../shared/photos";
+import { isVideo, type PhotoPost } from "../../shared/photos";
 import { readPhoto } from "../lib/photos";
 import { englishName } from "../lib/utils";
 
@@ -15,7 +15,7 @@ interface Props {
 export default function PhotoImage(props: Props) {
   return (
     <ImageResource
-      key={`${props.post.id}:${props.index ?? 0}:${props.full ? "full" : "thumb"}`}
+      key={`${props.post.id}:${props.index ?? 0}:${props.full === false ? "thumb" : "full"}`}
       {...props}
     />
   );
@@ -23,7 +23,7 @@ export default function PhotoImage(props: Props) {
 function ImageResource({
   post,
   index = 0,
-  full = false,
+  full = true,
   enabled = true,
   eager = false,
   retryable = false,
@@ -81,7 +81,7 @@ function ImageResource({
       {url ? (
         <img
           src={url}
-          alt={`${englishName(post.authorHandle)}의 사진 ${index + 1}`}
+          alt={`${englishName(post.authorHandle)}의 ${isVideo(post.photos[index]) ? "동영상 표지" : "사진"} ${index + 1}`}
           width={post.photos[index].width}
           height={post.photos[index].height}
           decoding="async"

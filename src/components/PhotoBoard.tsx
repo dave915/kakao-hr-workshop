@@ -38,11 +38,23 @@ import { photoDeliveryTime } from "../../shared/photo-notifications";
 function PreparedPreview({ photo }: { photo: PreparedPhoto }) {
   const [url, setUrl] = useState("");
   useEffect(() => {
-    const value = URL.createObjectURL(photo.thumb);
+    const value = URL.createObjectURL(
+      photo.kind === "video" ? photo.thumb : photo.full,
+    );
     setUrl(value);
     return () => URL.revokeObjectURL(value);
   }, [photo]);
-  return <img src={url || undefined} alt={photo.name} />;
+  return (
+    <>
+      <img src={url || undefined} alt={photo.name} />
+      {photo.kind === "video" && (
+        <span className="photo-video-badge">
+          동영상 {Math.floor(photo.duration / 60)}:
+          {String(Math.floor(photo.duration % 60)).padStart(2, "0")}
+        </span>
+      )}
+    </>
+  );
 }
 export default function PhotoBoard({ notify }: { notify: Notify }) {
   const captionInput = useRef<HTMLTextAreaElement>(null);
@@ -286,6 +298,11 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
     try {
       const prepared: PreparedPhoto[] = [];
       for (const file of files) prepared.push(await preparePhoto(file));
+      const combined = [...photos, ...prepared];
+      if (combined.some((p) => p.kind === "video") && combined.length !== 1)
+        throw new Error(
+          "사진은 최대 3장, 동영상은 1개씩 올려주세요. 선택한 파일을 먼저 제외해주세요.",
+        );
       if (mounted.current) {
         setPhotos((current) => [...current, ...prepared]);
         requestId.current = crypto.randomUUID();
@@ -334,6 +351,9 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
     }
   }
   const openPhoto = (post: PhotoPost, index = 0) => {
+    document.dispatchEvent(
+      new CustomEvent("workshop-video-play", { detail: null }),
+    );
     setImageIndex(index);
     setViewing(post);
   };
@@ -342,7 +362,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
       <header className="photo-feed-header">
         <div>
           <h1>우리의 순간</h1>
-          <p>함께한 오늘을 사진으로 나눠요.</p>
+          <p>함께한 오늘을 사진과 동영상으로 나눠요.</p>
         </div>
         <button
           className="button dark photo-new-post"
@@ -399,7 +419,9 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
         {demo && (
           <p className="footnote">미리보기 사진은 이 브라우저에만 저장돼요.</p>
         )}
-        <p className="footnote">사진과 댓글은 워크샵 참가자에게만 보여요.</p>
+        <p className="footnote">
+          사진·동영상과 댓글은 워크샵 참가자에게만 보여요.
+        </p>
       </div>
       {error && (
         <div className="photo-feedback" role="alert">
@@ -417,14 +439,14 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
       ) : !posts.length && !error ? (
         <Empty
           title="첫 번째 순간을 남겨볼까요?"
-          body="풍경도, 단체 사진도 좋아요. 함께한 오늘을 채워주세요."
+          body="사진이나 짧은 동영상으로 함께한 오늘을 남겨주세요."
         >
           <button
             className="button dark"
             onClick={() => setCompose(true)}
             disabled={!navigator.onLine || remaining === 0}
           >
-            <ImagePlus size={18} />첫 사진 올리기
+            <ImagePlus size={18} />첫 순간 남기기
           </button>
         </Empty>
       ) : null}
@@ -511,16 +533,16 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
         >
           <form className="photo-composer" onSubmit={(e) => void submit(e)}>
             <p className="muted">
-              함께한 사진을 최대 {PHOTOS_PER_POST}장 골라주세요.
+              사진 최대 {PHOTOS_PER_POST}장 또는 동영상 1개를 골라주세요.
             </p>
             <input
               ref={input}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,video/mp4,video/quicktime,.mp4,.mov"
               multiple
               className="photo-file-input"
               tabIndex={-1}
-              aria-label="게시할 사진 선택"
+              aria-label="게시할 사진 또는 동영상 선택"
               disabled={busy}
               onChange={(e) =>
                 void selectFiles(Array.from(e.target.files ?? []))
@@ -536,7 +558,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
                   <button
                     type="button"
                     className="icon-button"
-                    aria-label={`사진 ${index + 1} 제외`}
+                    aria-label={`${photo.kind === "video" ? "동영상" : "사진"} ${index + 1} 제외`}
                     disabled={busy}
                     onClick={() => {
                       setPhotos((current) =>
@@ -549,24 +571,27 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
                   </button>
                 </div>
               ))}
-              {photos.length < PHOTOS_PER_POST && (
-                <button
-                  type="button"
-                  className="photo-add"
-                  onClick={() => input.current?.click()}
-                  disabled={busy}
-                >
-                  <ImagePlus size={28} />
-                  <span>{preparing ? "사진 준비 중…" : "사진 선택"}</span>
-                  <small>
-                    {photos.length}/{PHOTOS_PER_POST}
-                  </small>
-                </button>
-              )}
+              {photos.length < PHOTOS_PER_POST &&
+                !photos.some((p) => p.kind === "video") && (
+                  <button
+                    type="button"
+                    className="photo-add"
+                    onClick={() => input.current?.click()}
+                    disabled={busy}
+                  >
+                    <ImagePlus size={28} />
+                    <span>
+                      {preparing ? "파일 준비 중…" : "사진·동영상 선택"}
+                    </span>
+                    <small>
+                      {photos.length}/{PHOTOS_PER_POST}
+                    </small>
+                  </button>
+                )}
             </div>
             <p className="photo-compression-note">
-              사진은 보기 좋은 크기로 자동 압축해요. 원본 파일은 기기에
-              보관해주세요.
+              사진 미리보기와 크게보기는 같은 화질이에요. 동영상은 MP4/MOV,
+              100MB·3분 이내로 원본 화질을 유지해 올려요.
             </p>
             <label className="photo-caption-input">
               이 순간의 이야기
@@ -604,7 +629,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
                 <progress max={100} value={progress} />
                 <span>
                   {progress < 90
-                    ? `사진을 올리고 있어요 · ${progress}%`
+                    ? `파일을 올리고 있어요 · ${progress}%`
                     : "게시글을 마무리하고 있어요…"}
                 </span>
               </div>
@@ -618,11 +643,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
               ) : (
                 <Plus size={18} />
               )}{" "}
-              {preparing
-                ? "사진 준비 중…"
-                : posting
-                  ? "게시 중…"
-                  : "사진 게시하기"}
+              {preparing ? "파일 준비 중…" : posting ? "게시 중…" : "게시하기"}
             </button>
             {photos.length > remaining && (
               <p className="form-error">
@@ -649,8 +670,8 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
         >
           <div className="photo-delete-confirm">
             <p>
-              글과 사진 {deleting.photos.length}장을 함께 삭제해요. 삭제한
-              사진은 되돌릴 수 없어요.
+              글과 첨부한 사진·동영상을 함께 삭제해요. 삭제한 파일은 되돌릴 수
+              없어요.
             </p>
             {deleteError && (
               <p className="form-error" role="alert">
@@ -677,7 +698,7 @@ export default function PhotoBoard({ notify }: { notify: Notify }) {
                       current.filter((p) => p.id !== deleting.id),
                     );
                     setDeleting(null);
-                    notify("게시글과 사진을 삭제했어요.");
+                    notify("게시글과 첨부파일을 삭제했어요.");
                   } catch (e) {
                     setDeleteError(errorMessage(e));
                   } finally {

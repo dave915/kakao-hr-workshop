@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 export const PHOTO_MAX_BYTES = 500 * 1024;
-export const THUMB_MAX_BYTES = 50 * 1024;
+export const THUMB_MAX_BYTES = PHOTO_MAX_BYTES;
+export const VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+export const VIDEO_MAX_SECONDS = 180;
+export const VIDEO_MONTHLY_LIMIT = 20;
+export const VIDEO_STORAGE_LIMIT = 20;
 export const PHOTOS_PER_POST = 3;
 export const PHOTO_PAGE_SIZE = 18;
 export const PHOTO_MONTHLY_LIMIT = 1000;
@@ -23,6 +27,36 @@ export const photoDimensions = z.object({
   height: z.number().int().min(1).max(1600),
 });
 export type PhotoDimensions = z.infer<typeof photoDimensions>;
+export const videoMedia = z.object({
+  kind: z.literal("video"),
+  width: z.number().int().min(1).max(4096),
+  height: z.number().int().min(1).max(4096),
+  duration: z.number().positive().max(VIDEO_MAX_SECONDS),
+  contentType: z.enum(["video/mp4", "video/quicktime"]),
+});
+export const photoMedia = z.union([
+  videoMedia,
+  photoDimensions.extend({ kind: z.literal("image").optional() }),
+]);
+export type PhotoMedia = z.infer<typeof photoMedia>;
+export function isVideo(
+  media: PhotoMedia,
+): media is z.infer<typeof videoMedia> {
+  return media.kind === "video";
+}
+export function mediaContentType(media: PhotoMedia, size: "full" | "thumb") {
+  return size === "full" && isVideo(media) ? media.contentType : "image/jpeg";
+}
+export function mediaByteLimit(media: PhotoMedia, size: "full" | "thumb") {
+  return size === "full" && isVideo(media) ? VIDEO_MAX_BYTES : PHOTO_MAX_BYTES;
+}
+export function checkVideoQuota(monthly: number, stored: number) {
+  if (monthly >= VIDEO_MONTHLY_LIMIT)
+    return "이번 달 동영상 업로드 한도에 도달했어요.";
+  if (stored >= VIDEO_STORAGE_LIMIT)
+    return "동영상 보관 공간이 가득 찼어요. 추진위원회에 문의해주세요.";
+  return null;
+}
 export const photoCursor = z.object({
   createdAt: z.number().int().nonnegative(),
   id: z.string().uuid(),
@@ -103,7 +137,14 @@ export const photoActionInput = z.discriminatedUnion("action", [
     action: z.literal("begin"),
     id: z.string().uuid(),
     caption: z.string().trim().max(1000),
-    photos: z.array(photoDimensions).min(1).max(PHOTOS_PER_POST),
+    photos: z
+      .array(photoMedia)
+      .min(1)
+      .max(PHOTOS_PER_POST)
+      .refine(
+        (items) => !items.some(isVideo) || items.length === 1,
+        "사진은 최대 3장, 동영상은 1개씩 올려주세요.",
+      ),
   }),
   z.object({ action: z.literal("publish"), id: z.string().uuid() }),
   z.object({ action: z.literal("delete"), id: z.string().uuid() }),
@@ -115,7 +156,7 @@ export interface PhotoPost {
   authorHandle: string;
   generation: number;
   caption: string;
-  photos: PhotoDimensions[];
+  photos: PhotoMedia[];
   createdAt: number;
   status: "draft" | "publishing" | "published" | "deleting" | "deleted";
   expiresAt: number;
@@ -159,6 +200,7 @@ export interface PhotoResponse {
   comment?: PhotoComment;
   nextCommentCursor?: PhotoCursor | null;
   url?: string;
+  expiresAt?: number;
   uploaded?: string[];
   post?: PhotoPost;
   posts?: PhotoPost[];
@@ -210,17 +252,28 @@ export function threadedCommentPreview(
   return preview;
 }
 export function photoPath(
-  post: Pick<PhotoPost, "generation" | "authorId" | "id">,
+  post: Pick<PhotoPost, "generation" | "authorId" | "id"> & {
+    photos?: PhotoMedia[];
+  },
   index: number,
   size: "full" | "thumb",
 ) {
-  return `photos/${post.generation}/${post.authorId}/${post.id}/${index}-${size}.jpg`;
+  const media = post.photos?.[index];
+  const ext =
+    size === "full" && media && isVideo(media)
+      ? media.contentType === "video/quicktime"
+        ? "mov"
+        : "mp4"
+      : "jpg";
+  return `photos/${post.generation}/${post.authorId}/${post.id}/${index}-${size}.${ext}`;
 }
 export function photoMonth(now: number) {
   return new Date(now).toISOString().slice(0, 7);
 }
 export function uploadPhotoPath(
-  post: Pick<PhotoPost, "generation" | "authorId" | "id">,
+  post: Pick<PhotoPost, "generation" | "authorId" | "id"> & {
+    photos?: PhotoMedia[];
+  },
   index: number,
   size: "full" | "thumb",
 ) {

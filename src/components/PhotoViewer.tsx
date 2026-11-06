@@ -6,7 +6,7 @@ import {
   type PointerEvent,
 } from "react";
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from "lucide-react";
-import type { PhotoPost } from "../../shared/photos";
+import { isVideo, type PhotoPost } from "../../shared/photos";
 import { englishName } from "../lib/utils";
 import { useDialog } from "../hooks/useDialog";
 import {
@@ -15,6 +15,7 @@ import {
   type PhotoTransform,
 } from "../lib/photo-viewer-geometry";
 import PhotoImage from "./PhotoImage";
+import PhotoVideo from "./PhotoVideo";
 import { photoViewerMotionTokens as photoMotion } from "../design/motion-tokens";
 
 export default function PhotoViewer({
@@ -41,6 +42,7 @@ export default function PhotoViewer({
     multi: false,
   });
   const lastTap = useRef(0);
+  const video = isVideo(post.photos[index]);
 
   useDialog(dialog, onClose);
 
@@ -76,7 +78,11 @@ export default function PhotoViewer({
   }, [index]);
 
   function begin(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || (event.target as Element).closest("button"))
+    if (
+      video ||
+      event.button !== 0 ||
+      (event.target as Element).closest("button, video")
+    )
       return;
     event.currentTarget.setPointerCapture(event.pointerId);
     pointers.current.set(event.pointerId, {
@@ -180,13 +186,14 @@ export default function PhotoViewer({
   return (
     <dialog
       ref={dialog}
-      className="photo-lightbox"
+      className={`photo-lightbox${video ? " is-video-viewer" : ""}`}
       aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
       }}
       onKeyDown={(event) => {
+        if ((event.target as Element).closest("video")) return;
         if (
           current.current.scale > 1 &&
           ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
@@ -225,18 +232,22 @@ export default function PhotoViewer({
           {englishName(post.authorHandle)}의 순간
         </h2>
         <div className="ds-control-group ds-glass">
-          <button
-            className="ds-icon-button"
-            onClick={zoom}
-            aria-pressed={transform.scale > 1}
-            aria-label={transform.scale > 1 ? "사진 원래 크기로" : "사진 확대"}
-          >
-            {transform.scale > 1 ? <ZoomOut /> : <ZoomIn />}
-          </button>
+          {!video && (
+            <button
+              className="ds-icon-button"
+              onClick={zoom}
+              aria-pressed={transform.scale > 1}
+              aria-label={
+                transform.scale > 1 ? "사진 원래 크기로" : "사진 확대"
+              }
+            >
+              {transform.scale > 1 ? <ZoomOut /> : <ZoomIn />}
+            </button>
+          )}
           <button
             className="ds-icon-button"
             onClick={onClose}
-            aria-label="사진 닫기"
+            aria-label={video ? "동영상 닫기" : "사진 닫기"}
           >
             <X />
           </button>
@@ -244,7 +255,7 @@ export default function PhotoViewer({
       </header>
       <div
         ref={stage}
-        className={`photo-lightbox-stage ${transform.scale > 1 ? "is-zoomed" : ""}`}
+        className={`photo-lightbox-stage ${video ? "is-video" : ""} ${transform.scale > 1 ? "is-zoomed" : ""}`}
         onPointerDown={begin}
         onPointerMove={move}
         onPointerUp={end}
@@ -257,34 +268,40 @@ export default function PhotoViewer({
             transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
           }}
         >
-          <PhotoImage post={post} index={index} full eager retryable />
+          {video ? (
+            <PhotoVideo key={`${post.id}:${index}`} post={post} index={index} />
+          ) : (
+            <PhotoImage post={post} index={index} full eager retryable />
+          )}
         </div>
       </div>
       <footer className="photo-lightbox-footer">
-        <div className="photo-lightbox-navigation">
-          <button
-            className="ds-icon-button ds-glass"
-            aria-label="이전 사진"
-            disabled={index === 0}
-            onClick={() => go(index - 1)}
-          >
-            <ChevronLeft />
-          </button>
-          <span aria-live="polite" aria-atomic="true">
-            {index + 1} / {post.photos.length}
-          </span>
-          <button
-            className="ds-icon-button ds-glass"
-            aria-label="다음 사진"
-            disabled={index === post.photos.length - 1}
-            onClick={() => go(index + 1)}
-          >
-            <ChevronRight />
-          </button>
-        </div>
+        {(!video || post.photos.length > 1) && (
+          <div className="photo-lightbox-navigation">
+            <button
+              className="ds-icon-button ds-glass"
+              aria-label="이전 사진"
+              disabled={index === 0}
+              onClick={() => go(index - 1)}
+            >
+              <ChevronLeft />
+            </button>
+            <span aria-live="polite" aria-atomic="true">
+              {index + 1} / {post.photos.length}
+            </span>
+            <button
+              className="ds-icon-button ds-glass"
+              aria-label="다음 사진"
+              disabled={index === post.photos.length - 1}
+              onClick={() => go(index + 1)}
+            >
+              <ChevronRight />
+            </button>
+          </div>
+        )}
         {post.caption && (
           <details className="photo-lightbox-caption">
-            <summary>사진 이야기</summary>
+            <summary>{video ? "동영상 이야기" : "사진 이야기"}</summary>
             <p>{post.caption}</p>
           </details>
         )}

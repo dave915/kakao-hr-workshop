@@ -19,6 +19,9 @@ import {
   COMMENTS_PER_POST,
   COMMENTS_PER_MEMBER_DAY,
   commentBody,
+  isVideo,
+  mediaContentType,
+  checkVideoQuota,
   type PhotoComment,
   checkPhotoQuota,
   type PhotoActionInput,
@@ -27,7 +30,7 @@ import {
   type PhotoCursor,
 } from "../../shared/photos";
 import type { Member } from "../../shared/types";
-import type { PreparedPhoto } from "./photo-images";
+import { preparedMetadata, type PreparedPhoto } from "./photo-images";
 const storage = app
   ? getStorage(
       app,
@@ -176,6 +179,15 @@ export async function publishPhotos(
       count(all.filter((p) => p.post.status !== "deleted")),
     );
     if (issue) throw new Error(issue);
+    if (photos.some((p) => p.kind === "video")) {
+      const countVideos = (items: DemoPost[]) =>
+        items.reduce((n, p) => n + p.post.photos.filter(isVideo).length, 0);
+      const videoIssue = checkVideoQuota(
+        countVideos(current),
+        countVideos(all.filter((p) => p.post.status !== "deleted")),
+      );
+      if (videoIssue) throw new Error(videoIssue);
+    }
     const now = Date.now(),
       post: PhotoPost = {
         id,
@@ -183,7 +195,7 @@ export async function publishPhotos(
         authorHandle: member.handle,
         generation,
         caption: caption.trim(),
-        photos: photos.map(({ width, height }) => ({ width, height })),
+        photos: photos.map(preparedMetadata),
         status: "published",
         createdAt: now,
         updatedAt: now,
@@ -198,7 +210,7 @@ export async function publishPhotos(
     action: "begin",
     id,
     caption,
-    photos: photos.map(({ width, height }) => ({ width, height })),
+    photos: photos.map(preparedMetadata),
   });
   if (!post) throw new Error("사진 업로드를 준비하지 못했어요.");
   if (post.status === "published") return post;
@@ -212,7 +224,7 @@ export async function publishPhotos(
         if (!uploaded.includes(file.fullPath))
           await new Promise<void>((resolve, reject) => {
             const upload = uploadBytesResumable(file, blob, {
-              contentType: "image/jpeg",
+              contentType: mediaContentType(post.photos[i], size),
               cacheControl: "private,max-age=3600",
             });
             upload.on(
@@ -262,9 +274,42 @@ export function readPhoto(
   index: number,
   size: "full" | "thumb",
 ) {
+  // Every image surface, including previews of existing posts, uses the same
+  // full-resolution JPEG. Videos have one full-quality JPEG poster.
+  size = isVideo(post.photos[index]) ? "thumb" : "full";
   return photoCache.read(`${post.id}:${index}:${size}`, () =>
     fetchPhoto(post, index, size),
   );
+}
+
+export async function readVideoSource(post: PhotoPost, index: number) {
+  if (!isVideo(post.photos[index])) throw new Error("동영상을 찾을 수 없어요.");
+  if (demoMode) {
+    const saved = (await demoRead()).find(
+      (p) => p.post.id === post.id && p.post.status === "published",
+    );
+    if (!saved?.images[index]) throw new Error("동영상을 찾을 수 없어요.");
+    const url = URL.createObjectURL(saved.images[index].full);
+    return {
+      url,
+      expiresAt: Infinity,
+      release: () => URL.revokeObjectURL(url),
+    };
+  }
+  const result = await photoAction({
+    action: "image",
+    id: post.id,
+    index,
+    size: "full",
+  });
+  if (!result.url) throw new Error("동영상을 불러오지 못했어요.");
+  // Use the signed URL directly: native video can make range requests and seek
+  // without downloading a large video into the photo blob cache.
+  return {
+    url: result.url,
+    expiresAt: result.expiresAt ?? Date.now() + 5 * 60000,
+    release: () => {},
+  };
 }
 async function fetchPhoto(
   post: PhotoPost,
@@ -375,12 +420,10 @@ export async function listPhotoLikes(
     .slice(0, PHOTO_LIKES_PAGE_SIZE + 1);
   return {
     likeCount: ids.length,
-    likers: page
-      .slice(0, PHOTO_LIKES_PAGE_SIZE)
-      .map((id) => ({
-        id,
-        handle: Object.hasOwn(members, id) ? members[id].handle : null,
-      })),
+    likers: page.slice(0, PHOTO_LIKES_PAGE_SIZE).map((id) => ({
+      id,
+      handle: Object.hasOwn(members, id) ? members[id].handle : null,
+    })),
     nextLikeCursor:
       page.length > PHOTO_LIKES_PAGE_SIZE
         ? page[PHOTO_LIKES_PAGE_SIZE - 1]
