@@ -5,6 +5,7 @@ import type {
   TreasureSecrets,
   WorkshopState,
   ClaimResult,
+  WorkshopView,
 } from "./types";
 export class GameError extends Error {}
 export const DEFAULT_TREASURE_RADIUS = 10;
@@ -87,33 +88,65 @@ export function claimTreasure(
     blockedUntil: member.blockedUntil,
   };
 }
-export const memberRanking = (state: Pick<WorkshopState, "members">) =>
-  Object.values(state.members).sort(
-    (a, b) =>
-      b.score - a.score ||
-      b.found - a.found ||
-      a.handle.localeCompare(b.handle),
-  );
-export function teamRanking(state: Pick<WorkshopState, "members">) {
+type RankingState = Pick<WorkshopView, "members" | "treasures">;
+
+export function memberRanking(state: RankingState) {
+  const amounts = new Map<string, number>();
+  for (const treasure of state.treasures) {
+    if (
+      !treasure.foundBy ||
+      treasure.outcome === "bomb" ||
+      treasure.outcome === "cheer"
+    )
+      continue;
+    amounts.set(
+      treasure.foundBy,
+      (amounts.get(treasure.foundBy) ?? 0) + (treasure.prizeAmount ?? 0),
+    );
+  }
+  return Object.values(state.members)
+    .map((member) => ({
+      ...member,
+      prizeAmount: amounts.get(member.id) ?? 0,
+    }))
+    .sort(
+      (a, b) =>
+        b.prizeAmount - a.prizeAmount ||
+        b.found - a.found ||
+        a.handle.localeCompare(b.handle),
+    );
+}
+export function teamRanking(state: RankingState) {
   const result = new Map<
     string,
-    { name: string; score: number; found: number; members: number }
+    {
+      name: string;
+      score: number;
+      prizeAmount: number;
+      found: number;
+      members: number;
+    }
   >();
-  Object.values(state.members).forEach((p) => {
+  memberRanking(state).forEach((p) => {
     if (["", "미배정", "워추위"].includes(p.team.replace(/\s/g, ""))) return;
     const t = result.get(p.team) ?? {
       name: p.team,
       score: 0,
+      prizeAmount: 0,
       found: 0,
       members: 0,
     };
     t.score += p.score;
+    t.prizeAmount += p.prizeAmount;
     t.found += p.found;
     t.members++;
     result.set(p.team, t);
   });
   return [...result.values()].sort(
-    (a, b) => b.score - a.score || a.name.localeCompare(b.name),
+    (a, b) =>
+      b.prizeAmount - a.prizeAmount ||
+      b.found - a.found ||
+      a.name.localeCompare(b.name),
   );
 }
 export function scheduleStatus(

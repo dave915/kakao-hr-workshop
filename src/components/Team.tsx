@@ -3,6 +3,7 @@ import { Flag, Medal, Gift, Trophy } from "lucide-react";
 import { useWorkshop } from "../lib/store";
 import { englishName } from "../lib/utils";
 import { memberRanking, teamRanking } from "../../shared/game";
+import { prizeLabel } from "../../shared/prizes";
 import { Avatar, Empty, SectionTitle } from "./common";
 import { ActivityGroups } from "./ActivityGroups";
 export default function Team() {
@@ -66,7 +67,9 @@ export default function Team() {
                       ? "꽝!"
                       : t.outcome === "cheer"
                         ? "응원"
-                        : `+${t.points} P`}
+                        : t.prizeAmount !== undefined
+                          ? prizeLabel(t.prizeAmount)
+                          : "금액 미지정"}
                   </strong>
                 </article>
               ))}
@@ -99,21 +102,21 @@ export default function Team() {
               ? teamRanking(state).map((t) => ({
                   id: t.name,
                   name: t.name,
-                  score: t.score,
+                  prizeAmount: t.prizeAmount,
                   found: t.found,
                   self: t.name === me.team,
                 }))
               : memberRanking(state).map((m) => ({
                   id: m.id,
                   name: englishName(m.handle),
-                  score: m.score,
+                  prizeAmount: m.prizeAmount,
                   found: m.found,
                   self: m.id === me.id,
                 }))
             ).map((r, i) => (
               <article key={r.id} className={r.self ? "self" : ""}>
                 <span className="rank">
-                  {i === 0 && r.score > 0 ? <Trophy size={23} /> : i + 1}
+                  {i === 0 && r.prizeAmount > 0 ? <Trophy size={23} /> : i + 1}
                 </span>
                 <div>
                   <h3>
@@ -123,15 +126,16 @@ export default function Team() {
                   <p>보물 {r.found}개 발견</p>
                 </div>
                 <strong>
-                  {r.score.toLocaleString()}
-                  <small>P</small>
+                  {r.prizeAmount.toLocaleString("ko-KR")}
+                  <small>원</small>
                 </strong>
               </article>
             ))}
           </div>
           <p className="footnote">
             <Medal size={14} />
-            포인트순으로 표시해요. 동점은 발견 수, 이름순이에요.
+            찾은 금액 합계순으로 표시해요. 같은 금액은 발견 수, 이름순이에요.
+            금액 미지정 보물은 합계에서 제외해요.
           </p>
         </section>
       </div>
