@@ -6180,6 +6180,31 @@ td .text-button {
   background: var(--ds-photo-viewer-bg);
   color: var(--ds-photo-viewer-text);
 }
+.photo-save-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.photo-save-help {
+  font-size: var(--ds-font-size-body);
+  line-height: 1.6;
+  color: var(--ds-color-text);
+}
+.photo-save-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 55dvh;
+  object-fit: contain;
+  -webkit-touch-callout: default;
+  user-select: auto;
+}
+.photo-save-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--ds-font-size-body);
+}
 .photo-expand {
   display: flex;
   align-items: center;

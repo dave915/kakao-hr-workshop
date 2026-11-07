@@ -3,6 +3,7 @@ import { Download, LoaderCircle } from "lucide-react";
 import { isVideo, type PhotoPost } from "../../shared/photos";
 import { getPhotoDownload } from "../lib/photos";
 import { englishName } from "../lib/utils";
+import PhotoSaveDialog from "./PhotoSaveDialog";
 
 interface Props {
   post: PhotoPost;
@@ -20,7 +21,10 @@ function DownloadControl({ post, index, compact = false }: Props) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [status, setStatus] = useState("");
-  const label = `${englishName(post.authorHandle)}의 ${isVideo(post.photos[index]) ? "동영상" : "사진"} ${index + 1} 다운로드`;
+  const [save, setSave] = useState<{ post: PhotoPost; index: number }>();
+  const video = isVideo(post.photos[index]);
+  const action = video ? "다운로드" : "사진 저장";
+  const label = `${englishName(post.authorHandle)}의 ${video ? "동영상" : "사진"} ${index + 1} ${video ? "다운로드" : "저장"}`;
   useEffect(() => {
     live.current = true;
     return () => {
@@ -34,6 +38,10 @@ function DownloadControl({ post, index, compact = false }: Props) {
     setStatus("");
     if (!navigator.onLine) {
       setError("인터넷에 연결한 뒤 다시 눌러주세요.");
+      return;
+    }
+    if (!video) {
+      setSave({ post, index });
       return;
     }
     pending.current = true;
@@ -81,7 +89,7 @@ function DownloadControl({ post, index, compact = false }: Props) {
         type="button"
         className={compact ? "ds-icon-button photo-download" : "photo-download"}
         aria-label={busy ? "다운로드 준비 중" : label}
-        title={busy ? "다운로드 준비 중" : "다운로드"}
+        title={busy ? "다운로드 준비 중" : action}
         aria-busy={busy}
         disabled={busy}
         onClick={() => void download()}
@@ -91,7 +99,7 @@ function DownloadControl({ post, index, compact = false }: Props) {
         ) : (
           <Download size={20} />
         )}
-        {!compact && <span className="photo-download-label">다운로드</span>}
+        {!compact && <span className="photo-download-label">{action}</span>}
       </button>
       {error && (
         <span className="photo-download-error" role="alert">
@@ -101,6 +109,7 @@ function DownloadControl({ post, index, compact = false }: Props) {
       <span className="sr-only" role="status">
         {status}
       </span>
+      {save && <PhotoSaveDialog {...save} onClose={() => setSave(undefined)} />}
     </span>
   );
 }
