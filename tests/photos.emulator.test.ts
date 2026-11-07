@@ -20,6 +20,7 @@ import {
   uploadPhotoPath,
   photoMonth,
   PHOTO_MONTHLY_LIMIT,
+  photoDownloadFilename,
   VIDEO_MONTHLY_LIMIT,
   VIDEO_STORAGE_LIMIT,
   COMMENTS_PER_POST,
@@ -225,6 +226,22 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
     expect(image.status).toBe(200);
     expect(decodeURIComponent(image.result.url)).toContain("0-full.mp4");
     expect(image.result.expiresAt).toBeGreaterThan(Date.now() + 14 * 60000);
+    const download = await call(
+      { action: "download", id: post.id, index: 0 },
+      tokens["june.p"],
+    );
+    expect(download.status).toBe(200);
+    expect(download.result.filename).toBe(photoDownloadFilename(post, 0));
+    expect(download.result.filename).toMatch(/\.mp4$/);
+    expect(decodeURIComponent(download.result.url)).toContain("0-full.mp4");
+    expect(
+      new URL(download.result.url).searchParams.get(
+        "response-content-disposition",
+      ),
+    ).toBe(`attachment; filename="${download.result.filename}"`);
+    expect(
+      new Uint8Array(await (await fetch(download.result.url)).arrayBuffer()),
+    ).toEqual(mp4);
     expect(
       (await call({ action: "image", id: post.id, index: 0, size: "full" }))
         .status,
@@ -401,6 +418,73 @@ describe.skipIf(!enabled)("private photo board and Storage rules", () => {
       (await call({ action: "publish", id: post.id }, tokens["alex.k"])).status,
     ).toBe(200);
   }, 30000);
+  it("downloads the selected published full photo without changing the post, and rejects revoked, deleted and previous-generation access", async () => {
+    const post = await begin("alex.k", 2);
+    expect(
+      (
+        await call(
+          { action: "download", id: post.id, index: 0 },
+          tokens["june.p"],
+        )
+      ).status,
+    ).toBe(404);
+    await upload(post);
+    await call({ action: "publish", id: post.id }, tokens["alex.k"]);
+    const before = (await db.doc(`photoPosts/${post.id}`).get()).data();
+    const result = await call(
+      { action: "download", id: post.id, index: 1 },
+      tokens["june.p"],
+    );
+    expect(result.status).toBe(200);
+    expect(result.result.filename).toBe(photoDownloadFilename(post, 1));
+    expect(decodeURIComponent(result.result.url)).toContain("1-full.jpg");
+    expect(
+      new Uint8Array(await (await fetch(result.result.url)).arrayBuffer()),
+    ).toEqual(jpeg);
+    expect((await db.doc(`photoPosts/${post.id}`).get()).data()).toEqual(
+      before,
+    );
+    expect(
+      (await call({ action: "download", id: post.id, index: 0 })).status,
+    ).toBe(401);
+    expect(
+      (
+        await call(
+          { action: "download", id: post.id, index: 2 },
+          tokens["june.p"],
+        )
+      ).status,
+    ).toBe(404);
+    await db.doc("members/june.p").update({ sessionVersion: 2 });
+    expect(
+      (
+        await call(
+          { action: "download", id: post.id, index: 0 },
+          tokens["june.p"],
+        )
+      ).status,
+    ).toBe(401);
+    await db.doc("members/june.p").update({ sessionVersion: 1 });
+    await db.doc("workshops/main").update({ resetGeneration: 1 });
+    expect(
+      (
+        await call(
+          { action: "download", id: post.id, index: 0 },
+          tokens["june.p"],
+        )
+      ).status,
+    ).toBe(404);
+    await db.doc("workshops/main").update({ resetGeneration: 0 });
+    await call({ action: "delete", id: post.id }, tokens["alex.k"]);
+    expect(
+      (
+        await call(
+          { action: "download", id: post.id, index: 0 },
+          tokens["june.p"],
+        )
+      ).status,
+    ).toBe(404);
+  });
   it("does not publish a non-image even when its content-type says JPEG", async () => {
     const post = await begin();
     for (const size of ["full", "thumb"] as const)

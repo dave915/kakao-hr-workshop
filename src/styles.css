@@ -6127,9 +6127,58 @@ td .text-button {
   grid-column: 1;
   grid-row: 1;
 }
-.photo-post-actions .photo-expand {
+.photo-post-actions .photo-media-actions {
   grid-column: 3;
   grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.photo-download-control {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.photo-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--ds-radius-control);
+  font-size: var(--ds-font-size-caption);
+  color: inherit;
+}
+.photo-post-actions .photo-download:hover:not(:disabled) {
+  background: var(--ds-color-surface-hover);
+}
+.photo-download:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.photo-download-error {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 6;
+  width: min(180px, calc(100vw - 32px));
+  padding: 12px;
+  background: var(--ds-color-surface);
+  color: var(--ds-color-danger);
+  border-radius: var(--ds-radius-control);
+  box-shadow: var(--ds-shadow-popover);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: normal;
+}
+.photo-lightbox .photo-download-error {
+  top: calc(100% + 6px);
+  bottom: auto;
+  background: var(--ds-photo-viewer-bg);
+  color: var(--ds-photo-viewer-text);
 }
 .photo-expand {
   display: flex;
@@ -6431,7 +6480,7 @@ td .text-button {
 .photo-like:disabled {
   opacity: 1;
 }
-.photo-post-actions .photo-expand {
+.photo-post-actions .photo-media-actions {
   margin-left: auto;
 }
 .photo-like-count {
@@ -6640,6 +6689,9 @@ td .text-button {
   color: var(--ds-color-on-action);
 }
 @media (max-width: 480px) {
+  .photo-post-actions .photo-download-label {
+    display: none;
+  }
   .photo-post-actions .photo-expand > span {
     display: none;
   }

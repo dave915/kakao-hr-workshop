@@ -20,6 +20,7 @@ import {
   COMMENTS_PER_MEMBER_DAY,
   commentBody,
   isVideo,
+  photoDownloadFilename,
   mediaContentType,
   checkVideoQuota,
   type PhotoComment,
@@ -310,6 +311,29 @@ export async function readVideoSource(post: PhotoPost, index: number) {
     expiresAt: result.expiresAt ?? Date.now() + 5 * 60000,
     release: () => {},
   };
+}
+export async function getPhotoDownload(post: PhotoPost, index: number) {
+  if (demoMode) {
+    const saved = (await demoRead()).find(
+      (p) =>
+        p.post.id === post.id &&
+        p.post.status === "published" &&
+        p.post.generation === post.generation,
+    );
+    if (!saved?.images[index]) throw new Error("파일을 찾을 수 없어요.");
+    const url = URL.createObjectURL(saved.images[index].full);
+    return {
+      url,
+      filename: photoDownloadFilename(saved.post, index),
+      release: () => URL.revokeObjectURL(url),
+    };
+  }
+  const result = await photoAction({ action: "download", id: post.id, index });
+  if (!result.url || !result.filename)
+    throw new Error("다운로드를 준비하지 못했어요.");
+  // Content-Disposition on the signed GCS response handles cross-origin
+  // downloads without buffering a large video in JavaScript memory.
+  return { url: result.url, filename: result.filename, release: () => {} };
 }
 async function fetchPhoto(
   post: PhotoPost,

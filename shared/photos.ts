@@ -132,6 +132,11 @@ export const photoActionInput = z.discriminatedUnion("action", [
     index: z.number().int().min(0).max(2),
     size: z.enum(["full", "thumb"]),
   }),
+  z.object({
+    action: z.literal("download"),
+    id: z.string().uuid(),
+    index: z.number().int().min(0).max(2),
+  }),
   z.object({ action: z.literal("list"), cursor: photoCursor.optional() }),
   z.object({
     action: z.literal("begin"),
@@ -200,6 +205,7 @@ export interface PhotoResponse {
   comment?: PhotoComment;
   nextCommentCursor?: PhotoCursor | null;
   url?: string;
+  filename?: string;
   expiresAt?: number;
   uploaded?: string[];
   post?: PhotoPost;
@@ -269,6 +275,28 @@ export function photoPath(
 }
 export function photoMonth(now: number) {
   return new Date(now).toISOString().slice(0, 7);
+}
+/** Stable, header-safe names for the original published media, dated in KST. */
+export function photoDownloadFilename(
+  post: Pick<PhotoPost, "id" | "authorHandle" | "createdAt" | "photos">,
+  index: number,
+) {
+  const media = post.photos[index];
+  if (!media || !Number.isInteger(index) || index < 0)
+    throw new Error("파일을 찾을 수 없어요.");
+  const date = new Date(post.createdAt + 9 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10)
+    .replaceAll("-", "");
+  const author =
+    post.authorHandle.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 48) || "member";
+  const id = post.id.replace(/[^A-Za-z0-9-]/g, "").slice(0, 36) || "photo";
+  const extension = isVideo(media)
+    ? media.contentType === "video/quicktime"
+      ? "mov"
+      : "mp4"
+    : "jpg";
+  return `workshop_${date}_${author}_${id}_${index + 1}.${extension}`;
 }
 export function uploadPhotoPath(
   post: Pick<PhotoPost, "generation" | "authorId" | "id"> & {

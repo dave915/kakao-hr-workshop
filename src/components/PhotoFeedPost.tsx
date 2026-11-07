@@ -18,6 +18,7 @@ import { englishName, formatDate, formatTime } from "../lib/utils";
 import { Avatar } from "./common";
 import PhotoImage from "./PhotoImage";
 import PhotoVideo from "./PhotoVideo";
+import PhotoDownload from "./PhotoDownload";
 import CommentHeart from "./CommentHeart";
 
 export default function PhotoFeedPost({
@@ -254,14 +255,17 @@ export default function PhotoFeedPost({
               <MessageCircle size={24} />
             </button>
           </div>
-          <button
-            className="photo-expand"
-            onClick={() => onOpen(post, active)}
-            aria-label={`${name}의 현재 ${isVideo(post.photos[active]) ? "동영상" : "사진"} 크게 보기`}
-          >
-            <Expand size={19} />
-            <span>크게 보기</span>
-          </button>
+          <div className="photo-media-actions">
+            <PhotoDownload post={post} index={active} />
+            <button
+              className="photo-expand"
+              onClick={() => onOpen(post, active)}
+              aria-label={`${name}의 현재 ${isVideo(post.photos[active]) ? "동영상" : "사진"} 크게 보기`}
+            >
+              <Expand size={19} />
+              <span>크게 보기</span>
+            </button>
+          </div>
           {multiple && (
             <div className="photo-pagination" aria-label="사진 선택">
               {post.photos.map((_, index) => (

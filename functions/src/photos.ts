@@ -5,6 +5,7 @@ import { HttpsError, type CallableRequest } from "firebase-functions/v2/https";
 import {
   photoActionInput,
   photoPath,
+  photoDownloadFilename,
   uploadPhotoPath,
   photoMonth,
   checkPhotoQuota,
@@ -782,7 +783,7 @@ export async function handlePhotoBoard(
       throw new HttpsError("invalid-argument", "요청 내용을 확인해주세요.");
     });
   }
-  if (input.action === "image") {
+  if (input.action === "image" || input.action === "download") {
     const post = await db.runTransaction(async (tx) => {
       const auth = await authorize(tx, request);
       const post = (await tx.get(ref)).data() as PhotoPost | undefined;
@@ -798,24 +799,36 @@ export async function handlePhotoBoard(
         );
       return post;
     });
-    const path = photoPath(post, input.index, input.size);
+    const size = input.action === "download" ? "full" : input.size;
+    const path = photoPath(post, input.index, size);
+    const filename =
+      input.action === "download"
+        ? photoDownloadFilename(post, input.index)
+        : undefined;
+    const disposition = filename
+      ? `attachment; filename="${filename}"`
+      : undefined;
     const expiresAt =
       now +
-      (isVideo(post.photos[input.index]) && input.size === "full" ? 15 : 5) *
+      (isVideo(post.photos[input.index]) && size === "full" ? 15 : 5) *
         60 *
         1000;
     // The emulator's GCS endpoint is local and does not implement URL signing.
     if (process.env.FIREBASE_STORAGE_EMULATOR_HOST)
       return {
-        url: `http://${process.env.FIREBASE_STORAGE_EMULATOR_HOST}/download/storage/v1/b/${bucket().name}/o/${encodeURIComponent(path)}?alt=media`,
+        url: `http://${process.env.FIREBASE_STORAGE_EMULATOR_HOST}/download/storage/v1/b/${bucket().name}/o/${encodeURIComponent(path)}?alt=media${disposition ? `&response-content-disposition=${encodeURIComponent(disposition)}` : ""}`,
         expiresAt,
+        ...(filename ? { filename } : {}),
       };
-    const [url] = await bucket().file(path).getSignedUrl({
-      version: "v4",
-      action: "read",
-      expires: expiresAt,
-    });
-    return { url, expiresAt };
+    const [url] = await bucket()
+      .file(path)
+      .getSignedUrl({
+        version: "v4",
+        action: "read",
+        expires: expiresAt,
+        ...(disposition ? { responseDisposition: disposition } : {}),
+      });
+    return { url, expiresAt, ...(filename ? { filename } : {}) };
   }
   if (input.action === "begin") {
     let resume = false;

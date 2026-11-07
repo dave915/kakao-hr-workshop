@@ -16,6 +16,7 @@ import {
 } from "../lib/photo-viewer-geometry";
 import PhotoImage from "./PhotoImage";
 import PhotoVideo from "./PhotoVideo";
+import PhotoDownload from "./PhotoDownload";
 import { photoViewerMotionTokens as photoMotion } from "../design/motion-tokens";
 
 export default function PhotoViewer({
@@ -232,6 +233,7 @@ export default function PhotoViewer({
           {englishName(post.authorHandle)}의 순간
         </h2>
         <div className="ds-control-group ds-glass">
+          <PhotoDownload post={post} index={index} compact />
           {!video && (
             <button
               className="ds-icon-button"
