@@ -939,6 +939,8 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       await restore.commit();
     }
   });
+  // Contention retries can exceed Vitest's 5s default on CI. Let both calls and
+  // the finally restore finish before later tests reuse the workshop fixture.
   it("serializes competing registrations for the last cash prize and keeps its amount private", async () => {
     const originalState = (
       await db.doc("workshops/main").get()
@@ -1022,7 +1024,7 @@ describe.skipIf(!enabled)("callable backend integration", () => {
       else restore.delete(originalVisible.ref);
       await restore.commit();
     }
-  });
+  }, 30000);
   it("issues an unguessable personal link and redeems it as the exact member", async () => {
     const created = await call(
       "workshopAction",
